@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply text-gray-800;
+}
+
+.aspect-w-4 {
+  position: relative;
+  padding-bottom: calc(var(--tw-aspect-h) / var(--tw-aspect-w) * 100%);
+}
+
+.aspect-h-3 {
+  --tw-aspect-h: 3;
+}
+
+.aspect-w-4 > * {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Hide scrollbars for better mobile UX */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Thumbnail container mobile enhancements */
+@media (max-width: 768px) {
+  .thumbnail-container {
+    scroll-snap-type: x mandatory;
+    scroll-padding: 1rem;
+  }
+  
+  .thumbnail-container > button {
+    scroll-snap-align: center;
+  }
+}
+
+/* Desktop behavior - single row with horizontal scroll if needed */
+@media (min-width: 769px) {
+  .thumbnail-container {
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    max-width: 100%;
+    scroll-snap-type: none !important;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 transparent;
+  }
+  
+  /* Only center when thumbnails fit without scrolling */
+  .thumbnail-container:not(.overflow) {
+    justify-content: center !important;
+  }
+  
+  .thumbnail-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .thumbnail-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .thumbnail-container::-webkit-scrollbar-thumb {
+    background-color: #cbd5e0;
+    border-radius: 3px;
+  }
+  
+  .thumbnail-container::-webkit-scrollbar-thumb:hover {
+    background-color: #a0aec0;
+  }
+  
+  .thumbnail-container > button {
+    scroll-snap-align: unset !important;
+    flex-shrink: 0;
+  }
+  
+
+}
+
+/* Mobile behavior - enable scrolling when needed */
+@media (max-width: 768px) {
+  .thumbnail-container {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+} 

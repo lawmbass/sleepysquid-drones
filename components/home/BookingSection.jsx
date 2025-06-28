@@ -1,0 +1,450 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
+import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone } from 'react-icons/fi';
+
+const services = [
+  { id: 'aerial-photo', name: 'Aerial Photography' },
+  { id: 'drone-video', name: 'Drone Videography' },
+  { id: 'mapping', name: 'Mapping & Surveying' },
+  { id: 'real-estate', name: 'Real Estate Tours' },
+  { id: 'inspection', name: 'Inspection Services' },
+  { id: 'event', name: 'Event Coverage' },
+  { id: 'custom', name: 'Custom Project' }
+];
+
+const BookingSection = () => {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    service: '',
+    date: '',
+    location: '',
+    duration: '',
+    details: '',
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [minDate, setMinDate] = useState('');
+  
+  // Create refs
+  const dateInputRef = useRef(null);
+
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
+  // Set isClient to true when component mounts in the browser
+  useEffect(() => {
+    setMinDate(getMinDate());
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when field is updated
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateStep = (currentStep) => {
+    const newErrors = {};
+    
+    if (currentStep === 1) {
+      if (!formData.service) newErrors.service = 'Please select a service';
+      if (!formData.date) newErrors.date = 'Please select a date';
+      if (!formData.location) newErrors.location = 'Please enter a location';
+      if (!formData.duration) newErrors.duration = 'Please select a duration';
+    }
+    
+    if (currentStep === 2) {
+      if (!formData.name) newErrors.name = 'Please enter your name';
+      if (!formData.email) {
+        newErrors.email = 'Please enter your email';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email';
+      }
+      if (!formData.phone) newErrors.phone = 'Please enter your phone number';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    setStep(prev => prev - 1);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateStep(step)) {
+      // Here you would typically send the data to your backend
+      console.log('Form submitted:', formData);
+      
+      // For demo purposes, just show success message
+      setStep(3);
+    }
+  };
+
+  // Calculate minimum date (1 week from today)
+  function getMinDate() {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return date.toISOString().split('T')[0];
+  }
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Function to handle clicking on the date field container
+  const handleDateFieldClick = () => {
+    if (dateInputRef.current) {
+      dateInputRef.current.showPicker();
+    }
+  };
+
+  return (
+    <section id="booking" className="py-20 bg-gray-50">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Book Your Drone Service</h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Schedule your drone service with ease. We'll be in touch to confirm the details.
+          </p>
+        </div>
+
+        <motion.div 
+          ref={ref}
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-3xl mx-auto"
+        >
+          {/* Progress Steps */}
+          <div className="flex justify-between items-center mb-8">
+            <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-500' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 1 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                1
+              </div>
+              <span className="text-sm">Service Details</span>
+            </div>
+            <div className={`flex-1 h-1 mx-4 ${step >= 2 ? 'bg-blue-500' : 'bg-gray-200'}`}></div>
+            <div className={`flex flex-col items-center ${step >= 2 ? 'text-blue-500' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 2 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                2
+              </div>
+              <span className="text-sm">Your Information</span>
+            </div>
+            <div className={`flex-1 h-1 mx-4 ${step >= 3 ? 'bg-blue-500' : 'bg-gray-200'}`}></div>
+            <div className={`flex flex-col items-center ${step >= 3 ? 'text-blue-500' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 3 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                3
+              </div>
+              <span className="text-sm">Confirmation</span>
+            </div>
+          </div>
+
+          {/* Form Steps */}
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            {step === 1 && (
+              <form>
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="service">
+                    <div className="flex items-center">
+                      <FiClock className="mr-2 text-blue-500" />
+                      Select Service*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="service"
+                      name="service"
+                      value={formData.service}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.service ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none`}
+                    >
+                      <option value="">Select a service</option>
+                      <option value="aerial-photography">Aerial Photography</option>
+                      <option value="drone-videography">Drone Videography</option>
+                      <option value="mapping-surveying">Mapping & Surveying</option>
+                      <option value="real-estate">Real Estate Tours</option>
+                      <option value="inspection">Inspection Services</option>
+                      <option value="event-coverage">Event Coverage</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="date">
+                    <div className="flex items-center">
+                      <FiCalendar className="mr-2 text-blue-500" />
+                      Preferred Date*
+                    </div>
+                  </label>
+                  <div 
+                    className="relative cursor-pointer"
+                    onClick={handleDateFieldClick}
+                  >
+                    <input
+                      type="date"
+                      id="date"
+                      name="date"
+                      ref={dateInputRef}
+                      min={minDate}
+                      value={formData.date}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.date ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    />
+                  </div>
+                  {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
+                  <p className="text-gray-500 text-sm mt-1">Please choose a date that's at least 7 days from today.</p>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="location">
+                    <div className="flex items-center">
+                      <FiMapPin className="mr-2 text-blue-500" />
+                      Location*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      id="location"
+                      name="location"
+                      placeholder="Enter the service location (address, city, or area)"
+                      value={formData.location}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.location ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <FiMapPin className="text-gray-500" />
+                    </div>
+                  </div>
+                  {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
+                  <p className="text-gray-500 text-sm mt-1">Enter a complete address for accurate service planning</p>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="duration">
+                    <div className="flex items-center">
+                      <FiClock className="mr-2 text-blue-500" />
+                      Duration*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="duration"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none`}
+                    >
+                      <option value="">Select duration</option>
+                      <option value="1-hour">1 Hour</option>
+                      <option value="2-hours">2 Hours</option>
+                      <option value="half-day">Half Day (4 Hours)</option>
+                      <option value="full-day">Full Day (8 Hours)</option>
+                      <option value="custom">Custom (Please specify in details)</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="details">
+                    <div className="flex items-center">
+                      <FiInfo className="mr-2 text-blue-500" />
+                      Additional Details
+                    </div>
+                  </label>
+                  <textarea
+                    id="details"
+                    name="details"
+                    rows="4"
+                    placeholder="Please provide any additional information about your project"
+                    value={formData.details}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Next Step
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {step === 2 && (
+              <form onSubmit={handleSubmit}>
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="name">
+                    <div className="flex items-center">
+                      <FiUser className="mr-2 text-blue-500" />
+                      Full Name*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <FiUser className="text-gray-500" />
+                    </div>
+                  </div>
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
+                    <div className="flex items-center">
+                      <FiMail className="mr-2 text-blue-500" />
+                      Email Address*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="Enter your email address"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <FiMail className="text-gray-500" />
+                    </div>
+                  </div>
+                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="phone">
+                    <div className="flex items-center">
+                      <FiPhone className="mr-2 text-blue-500" />
+                      Phone Number*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      placeholder="Enter your phone number"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <FiPhone className="text-gray-500" />
+                    </div>
+                  </div>
+                  {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                </div>
+
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Submit Booking
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {step === 3 && (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-4">Booking Submitted!</h3>
+                <p className="text-gray-600 mb-6">
+                  Thank you for booking with SleepySquid Drones. We'll review your request and contact you within 24 hours to confirm the details.
+                </p>
+                <div className="bg-gray-100 rounded-lg p-6 text-left mb-6">
+                  <h4 className="font-bold mb-3">Booking Summary:</h4>
+                  <p><span className="font-medium">Service:</span> {formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
+                  <p><span className="font-medium">Location:</span> {formData.location}</p>
+                  <p><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setStep(1);
+                    setFormData({
+                      service: '',
+                      date: '',
+                      location: '',
+                      duration: '',
+                      details: '',
+                      name: '',
+                      email: '',
+                      phone: ''
+                    });
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Book Another Service
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+export default BookingSection;
