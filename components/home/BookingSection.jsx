@@ -34,6 +34,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   });
   const [errors, setErrors] = useState({});
   const [minDate, setMinDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingResult, setBookingResult] = useState(null);
   
   // Create refs
   const dateInputRef = useRef(null);
@@ -113,14 +115,47 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     setStep(prev => prev - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateStep(step)) {
-      // Here you would typically send the data to your backend
-      console.log('Form submitted:', formData);
-      
-      // For demo purposes, just show success message
-      setStep(3);
+    if (!validateStep(step)) return;
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Success - save booking result and show confirmation
+        setBookingResult(data.booking);
+        setStep(3);
+      } else {
+        // Handle API errors
+        if (data.error === 'Missing required fields' || data.error === 'Validation failed') {
+          setErrors({ general: data.message });
+        } else if (data.error === 'Invalid email') {
+          setErrors({ email: data.message });
+        } else if (data.error === 'Invalid date') {
+          setErrors({ date: data.message });
+        } else {
+          setErrors({ general: data.message || 'Something went wrong. Please try again.' });
+        }
+      }
+    } catch (error) {
+      console.error('Booking submission error:', error);
+      setErrors({ 
+        general: 'Network error. Please check your connection and try again.' 
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -446,19 +481,37 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   {errors.phone && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.phone}</p>}
                 </div>
 
+                {errors.general && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
+                  </div>
+                )}
+
                 <div className="flex justify-between">
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg font-medium transition-colors"
+                    disabled={isSubmitting}
+                    className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    disabled={isSubmitting}
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    Submit Booking
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Booking'
+                    )}
                   </button>
                 </div>
               </form>
@@ -477,6 +530,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </p>
                 <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-6 text-left mb-6">
                   <h4 className="font-bold mb-3 text-gray-900 dark:text-white">Booking Summary:</h4>
+                  {bookingResult && (
+                    <p className="text-gray-700 dark:text-gray-300 mb-2"><span className="font-medium">Booking ID:</span> {bookingResult.id}</p>
+                  )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   {formData.package && (
                     <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
@@ -484,6 +540,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  {bookingResult?.estimatedPrice && (
+                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Estimated Price:</span> ${bookingResult.estimatedPrice}</p>
+                  )}
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Status:</span> <span className="capitalize">{bookingResult?.status || 'Pending'}</span></p>
                 </div>
                 <button
                   onClick={() => {
@@ -500,6 +560,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       phone: ''
                     });
                     setErrors({});
+                    setBookingResult(null);
+                    setIsSubmitting(false);
                   }}
                   className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >

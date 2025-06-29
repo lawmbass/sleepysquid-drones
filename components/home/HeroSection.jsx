@@ -24,6 +24,7 @@ const HeroSection = () => {
           src="https://images.unsplash.com/photo-1506947411487-a56738267384?q=80&w=2670&auto=format&fit=crop"
           alt="Drone flying over landscape"
           fill
+          sizes="100vw"
           className="object-cover"
           priority
         />
