@@ -411,11 +411,11 @@ const PortfolioSection = () => {
   }, [selectedItem, galleryIndex]);
 
   return (
-    <section id="portfolio" className="py-20">
+    <section id="portfolio" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Portfolio</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Our Portfolio</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Browse our collection of stunning drone photography and videography projects
           </p>
         </div>
@@ -429,7 +429,7 @@ const PortfolioSection = () => {
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 activeCategory === category.id
                   ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {category.name}
@@ -439,7 +439,7 @@ const PortfolioSection = () => {
 
         {/* Portfolio Grid */}
         {filteredItems.length === 0 ? (
-          <div className="text-center text-red-500 text-lg py-12">
+          <div className="text-center text-red-500 dark:text-red-400 text-lg py-12">
             No portfolio items found for this category.
           </div>
         ) : (
@@ -472,7 +472,7 @@ const PortfolioSection = () => {
               }
             }}
           >
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] md:overflow-auto md:flex-none flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] md:overflow-auto md:flex-none flex flex-col">
               <div className="relative md:static md:flex-none flex-1 min-h-0">
                 {selectedItem.gallery ? (
                   <div className="w-full md:flex md:flex-col md:items-center h-full md:h-auto flex flex-col">
@@ -533,22 +533,22 @@ const PortfolioSection = () => {
                 )}
                 <button 
                   onClick={() => setSelectedItem(null)}
-                  className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg z-20"
+                  className="absolute top-4 right-4 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full p-2 shadow-lg z-20 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
                 </button>
               </div>
-              <div className="p-4 md:p-6 flex-shrink-0 md:flex-none md:border-t-0 border-t border-gray-100">
-                <h3 className="text-xl md:text-2xl font-bold mb-2">{selectedItem.title}</h3>
-                <p className="text-gray-600 mb-3 md:mb-4 text-sm md:text-base">{selectedItem.description}</p>
+              <div className="p-4 md:p-6 flex-shrink-0 md:flex-none md:border-t-0 border-t border-gray-100 dark:border-gray-700">
+                <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900 dark:text-white">{selectedItem.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-3 md:mb-4 text-sm md:text-base">{selectedItem.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2.5 py-0.5 rounded">
                     {categories.find(c => c.id === selectedItem.category).name}
                   </span>
                   {selectedItem.gallery && selectedItem.gallery.length > 1 && (
-                    <div className="text-xs text-gray-400 hidden md:block">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 hidden md:block">
                       Use ← → keys to navigate • Scroll thumbnails below • Press ESC to close
                     </div>
                   )}

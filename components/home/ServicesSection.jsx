@@ -80,11 +80,11 @@ const ServicesSection = ({ onServiceSelect }) => {
   };
 
   return (
-    <section id="services" className="py-20 bg-gray-50">
+    <section id="services" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Drone Services</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Our Drone Services</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Discover how our professional drone services can transform your projects with stunning aerial perspectives
           </p>
         </div>
@@ -123,7 +123,7 @@ const ServiceCard = ({ service, variants, onServiceSelect }) => {
   return (
     <motion.div 
       variants={variants}
-      className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+      className="bg-white dark:bg-gray-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-gray-900/50 transition-all duration-300"
     >
       <div className="h-48 overflow-hidden">
         <img 
@@ -135,11 +135,11 @@ const ServiceCard = ({ service, variants, onServiceSelect }) => {
       </div>
       <div className="p-6">
         <div className="mb-4">{service.icon}</div>
-        <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-        <p className="text-gray-600 mb-4">{service.description}</p>
+        <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">{service.title}</h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">{service.description}</p>
         <button 
           onClick={handleBookService}
-          className="text-blue-500 font-medium flex items-center hover:text-blue-700 transition-colors"
+          className="text-blue-500 dark:text-blue-400 font-medium flex items-center hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
         >
           Book this service
           <svg className="ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

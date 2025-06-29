@@ -150,11 +150,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   };
 
   return (
-    <section id="booking" className="py-20 bg-gray-50">
+    <section id="booking" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Book Your Drone Service</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Book Your Drone Service</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Schedule your drone service with ease. We'll be in touch to confirm the details.
           </p>
         </div>
@@ -168,22 +168,22 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         >
           {/* Progress Steps */}
           <div className="flex justify-between items-center mb-8">
-            <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-500' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 1 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 1 ? 'bg-blue-500 dark:bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'}`}>
                 1
               </div>
               <span className="text-sm">Service Details</span>
             </div>
-            <div className={`flex-1 h-1 mx-4 ${step >= 2 ? 'bg-blue-500' : 'bg-gray-200'}`}></div>
-            <div className={`flex flex-col items-center ${step >= 2 ? 'text-blue-500' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 2 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            <div className={`flex-1 h-1 mx-4 ${step >= 2 ? 'bg-blue-500 dark:bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}></div>
+            <div className={`flex flex-col items-center ${step >= 2 ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 2 ? 'bg-blue-500 dark:bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'}`}>
                 2
               </div>
               <span className="text-sm">Your Information</span>
             </div>
-            <div className={`flex-1 h-1 mx-4 ${step >= 3 ? 'bg-blue-500' : 'bg-gray-200'}`}></div>
-            <div className={`flex flex-col items-center ${step >= 3 ? 'text-blue-500' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 3 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            <div className={`flex-1 h-1 mx-4 ${step >= 3 ? 'bg-blue-500 dark:bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'}`}></div>
+            <div className={`flex flex-col items-center ${step >= 3 ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${step >= 3 ? 'bg-blue-500 dark:bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'}`}>
                 3
               </div>
               <span className="text-sm">Confirmation</span>
@@ -191,13 +191,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           </div>
 
           {/* Form Steps */}
-          <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="bg-white dark:bg-gray-700 rounded-xl shadow-lg p-8">
             {step === 1 && (
               <form>
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="service">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="service">
                     <div className="flex items-center">
-                      <FiClock className="mr-2 text-blue-500" />
+                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
                       Select Service*
                     </div>
                   </label>
@@ -207,7 +207,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       name="service"
                       value={formData.service}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.service ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none`}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.service ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
                     >
                       <option value="">Select a service</option>
                       {services.map((service) => (
@@ -217,18 +217,18 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       ))}
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </div>
                   </div>
-                  {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
+                  {errors.service && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.service}</p>}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="package">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="package">
                     <div className="flex items-center">
-                      <FiPackage className="mr-2 text-blue-500" />
+                      <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
                       Select Package (Optional)
                     </div>
                   </label>
@@ -238,7 +238,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       name="package"
                       value={formData.package}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none"
                     >
                       <option value="">No package selected (custom pricing)</option>
                       {packages.map((pkg) => (
@@ -248,22 +248,22 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       ))}
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </div>
                   </div>
                   {formData.package && (
-                    <p className="text-gray-600 text-sm mt-1">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       {packages.find(pkg => pkg.id === formData.package)?.description}
                     </p>
                   )}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="date">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="date">
                     <div className="flex items-center">
-                      <FiCalendar className="mr-2 text-blue-500" />
+                      <FiCalendar className="mr-2 text-blue-500 dark:text-blue-400" />
                       Preferred Date*
                     </div>
                   </label>
@@ -279,17 +279,17 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       min={minDate}
                       value={formData.date}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.date ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.date ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
                     />
                   </div>
-                  {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 text-sm mt-1">Please choose a date that's at least 7 days from today.</p>
+                  {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that's at least 7 days from today.</p>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="location">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="location">
                     <div className="flex items-center">
-                      <FiMapPin className="mr-2 text-blue-500" />
+                      <FiMapPin className="mr-2 text-blue-500 dark:text-blue-400" />
                       Location*
                     </div>
                   </label>
@@ -301,20 +301,20 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       placeholder="Enter the service location (address, city, or area)"
                       value={formData.location}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.location ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.location ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
                     />
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <FiMapPin className="text-gray-500" />
                     </div>
                   </div>
-                  {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
-                  <p className="text-gray-500 text-sm mt-1">Enter a complete address for accurate service planning</p>
+                  {errors.location && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.location}</p>}
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="duration">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="duration">
                     <div className="flex items-center">
-                      <FiClock className="mr-2 text-blue-500" />
+                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
                       Duration*
                     </div>
                   </label>
@@ -324,7 +324,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       name="duration"
                       value={formData.duration}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none`}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
                     >
                       <option value="">Select duration</option>
                       <option value="1-hour">1 Hour</option>
@@ -339,13 +339,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       </svg>
                     </div>
                   </div>
-                  {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
+                  {errors.duration && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.duration}</p>}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="details">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="details">
                     <div className="flex items-center">
-                      <FiInfo className="mr-2 text-blue-500" />
+                      <FiInfo className="mr-2 text-blue-500 dark:text-blue-400" />
                       Additional Details
                     </div>
                   </label>
@@ -356,7 +356,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     placeholder="Please provide any additional information about your project"
                     value={formData.details}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50"
                   ></textarea>
                 </div>
 
@@ -364,7 +364,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
                     Next Step
                   </button>
@@ -375,9 +375,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
             {step === 2 && (
               <form onSubmit={handleSubmit}>
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="name">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="name">
                     <div className="flex items-center">
-                      <FiUser className="mr-2 text-blue-500" />
+                      <FiUser className="mr-2 text-blue-500 dark:text-blue-400" />
                       Full Name*
                     </div>
                   </label>
@@ -389,19 +389,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       placeholder="Enter your full name"
                       value={formData.name}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
                     />
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <FiUser className="text-gray-500" />
                     </div>
                   </div>
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.name}</p>}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="email">
                     <div className="flex items-center">
-                      <FiMail className="mr-2 text-blue-500" />
+                      <FiMail className="mr-2 text-blue-500 dark:text-blue-400" />
                       Email Address*
                     </div>
                   </label>
@@ -413,19 +413,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       placeholder="Enter your email address"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
                     />
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <FiMail className="text-gray-500" />
                     </div>
                   </div>
-                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  {errors.email && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.email}</p>}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="phone">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="phone">
                     <div className="flex items-center">
-                      <FiPhone className="mr-2 text-blue-500" />
+                      <FiPhone className="mr-2 text-blue-500 dark:text-blue-400" />
                       Phone Number*
                     </div>
                   </label>
@@ -437,26 +437,26 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       placeholder="Enter your phone number"
                       value={formData.phone}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+                      className={`w-full px-4 py-3 pl-10 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
                     />
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <FiPhone className="text-gray-500" />
                     </div>
                   </div>
-                  {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                  {errors.phone && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.phone}</p>}
                 </div>
 
                 <div className="flex justify-between">
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+                    className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 px-6 py-3 rounded-lg font-medium transition-colors"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
                     Submit Booking
                   </button>
@@ -466,24 +466,24 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
             {step === 3 && (
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Booking Submitted!</h3>
-                <p className="text-gray-600 mb-6">
+                <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Booking Submitted!</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
                   Thank you for booking with SleepySquid Drones. We'll review your request and contact you within 24 hours to confirm the details.
                 </p>
-                <div className="bg-gray-100 rounded-lg p-6 text-left mb-6">
-                  <h4 className="font-bold mb-3">Booking Summary:</h4>
-                  <p><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-6 text-left mb-6">
+                  <h4 className="font-bold mb-3 text-gray-900 dark:text-white">Booking Summary:</h4>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   {formData.package && (
-                    <p><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   )}
-                  <p><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
-                  <p><span className="font-medium">Location:</span> {formData.location}</p>
-                  <p><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -501,7 +501,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     });
                     setErrors({});
                   }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >
                   Book Another Service
                 </button>

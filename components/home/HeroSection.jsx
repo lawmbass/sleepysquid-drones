@@ -24,7 +24,7 @@ const HeroSection = () => {
           alt="Drone flying over landscape"
           className="object-cover w-full h-full"
         />
-        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60 dark:from-gray-900/70 dark:via-gray-900/50 dark:to-gray-900/70"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-6 z-10 text-white">
@@ -56,7 +56,7 @@ const HeroSection = () => {
             <Link href="#booking" className="bg-gradient-to-r from-blue-500 to-teal-400 text-white px-8 py-3 rounded-full font-medium text-lg hover:shadow-lg transition-all text-center">
               Book a Service
             </Link>
-            <Link href="#services" className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-medium text-lg hover:bg-white hover:text-gray-900 transition-all text-center">
+            <Link href="#services" className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-medium text-lg hover:bg-white hover:text-gray-900 dark:hover:text-gray-800 transition-all text-center">
               Explore Services
             </Link>
           </motion.div>
@@ -65,13 +65,13 @@ const HeroSection = () => {
 
       {/* Scroll Down Indicator */}
       <motion.div 
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-8 left-0 right-0 flex justify-center"
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
       >
         <div className="flex flex-col items-center text-white">
-          <span className="text-sm mb-2">Scroll Down</span>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <span className="text-sm mb-2 text-center">Scroll Down</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto">
             <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
