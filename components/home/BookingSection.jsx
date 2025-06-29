@@ -155,7 +155,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Book Your Drone Service</h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Schedule your drone service with ease. We'll be in touch to confirm the details.
+            Schedule your drone service with ease. We&apos;ll be in touch to confirm the details.
           </p>
         </div>
 
@@ -283,7 +283,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     />
                   </div>
                   {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that's at least 7 days from today.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that&apos;s at least 7 days from today.</p>
                 </div>
 
                 <div className="mb-6">
@@ -473,7 +473,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Booking Submitted!</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Thank you for booking with SleepySquid Drones. We'll review your request and contact you within 24 hours to confirm the details.
+                  Thank you for booking with SleepySquid Drones. We&apos;ll review your request and contact you within 24 hours to confirm the details.
                 </p>
                 <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-6 text-left mb-6">
                   <h4 className="font-bold mb-3 text-gray-900 dark:text-white">Booking Summary:</h4>

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { FiMapPin, FiPhone, FiMail, FiFacebook, FiInstagram, FiYoutube, FiTwitter } from 'react-icons/fi';
+import { FiPhone, FiMail, FiFacebook, FiInstagram, FiYoutube, FiTwitter } from 'react-icons/fi';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();

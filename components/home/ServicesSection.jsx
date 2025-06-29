@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCamera, FiVideo, FiMap, FiHome, FiActivity, FiSearch } from 'react-icons/fi';
+import Image from 'next/image';
 
 const services = [
   {
@@ -106,13 +107,6 @@ const ServicesSection = ({ onServiceSelect }) => {
 };
 
 const ServiceCard = ({ service, variants, onServiceSelect }) => {
-  // Add error handling for image loading
-  const handleImageError = (e) => {
-    console.error(`Error loading image for ${service.title}`);
-    // Set a fallback image
-    e.target.src = "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?q=80&w=2670&auto=format&fit=crop";
-  };
-
   const handleBookService = (e) => {
     e.preventDefault();
     if (onServiceSelect) {
@@ -125,12 +119,12 @@ const ServiceCard = ({ service, variants, onServiceSelect }) => {
       variants={variants}
       className="bg-white dark:bg-gray-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-gray-900/50 transition-all duration-300"
     >
-      <div className="h-48 overflow-hidden">
-        <img 
+      <div className="h-48 overflow-hidden relative">
+        <Image 
           src={service.image} 
           alt={service.title} 
-          onError={handleImageError}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+          fill
+          className="object-cover transition-transform duration-500 hover:scale-110"
         />
       </div>
       <div className="p-6">

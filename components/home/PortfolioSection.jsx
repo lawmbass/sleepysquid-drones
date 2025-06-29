@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import Image from 'next/image';
 
 const portfolioItems = [
   {
@@ -485,11 +486,11 @@ const PortfolioSection = () => {
                       >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                       </button>
-                      <img
+                      <Image
                         src={selectedItem.gallery[galleryIndex].src}
                         alt={selectedItem.gallery[galleryIndex].caption}
-                        onError={e => { e.target.src = 'https://via.placeholder.com/800x600?text=Image+Unavailable'; }}
-                        className="w-full h-full md:h-auto md:max-h-[55vh] object-contain rounded-t-xl"
+                        fill
+                        className="object-contain rounded-t-xl"
                       />
                       {/* Overlayed caption */}
                       <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 text-white text-sm p-3">
@@ -514,10 +515,12 @@ const PortfolioSection = () => {
                             onClick={() => setGalleryIndex(idx)}
                             aria-label={`Show image ${idx + 1}`}
                           >
-                            <img
+                            <Image
                               src={img.src}
                               alt={img.caption}
-                              className={`w-12 h-9 md:w-14 md:h-10 object-cover rounded transition-all duration-200 ${galleryIndex === idx ? 'ring-2 ring-blue-500 scale-105' : 'hover:scale-105'}`}
+                              width={56}
+                              height={40}
+                              className={`object-cover rounded transition-all duration-200 ${galleryIndex === idx ? 'ring-2 ring-blue-500 scale-105' : 'hover:scale-105'}`}
                             />
                           </button>
                         ))}
@@ -525,10 +528,11 @@ const PortfolioSection = () => {
                     </div>
                   </div>
                 ) : (
-                  <img
+                  <Image
                     src={selectedItem.image}
                     alt={selectedItem.title}
-                    className="w-full h-full md:h-auto md:max-h-[55vh] object-contain rounded-t-xl"
+                    fill
+                    className="object-contain rounded-t-xl"
                   />
                 )}
                 <button 
@@ -563,23 +567,18 @@ const PortfolioSection = () => {
 };
 
 const PortfolioItem = ({ item, variants, onClick }) => {
-  // Add error handling for image loading
-  const handleImageError = (e) => {
-    e.target.src = 'https://via.placeholder.com/400x300?text=Image+Unavailable'; // Use a public placeholder image if the main image fails
-  };
-
   return (
     <motion.div 
       variants={variants}
       className="group relative overflow-hidden rounded-lg shadow-md cursor-pointer"
       onClick={onClick}
     >
-      <div className="aspect-w-4 aspect-h-3 h-48">
-        <img 
+      <div className="aspect-w-4 aspect-h-3 h-48 relative">
+        <Image 
           src={item.image} 
           alt={item.title} 
-          onError={handleImageError}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
         />
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">

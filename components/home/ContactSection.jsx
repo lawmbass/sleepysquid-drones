@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { FiPhone, FiMail, FiClock } from 'react-icons/fi';
 
 const ContactSection = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
@@ -29,7 +29,7 @@ const ContactSection = () => {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Get In Touch</h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Have questions about our drone services? Reach out to us and we'll respond as soon as possible
+            Have questions about our drone services? Reach out to us and we&apos;ll respond as soon as possible
           </p>
         </div>
 
