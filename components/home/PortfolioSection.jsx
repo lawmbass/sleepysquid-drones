@@ -281,6 +281,8 @@ const PortfolioSection = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedItem, setSelectedItem] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [imageLoadStates, setImageLoadStates] = useState({});
+  const [imageErrorStates, setImageErrorStates] = useState({});
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -309,12 +311,22 @@ const PortfolioSection = () => {
     }
   };
 
-  // Reset gallery index when opening a new modal
+  // Reset gallery index when opening a new modal (but keep image load states for caching)
   React.useEffect(() => {
     setGalleryIndex(0);
-    
-    // Initial setup - will be handled by main effect
   }, [selectedItem]);
+
+  // Helper functions for managing image states
+  const isImageLoaded = (src) => imageLoadStates[src] === true;
+  const isImageError = (src) => imageErrorStates[src] === true;
+  
+  const setImageLoaded = (src) => {
+    setImageLoadStates(prev => ({ ...prev, [src]: true }));
+  };
+  
+  const setImageError = (src) => {
+    setImageErrorStates(prev => ({ ...prev, [src]: true }));
+  };
 
 
 
@@ -473,40 +485,79 @@ const PortfolioSection = () => {
               }
             }}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] md:overflow-auto md:flex-none flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               <div className="relative md:static md:flex-none flex-1 min-h-0">
                 {selectedItem.gallery ? (
                   <div className="w-full md:flex md:flex-col md:items-center h-full md:h-auto flex flex-col">
                     {/* Large main image with arrows */}
-                    <div className="relative w-full bg-black flex items-center justify-center mb-2 md:mb-4 flex-1 md:flex-none min-h-0 md:min-h-[200px] md:max-h-[55vh]">
-                      <button
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
-                        onClick={() => setGalleryIndex((galleryIndex - 1 + selectedItem.gallery.length) % selectedItem.gallery.length)}
-                        aria-label="Previous image"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-                      </button>
-                      <Image
-                        src={selectedItem.gallery[galleryIndex].src}
-                        alt={selectedItem.gallery[galleryIndex].caption}
-                        fill
-                        className="object-contain rounded-t-xl"
-                      />
-                      {/* Overlayed caption */}
-                      <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 text-white text-sm p-3">
-                        {selectedItem.gallery[galleryIndex].caption}
-                      </div>
-                      <button
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
-                        onClick={() => setGalleryIndex((galleryIndex + 1) % selectedItem.gallery.length)}
-                        aria-label="Next image"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                      </button>
+                    <div className="relative w-full bg-black flex items-center justify-center mb-2 md:mb-4 flex-1 md:flex-none min-h-[300px] md:min-h-[350px] md:h-[50vh]">
+                      {(() => {
+                        const currentImageSrc = selectedItem.gallery[galleryIndex].src;
+                        const loaded = isImageLoaded(currentImageSrc);
+                        const error = isImageError(currentImageSrc);
+                        
+                        return (
+                          <>
+                            {/* Loading spinner for modal image */}
+                            {!loaded && !error && (
+                              <div className="absolute inset-0 flex items-center justify-center z-20">
+                                <div className="bg-black bg-opacity-50 rounded-lg p-4 flex items-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                                  <span className="text-white">Loading image...</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Error state for modal image */}
+                            {error && (
+                              <div className="absolute inset-0 flex items-center justify-center z-20">
+                                <div className="bg-black bg-opacity-75 rounded-lg p-4 flex flex-col items-center text-white">
+                                  <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.994-.833-2.764 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                  </svg>
+                                  <span className="text-center">Failed to load image</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
+                              onClick={() => setGalleryIndex((galleryIndex - 1 + selectedItem.gallery.length) % selectedItem.gallery.length)}
+                              aria-label="Previous image"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <Image
+                              src={currentImageSrc}
+                              alt={selectedItem.gallery[galleryIndex].caption}
+                              fill
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                              className={`object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                              onLoad={() => setImageLoaded(currentImageSrc)}
+                              onError={() => setImageError(currentImageSrc)}
+                              quality={85}
+                              priority
+                            />
+                            {/* Overlayed caption */}
+                            {loaded && (
+                              <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 text-white text-sm p-3 z-10">
+                                {selectedItem.gallery[galleryIndex].caption}
+                              </div>
+                            )}
+                            <button
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
+                              onClick={() => setGalleryIndex((galleryIndex + 1) % selectedItem.gallery.length)}
+                              aria-label="Next image"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                          </>
+                        );
+                      })()}
                     </div>
                     {/* Thumbnails */}
-                    <div className="w-full px-4 py-2 md:mb-2 flex-shrink-0">
-                      <div className="thumbnail-container relative flex gap-2 scrollbar-hide md:pb-2">
+                    <div className="w-full px-4 pt-2 pb-4 flex-shrink-0">
+                      <div className="thumbnail-container relative flex gap-2 overflow-x-auto overflow-y-hidden pb-2">
                         {selectedItem.gallery.map((img, idx) => (
                           <button
                             key={idx}
@@ -518,9 +569,10 @@ const PortfolioSection = () => {
                             <Image
                               src={img.src}
                               alt={img.caption}
-                              width={56}
-                              height={40}
-                              className={`object-cover rounded transition-all duration-200 ${galleryIndex === idx ? 'ring-2 ring-blue-500 scale-105' : 'hover:scale-105'}`}
+                              width={64}
+                              height={48}
+                              sizes="64px"
+                              className={`w-16 h-12 object-cover rounded transition-all duration-200 ${galleryIndex === idx ? 'ring-2 ring-blue-500 scale-105' : 'hover:scale-105'}`}
                             />
                           </button>
                         ))}
@@ -528,12 +580,51 @@ const PortfolioSection = () => {
                     </div>
                   </div>
                 ) : (
-                  <Image
-                    src={selectedItem.image}
-                    alt={selectedItem.title}
-                    fill
-                    className="object-contain rounded-t-xl"
-                  />
+                  <div className="relative w-full bg-black flex items-center justify-center min-h-[300px] md:min-h-[350px] md:h-[50vh]">
+                    {(() => {
+                      const currentImageSrc = selectedItem.image;
+                      const loaded = isImageLoaded(currentImageSrc);
+                      const error = isImageError(currentImageSrc);
+                      
+                      return (
+                        <>
+                          {/* Loading spinner for single modal image */}
+                          {!loaded && !error && (
+                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                              <div className="bg-black bg-opacity-50 rounded-lg p-4 flex items-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                                <span className="text-white">Loading image...</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Error state for single modal image */}
+                          {error && (
+                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                              <div className="bg-black bg-opacity-75 rounded-lg p-4 flex flex-col items-center text-white">
+                                <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.994-.833-2.764 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span className="text-center">Failed to load image</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <Image
+                            src={currentImageSrc}
+                            alt={selectedItem.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                            className={`object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                            onLoad={() => setImageLoaded(currentImageSrc)}
+                            onError={() => setImageError(currentImageSrc)}
+                            quality={85}
+                            priority
+                          />
+                        </>
+                      );
+                    })()}
+                  </div>
                 )}
                 <button 
                   onClick={() => setSelectedItem(null)}
@@ -544,9 +635,9 @@ const PortfolioSection = () => {
                   </svg>
                 </button>
               </div>
-              <div className="p-4 md:p-6 flex-shrink-0 md:flex-none md:border-t-0 border-t border-gray-100 dark:border-gray-700">
+              <div className="px-4 pt-2 pb-3 md:px-6 md:pt-2 md:pb-4 flex-shrink-0 border-t border-gray-100 dark:border-gray-700">
                 <h3 className="text-xl md:text-2xl font-bold mb-2 text-gray-900 dark:text-white">{selectedItem.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-3 md:mb-4 text-sm md:text-base">{selectedItem.description}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-2 md:mb-3 text-sm md:text-base">{selectedItem.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2.5 py-0.5 rounded">
                     {categories.find(c => c.id === selectedItem.category).name}
@@ -567,18 +658,46 @@ const PortfolioSection = () => {
 };
 
 const PortfolioItem = ({ item, variants, onClick }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   return (
     <motion.div 
       variants={variants}
       className="group relative overflow-hidden rounded-lg shadow-md cursor-pointer"
       onClick={onClick}
     >
-      <div className="aspect-w-4 aspect-h-3 h-48 relative">
+      <div className="relative h-48 w-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+        {/* Loading placeholder */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <span className="ml-2 text-gray-500 dark:text-gray-400 text-sm">Loading...</span>
+          </div>
+        )}
+        
+        {/* Error fallback */}
+        {imageError && (
+          <div className="absolute inset-0 flex items-center justify-center flex-col bg-gray-100 dark:bg-gray-600">
+            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-gray-500 text-sm">Image unavailable</span>
+          </div>
+        )}
+        
         <Image 
           src={item.image} 
           alt={item.title} 
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className={`object-cover transition-all duration-500 group-hover:scale-110 ${
+            imageLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
+          quality={75}
+          loading="lazy"
         />
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
