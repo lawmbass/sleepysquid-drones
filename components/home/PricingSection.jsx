@@ -8,14 +8,17 @@ const pricingPlans = [
     id: 'basic',
     name: 'Basic',
     price: 199,
-    description: 'Perfect for small projects and basic aerial photography needs',
+    serviceId: 'aerial-photography',
+    description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects',
     features: [
-      '1 hour of drone flight time',
-      'Up to 20 high-resolution photos',
-      '1 edited highlight video (1 minute)',
-      'Basic color correction',
-      'Digital delivery within 3 days',
-      'Commercial usage rights'
+      'Up to 1 hour flight time',
+      '15-20 high-resolution photos',
+      'Key angle coverage (4-8 shots)',
+      'Birds eye overview shots',
+      'Property/subject elevation views',
+      'Basic photo editing & color correction',
+      'Digital delivery within 48 hours',
+      'Commercial usage rights included'
     ],
     popular: false
   },
@@ -23,16 +26,19 @@ const pricingPlans = [
     id: 'standard',
     name: 'Standard',
     price: 399,
-    description: 'Our most popular package for real estate and events',
+    serviceId: 'real-estate',
+    description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects',
     features: [
-      '2 hours of drone flight time',
-      'Up to 50 high-resolution photos',
-      '1 edited video (3 minutes)',
-      'Advanced color grading',
-      'Digital delivery within 2 days',
-      'Commercial usage rights',
-      'Raw footage included',
-      'Basic 3D mapping'
+      'Up to 2 hours flight time',
+      '20-30 high-resolution photos',
+      'Comprehensive angle coverage (8+ positions)',
+      'Multiple altitude perspectives',
+      'Detail and overview combinations',
+      '2-3 minute edited highlight video',
+      'Advanced photo editing & color grading',
+      'Next-day digital delivery',
+      'Raw files included',
+      'Commercial usage rights'
     ],
     popular: true
   },
@@ -40,24 +46,26 @@ const pricingPlans = [
     id: 'premium',
     name: 'Premium',
     price: 799,
-    description: 'Comprehensive drone services for professional projects',
+    serviceId: 'mapping-surveying',
+    description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs',
     features: [
-      '4 hours of drone flight time',
-      'Unlimited high-resolution photos',
-      'Custom edited video (5 minutes)',
-      'Professional color grading',
-      'Next-day digital delivery',
-      'Commercial usage rights',
-      'Raw footage included',
-      'Advanced 3D mapping',
-      'Thermal imaging',
-      'Custom flight patterns'
+      'Up to 4 hours flight time',
+      'Comprehensive photo coverage (50+ images)',
+      'Automated flight planning for precision',
+      'Specialized data collection (mapping/3D)',
+      'Complete 360° coverage at multiple altitudes',
+      'Custom flight path planning',
+      '5+ minute professional video production',
+      'Advanced analytics & measurements',
+      'Same-day rush delivery available',
+      'Raw footage & source files',
+      'Extended commercial licensing'
     ],
     popular: false
   }
 ];
 
-const PricingSection = () => {
+const PricingSection = ({ onPackageSelect }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -100,7 +108,7 @@ const PricingSection = () => {
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
         >
           {pricingPlans.map((plan) => (
-            <PricingCard key={plan.id} plan={plan} variants={itemVariants} />
+            <PricingCard key={plan.id} plan={plan} variants={itemVariants} onPackageSelect={onPackageSelect} />
           ))}
         </motion.div>
 
@@ -123,7 +131,14 @@ const PricingSection = () => {
   );
 };
 
-const PricingCard = ({ plan, variants }) => {
+const PricingCard = ({ plan, variants, onPackageSelect }) => {
+  const handleBookPackage = (e) => {
+    e.preventDefault();
+    if (onPackageSelect) {
+      onPackageSelect(plan.serviceId, plan.id);
+    }
+  };
+
   return (
     <motion.div 
       variants={variants}
@@ -155,16 +170,16 @@ const PricingCard = ({ plan, variants }) => {
           ))}
         </ul>
         
-        <a 
-          href="#booking" 
-          className={`block text-center py-3 px-6 rounded-full font-medium transition-colors ${
+        <button 
+          onClick={handleBookPackage}
+          className={`block w-full text-center py-3 px-6 rounded-full font-medium transition-colors ${
             plan.popular 
               ? 'bg-blue-500 text-white hover:bg-blue-600' 
               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
           }`}
         >
           Book This Package
-        </a>
+        </button>
       </div>
     </motion.div>
   );

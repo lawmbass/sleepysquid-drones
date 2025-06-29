@@ -1,22 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
 
 const services = [
-  { id: 'aerial-photo', name: 'Aerial Photography' },
-  { id: 'drone-video', name: 'Drone Videography' },
-  { id: 'mapping', name: 'Mapping & Surveying' },
+  { id: 'aerial-photography', name: 'Aerial Photography' },
+  { id: 'drone-videography', name: 'Drone Videography' },
+  { id: 'mapping-surveying', name: 'Mapping & Surveying' },
   { id: 'real-estate', name: 'Real Estate Tours' },
   { id: 'inspection', name: 'Inspection Services' },
-  { id: 'event', name: 'Event Coverage' },
+  { id: 'event-coverage', name: 'Event Coverage' },
   { id: 'custom', name: 'Custom Project' }
 ];
 
-const BookingSection = () => {
+const packages = [
+  { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
+  { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
+  { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
+];
+
+const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     service: '',
+    package: '',
     date: '',
     location: '',
     duration: '',
@@ -40,6 +47,27 @@ const BookingSection = () => {
   useEffect(() => {
     setMinDate(getMinDate());
   }, []);
+
+  // Handle pre-selected service and package
+  useEffect(() => {
+    if (selectedService) {
+      setFormData(prev => ({ ...prev, service: selectedService }));
+      // Clear the selection after setting it
+      if (onServiceSelect) {
+        onServiceSelect('');
+      }
+    }
+  }, [selectedService, onServiceSelect]);
+
+  useEffect(() => {
+    if (selectedPackage) {
+      setFormData(prev => ({ ...prev, package: selectedPackage }));
+      // Clear the selection after setting it
+      if (onPackageSelect) {
+        onPackageSelect('');
+      }
+    }
+  }, [selectedPackage, onPackageSelect]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -182,12 +210,11 @@ const BookingSection = () => {
                       className={`w-full px-4 py-3 rounded-lg border ${errors.service ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none`}
                     >
                       <option value="">Select a service</option>
-                      <option value="aerial-photography">Aerial Photography</option>
-                      <option value="drone-videography">Drone Videography</option>
-                      <option value="mapping-surveying">Mapping & Surveying</option>
-                      <option value="real-estate">Real Estate Tours</option>
-                      <option value="inspection">Inspection Services</option>
-                      <option value="event-coverage">Event Coverage</option>
+                      {services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name}
+                        </option>
+                      ))}
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -196,6 +223,41 @@ const BookingSection = () => {
                     </div>
                   </div>
                   {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2" htmlFor="package">
+                    <div className="flex items-center">
+                      <FiPackage className="mr-2 text-blue-500" />
+                      Select Package (Optional)
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="package"
+                      name="package"
+                      value={formData.package}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 appearance-none"
+                    >
+                      <option value="">No package selected (custom pricing)</option>
+                      {packages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  {formData.package && (
+                    <p className="text-gray-600 text-sm mt-1">
+                      {packages.find(pkg => pkg.id === formData.package)?.description}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-6">
@@ -415,7 +477,10 @@ const BookingSection = () => {
                 </p>
                 <div className="bg-gray-100 rounded-lg p-6 text-left mb-6">
                   <h4 className="font-bold mb-3">Booking Summary:</h4>
-                  <p><span className="font-medium">Service:</span> {formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  {formData.package && (
+                    <p><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  )}
                   <p><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p><span className="font-medium">Location:</span> {formData.location}</p>
                   <p><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
@@ -425,6 +490,7 @@ const BookingSection = () => {
                     setStep(1);
                     setFormData({
                       service: '',
+                      package: '',
                       date: '',
                       location: '',
                       duration: '',
@@ -433,6 +499,7 @@ const BookingSection = () => {
                       email: '',
                       phone: ''
                     });
+                    setErrors({});
                   }}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >

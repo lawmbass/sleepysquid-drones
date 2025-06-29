@@ -7,6 +7,7 @@ const services = [
   {
     id: 1,
     title: 'Aerial Photography',
+    serviceId: 'aerial-photography',
     description: 'Stunning high-resolution photos from unique aerial perspectives, perfect for real estate, events, or personal projects.',
     icon: <FiCamera className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1534996858221-380b92700493?q=80&w=2671&auto=format&fit=crop'
@@ -14,6 +15,7 @@ const services = [
   {
     id: 2,
     title: 'Drone Videography',
+    serviceId: 'drone-videography',
     description: 'Cinematic aerial footage that captures dynamic movement and sweeping landscapes for films, marketing, or special occasions.',
     icon: <FiVideo className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1508444845599-5c89863b1c44?q=80&w=2671&auto=format&fit=crop'
@@ -21,6 +23,7 @@ const services = [
   {
     id: 3,
     title: 'Mapping & Surveying',
+    serviceId: 'mapping-surveying',
     description: 'Precise aerial mapping and 3D modeling for construction, agriculture, and land development projects.',
     icon: <FiMap className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?q=80&w=2574&auto=format&fit=crop'
@@ -28,6 +31,7 @@ const services = [
   {
     id: 4,
     title: 'Real Estate Tours',
+    serviceId: 'real-estate',
     description: 'Comprehensive aerial property tours that showcase homes, land, and commercial properties from every angle.',
     icon: <FiHome className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2670&auto=format&fit=crop'
@@ -35,6 +39,7 @@ const services = [
   {
     id: 5,
     title: 'Inspection Services',
+    serviceId: 'inspection',
     description: 'Safe and efficient inspections of roofs, towers, power lines, and other hard-to-reach infrastructure.',
     icon: <FiSearch className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1591588582259-e675bd2e6088?q=80&w=2670&auto=format&fit=crop'
@@ -42,13 +47,14 @@ const services = [
   {
     id: 6,
     title: 'Event Coverage',
+    serviceId: 'event-coverage',
     description: 'Dynamic aerial documentation of weddings, sports events, festivals, and other special occasions.',
     icon: <FiActivity className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2670&auto=format&fit=crop'
   }
 ];
 
-const ServicesSection = () => {
+const ServicesSection = ({ onServiceSelect }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -91,7 +97,7 @@ const ServicesSection = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
           {services.map((service) => (
-            <ServiceCard key={service.id} service={service} variants={itemVariants} />
+            <ServiceCard key={service.id} service={service} variants={itemVariants} onServiceSelect={onServiceSelect} />
           ))}
         </motion.div>
       </div>
@@ -99,12 +105,19 @@ const ServicesSection = () => {
   );
 };
 
-const ServiceCard = ({ service, variants }) => {
+const ServiceCard = ({ service, variants, onServiceSelect }) => {
   // Add error handling for image loading
   const handleImageError = (e) => {
     console.error(`Error loading image for ${service.title}`);
     // Set a fallback image
     e.target.src = "https://images.unsplash.com/photo-1527977966376-1c8408f9f108?q=80&w=2670&auto=format&fit=crop";
+  };
+
+  const handleBookService = (e) => {
+    e.preventDefault();
+    if (onServiceSelect) {
+      onServiceSelect(service.serviceId);
+    }
   };
 
   return (
@@ -124,12 +137,15 @@ const ServiceCard = ({ service, variants }) => {
         <div className="mb-4">{service.icon}</div>
         <h3 className="text-xl font-bold mb-2">{service.title}</h3>
         <p className="text-gray-600 mb-4">{service.description}</p>
-        <a href="#booking" className="text-blue-500 font-medium flex items-center hover:text-blue-700 transition-colors">
+        <button 
+          onClick={handleBookService}
+          className="text-blue-500 font-medium flex items-center hover:text-blue-700 transition-colors"
+        >
           Book this service
           <svg className="ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
           </svg>
-        </a>
+        </button>
       </div>
     </motion.div>
   );
