@@ -24,8 +24,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# local env files - ALL environment files should be ignored
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
 
 # vercel
 .vercel
@@ -38,3 +43,14 @@ next-env.d.ts
 public/robots.txt
 public/sitemap.xml
 public/sitemap-0.xml
+
+# Security - sensitive files
+*.key
+*.pem
+*.p12
+config/keys/*
+secrets/*
+
+# Logs that might contain sensitive info
+*.log
+logs/

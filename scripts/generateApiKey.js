@@ -44,8 +44,6 @@ if (require.main === module) {
   console.log();
   console.log('💡 Add these to your .env file:');
   console.log(`ADMIN_API_KEY=${generateAdminApiKey()}`);
-  console.log(`API_SECRET=${generateApiKey()}`);
-  console.log(`WEBHOOK_SECRET=${generateWebhookSecret()}`);
 }
 
 module.exports = {
