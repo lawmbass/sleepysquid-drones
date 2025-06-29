@@ -1,6 +1,9 @@
 import connectMongo from "@/libs/mongoose";
 import Booking from "@/models/Booking";
 import { adminRateLimit } from "@/libs/rateLimit";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/libs/next-auth";
+import { adminConfig } from "@/libs/adminConfig";
 
 // Apply rate limiting middleware
 const rateLimitMiddleware = (req, res) => {
@@ -38,21 +41,23 @@ export default async function handler(req, res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
 
-  // Basic authentication check - you should implement proper auth
-  const authHeader = req.headers.authorization;
-  const expectedAuth = process.env.ADMIN_API_KEY; // Add this to your .env file
+  // SECURITY: Use NextAuth.js session-based authentication
+  const session = await getServerSession(req, res, authOptions);
   
-  if (!expectedAuth) {
-    return res.status(500).json({
-      error: 'Server configuration error',
-      message: 'Admin authentication not configured'
+  // Check if user is authenticated
+  if (!session || !session.user || !session.user.email) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Authentication required. Please sign in.'
     });
   }
   
-  if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Valid authentication required'
+  // Check if user is authorized as admin
+  const isAdmin = adminConfig.isAdmin(session.user.email);
+  if (!isAdmin) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Admin access required. Insufficient permissions.'
     });
   }
 

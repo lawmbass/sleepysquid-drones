@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     }
 
     // Phone number validation (basic)
-    const phoneRegex = /^[\+]?[\d\s\-\(\)]{10,}$/;
+    const phoneRegex = /^[+]?[\d\s\-()]{10,}$/;
     if (!phoneRegex.test(sanitizedData.phone)) {
       return res.status(400).json({
         error: 'Invalid phone number',

@@ -1,9 +1,9 @@
 // Admin configuration
 export const adminConfig = {
-  // Array of allowed admin email addresses from environment variables
+  // Array of allowed admin email addresses from SERVER-SIDE environment variables only
   allowedEmails: (() => {
-    // Get admin emails from environment variable (comma-separated)
-    const envEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.ADMIN_EMAILS;
+    // SECURITY: Only use server-side environment variable (no NEXT_PUBLIC_)
+    const envEmails = process.env.ADMIN_EMAILS;
     
     if (envEmails) {
       // Split by comma and clean up whitespace
@@ -29,19 +29,20 @@ export const adminConfig = {
   
   // Reload admin emails from environment (for future use)
   reloadFromEnv: () => {
-    const envEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.ADMIN_EMAILS;
+    // SECURITY: Only use server-side environment variable
+    const envEmails = process.env.ADMIN_EMAILS;
     if (envEmails) {
       adminConfig.allowedEmails = envEmails.split(',').map(email => email.trim()).filter(email => email);
     }
   },
   
-  // Get configured emails info for debugging
+  // Get configured emails info for debugging (server-side only)
   getConfigInfo: () => {
     return {
-      emails: adminConfig.allowedEmails,
-      source: process.env.NEXT_PUBLIC_ADMIN_EMAILS ? 'NEXT_PUBLIC_ADMIN_EMAILS' : 
-              process.env.ADMIN_EMAILS ? 'ADMIN_EMAILS' : 'fallback',
-      count: adminConfig.allowedEmails.length
+      count: adminConfig.allowedEmails.length,
+      source: process.env.ADMIN_EMAILS ? 'ADMIN_EMAILS' : 'fallback',
+      // SECURITY: Don't expose actual email addresses in debug info
+      hasEmails: adminConfig.allowedEmails.length > 0
     };
   }
 };

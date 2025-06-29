@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Head from 'next/head';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { FiTrendingUp, FiDollarSign, FiCalendar, FiUsers, FiMap, FiClock } from 'react-icons/fi';
+import { FiTrendingUp, FiDollarSign, FiCalendar, FiUsers, FiMap } from 'react-icons/fi';
 import { adminConfig } from '@/libs/adminConfig';
 
 function AdminAnalytics() {
@@ -17,6 +17,13 @@ function AdminAnalytics() {
 
   // Check if user is admin
   const isAdmin = session?.user?.isAdmin || adminConfig.isAdmin(session?.user?.email);
+
+  // Move useEffect before any conditional returns to avoid hook order issues
+  useEffect(() => {
+    if (session && isAdmin) {
+      fetchAnalytics();
+    }
+  }, [session, isAdmin]);
 
   // Authentication checks
   if (status === 'loading') {
@@ -40,7 +47,7 @@ function AdminAnalytics() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You don't have permission to access this admin area.</p>
+          <p className="text-gray-600 mb-4">You don&apos;t have permission to access this admin area.</p>
           <p className="text-sm text-gray-500 mb-6">
             Signed in as: {session.user.email}
           </p>
@@ -54,10 +61,6 @@ function AdminAnalytics() {
       </div>
     );
   }
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
 
   const fetchAnalytics = async () => {
     try {
@@ -175,7 +178,7 @@ function AdminAnalytics() {
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Bookings by Month</h4>
                 <div className="space-y-3">
-                  {monthlyStats.map((month, index) => (
+                  {monthlyStats.map((month) => (
                     <div key={month.month} className="flex items-center">
                       <div className="w-12 text-sm text-gray-600">{month.month}</div>
                       <div className="flex-1 mx-3">
@@ -196,7 +199,7 @@ function AdminAnalytics() {
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Revenue by Month</h4>
                 <div className="space-y-3">
-                  {monthlyStats.map((month, index) => (
+                  {monthlyStats.map((month) => (
                     <div key={month.month} className="flex items-center">
                       <div className="w-12 text-sm text-gray-600">{month.month}</div>
                       <div className="flex-1 mx-3">
@@ -224,7 +227,7 @@ function AdminAnalytics() {
                 Service Breakdown
               </h3>
               <div className="space-y-4">
-                {serviceBreakdown.map((service, index) => (
+                {serviceBreakdown.map((service) => (
                   <div key={service.service}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-gray-700">{service.service}</span>
@@ -285,6 +288,13 @@ function AdminAnalytics() {
       </AdminLayout>
     </>
   );
+}
+
+// This page requires authentication and should not be statically generated
+export async function getServerSideProps() {
+  return {
+    props: {}, // Empty props, we'll handle auth on client side
+  };
 }
 
 AdminAnalytics.displayName = 'AdminPage';

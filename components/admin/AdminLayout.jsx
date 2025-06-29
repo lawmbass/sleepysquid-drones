@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { FiMenu, FiX, FiHome, FiCalendar, FiBarChart, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
 
 export default function AdminLayout({ children, user, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

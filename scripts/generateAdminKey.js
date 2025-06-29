@@ -1,36 +1,36 @@
 const crypto = require('crypto');
 
-function generateSecureKey(length = 64) {
-  return crypto.randomBytes(length).toString('hex');
-}
+console.log('🔐 Admin Configuration Generator');
+console.log('================================');
+console.log('');
 
-function generateAdminKeys() {
-  console.log('🔐 Generating Admin Dashboard API Keys\n');
-  
-  const adminApiKey = generateSecureKey(32);
-  const nextAuthSecret = generateSecureKey(32);
-  
-  console.log('Add these to your .env.local file:\n');
-  console.log('# Admin Dashboard Configuration');
-  console.log(`ADMIN_API_KEY=${adminApiKey}`);
-  console.log(`NEXT_PUBLIC_ADMIN_API_KEY=${adminApiKey}`);
-  console.log(`NEXTAUTH_SECRET=${nextAuthSecret}`);
-  console.log('\n# Update these with your actual values:');
-  console.log('NEXT_PUBLIC_ADMIN_EMAIL=admin@yourdomain.com');
-  console.log('NEXTAUTH_URL=http://localhost:3000');
-  console.log('\n# Optional OAuth (Google):');
-  console.log('GOOGLE_ID=your-google-oauth-client-id');
-  console.log('GOOGLE_SECRET=your-google-oauth-client-secret');
-  console.log('\n✅ Keys generated successfully!');
-  console.log('\n⚠️  Important Security Notes:');
-  console.log('- Keep these keys secret and secure');
-  console.log('- Never commit them to version control');
-  console.log('- Use different keys for production');
-  console.log('- Regenerate keys if compromised');
-}
+// Generate a secure random string for session secret
+const sessionSecret = crypto.randomBytes(32).toString('hex');
 
+console.log('✅ Generated secure configuration for your .env file:');
+console.log('');
+console.log('# NextAuth.js Configuration');
+console.log(`NEXTAUTH_SECRET=${sessionSecret}`);
+console.log('');
+console.log('# Admin Configuration (SERVER-SIDE ONLY)');
+console.log('ADMIN_EMAILS=admin@yourdomain.com,manager@yourdomain.com');
+console.log('');
+console.log('🔒 SECURITY NOTES:');
+console.log('==================');
+console.log('1. ✅ DO NOT use NEXT_PUBLIC_ prefix for sensitive data');
+console.log('2. ✅ Admin authentication is now session-based (secure)');
+console.log('3. ✅ All admin credentials are server-side only');
+console.log('4. ✅ Replace "admin@yourdomain.com" with your actual admin email(s)');
+console.log('5. ✅ Multiple admin emails can be comma-separated');
+console.log('');
+console.log('⚠️  SECURITY IMPROVEMENTS:');
+console.log('❌ Removed all NEXT_PUBLIC_ admin variables (exposed to client)');
+console.log('❌ Eliminated client-side API key authentication');
+console.log('✅ Implemented secure session-based authentication');
+console.log('');
+console.log('🎯 Your admin dashboard now uses secure session-based authentication!');
+
+// Run the script when called directly
 if (require.main === module) {
-  generateAdminKeys();
-}
-
-module.exports = { generateSecureKey, generateAdminKeys }; 
+  // Script executed directly
+} 
