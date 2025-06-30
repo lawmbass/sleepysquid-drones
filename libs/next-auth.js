@@ -1,5 +1,4 @@
 import GoogleProvider from "next-auth/providers/google";
-import EmailProvider from "next-auth/providers/email";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
@@ -22,16 +21,6 @@ export const authOptions = {
         };
       },
     }),
-    // Follow the "Login with Email" tutorial to set up your email server
-    // Requires a MongoDB database. Set MONOGODB_URI env variable.
-    ...(connectMongo
-      ? [
-          EmailProvider({
-            server: process.env.EMAIL_SERVER,
-            from: config.mailgun.fromNoReply,
-          }),
-        ]
-      : []),
   ],
   // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
   // Requires a MongoDB database. Set MONOGODB_URI env variable.
@@ -42,8 +31,19 @@ export const authOptions = {
     session: async ({ session, token }) => {
       if (session?.user) {
         session.user.id = token.sub;
+        session.user.email = token.email || session.user.email;
+        
+        // Add admin status to session (server-side check)
+        const { adminConfig } = await import('./adminConfig');
+        session.user.isAdmin = adminConfig.isAdmin(session.user.email);
       }
       return session;
+    },
+    jwt: async ({ token, account, profile }) => {
+      if (account && profile) {
+        token.email = profile.email;
+      }
+      return token;
     },
   },
   session: {
