@@ -147,11 +147,18 @@ export default async function handler(req, res) {
     }
 
     // Check for duplicate bookings (same email and date)
+    // Create separate date objects to prevent mutation of the original bookingDate
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
     const existingBooking = await Booking.findOne({
       email: sanitizedData.email,
       date: {
-        $gte: new Date(bookingDate.setHours(0, 0, 0, 0)),
-        $lt: new Date(bookingDate.setHours(23, 59, 59, 999))
+        $gte: startOfDay,
+        $lt: endOfDay
       }
     });
 
