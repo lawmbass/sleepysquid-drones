@@ -20,19 +20,31 @@ export const createRateLimit = (options = {}) => {
 // Specific rate limiters for different use cases
 export const bookingRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 booking requests per 15 minutes
+  max: 3, // limit each IP to 3 booking requests per 15 minutes (reduced from 5 for better security)
   message: {
     error: 'Too many booking attempts',
-    message: 'Too many booking requests. Please wait before trying again.'
+    message: 'Too many booking requests. Please wait 15 minutes before trying again.'
+  },
+  // Skip rate limiting for successful requests to prevent blocking legitimate users
+  skipSuccessfulRequests: true,
+  // Use a more secure key generator that includes user agent
+  keyGenerator: (req) => {
+    return req.ip + ':' + (req.headers['user-agent'] || 'unknown');
   }
 });
 
 export const adminRateLimit = createRateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 50, // limit admin requests to 50 per 5 minutes
+  max: 100, // limit admin requests to 100 per 5 minutes (increased for admin functionality)
   message: {
     error: 'Too many admin requests',
-    message: 'Too many admin requests. Please wait before trying again.'
+    message: 'Too many admin requests. Please wait 5 minutes before trying again.'
+  },
+  // Skip rate limiting for successful requests
+  skipSuccessfulRequests: true,
+  // More lenient for admin users but still protected
+  keyGenerator: (req) => {
+    return req.ip + ':admin';
   }
 });
 

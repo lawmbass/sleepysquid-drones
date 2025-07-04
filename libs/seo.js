@@ -64,6 +64,35 @@ export const getSEOTags = ({
   };
 };
 
+// Sanitize string to prevent XSS attacks (but preserve domain names for URLs)
+const sanitizeForJSON = (str) => {
+  if (typeof str !== 'string') return str;
+  // Remove HTML tags and escape dangerous characters, but preserve & in domain names
+  return str.replace(/<[^>]*>/g, '').replace(/[<>"']/g, (match) => {
+    const escapeMap = {
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;'
+    };
+    return escapeMap[match];
+  });
+};
+
+// Validate URL to prevent XSS through URL injection
+const sanitizeURL = (url) => {
+  try {
+    const parsedURL = new URL(url);
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(parsedURL.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+    return parsedURL.toString();
+  } catch {
+    return 'https://example.com'; // Safe fallback
+  }
+};
+
 // Strctured Data for Rich Results on Google. Learn more: https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data
 // Find your type here (SoftwareApp, Book...): https://developers.google.com/search/docs/appearance/structured-data/search-gallery
 // Use this tool to check data is well structure: https://search.google.com/test/rich-results
@@ -72,36 +101,47 @@ export const getSEOTags = ({
 // Fill the fields with your own data
 // See https://shipfa.st/docs/features/seo
 export const renderSchemaTags = () => {
+  // Sanitize all config values to prevent XSS
+  const safeAppName = sanitizeForJSON(config.appName);
+  const safeAppDescription = sanitizeForJSON(config.appDescription);
+  const safeDomainName = sanitizeForJSON(config.domainName);
+  
+  // Validate and sanitize URLs
+  const safeImageURL = sanitizeURL(`https://${safeDomainName}/icon.png`);
+  const safeAppURL = sanitizeURL(`https://${safeDomainName}/`);
+  
+  const schemaData = {
+    "@context": "http://schema.org",
+    "@type": "SoftwareApplication",
+    name: safeAppName,
+    description: safeAppDescription,
+    image: safeImageURL,
+    url: safeAppURL,
+    author: {
+      "@type": "Person",
+      name: "Marc Lou",
+    },
+    datePublished: "2023-08-01",
+    applicationCategory: "EducationalApplication",
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "12",
+    },
+    offers: [
+      {
+        "@type": "Offer",
+        price: "9.00",
+        priceCurrency: "USD",
+      },
+    ],
+  };
+
   return (
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          "@context": "http://schema.org",
-          "@type": "SoftwareApplication",
-          name: config.appName,
-          description: config.appDescription,
-          image: `https://${config.domainName}/icon.png`,
-          url: `https://${config.domainName}/`,
-          author: {
-            "@type": "Person",
-            name: "Marc Lou",
-          },
-          datePublished: "2023-08-01",
-          applicationCategory: "EducationalApplication",
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: "4.8",
-            ratingCount: "12",
-          },
-          offers: [
-            {
-              "@type": "Offer",
-              price: "9.00",
-              priceCurrency: "USD",
-            },
-          ],
-        }),
+        __html: JSON.stringify(schemaData),
       }}
     ></script>
   );

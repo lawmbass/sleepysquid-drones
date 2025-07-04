@@ -34,8 +34,18 @@ export const authOptions = {
         session.user.email = token.email || session.user.email;
         
         // Add admin status to session (server-side check)
-        const { adminConfig } = await import('./adminConfig');
-        session.user.isAdmin = adminConfig.isAdmin(session.user.email);
+        try {
+          const { adminConfig } = await import('./adminConfig');
+          session.user.isAdmin = adminConfig.isAdmin(session.user.email);
+          
+          // Add debug logging for admin access (production safe)
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Admin check for ${session.user.email}: ${session.user.isAdmin}`);
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          session.user.isAdmin = false; // Fail safe
+        }
       }
       return session;
     },
