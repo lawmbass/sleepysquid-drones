@@ -5,7 +5,15 @@ import { MongoClient } from "mongodb";
 // See /libs/nextauth.js file.
 
 const uri = process.env.MONGODB_URI;
-const options = {};
+const options = {
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  tlsAllowInvalidHostnames: false,
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+  family: 4, // Use IPv4, skip trying IPv6
+  maxPoolSize: 10,
+};
 
 let client;
 let clientPromise;
