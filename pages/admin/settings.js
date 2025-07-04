@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { FiSave, FiMail, FiDollarSign, FiSettings, FiShield, FiDatabase } from 'react-icons/fi';
@@ -7,6 +8,7 @@ import { adminConfig } from '@/libs/adminConfig';
 
 function AdminSettings() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [settings, setSettings] = useState({
     // Business Settings
     businessName: 'SleepySquid Drones',
@@ -57,7 +59,7 @@ function AdminSettings() {
   }
 
   if (!session) {
-    signIn();
+    router.push('/admin/login');
     return null;
   }
 

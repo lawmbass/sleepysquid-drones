@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminLayout from '@/components/admin/AdminLayout';
 import BookingsList from '@/components/admin/BookingsList';
@@ -9,6 +10,7 @@ import { adminConfig } from '@/libs/adminConfig';
 
 function AdminDashboard() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({});
   const [pagination, setPagination] = useState({});
@@ -27,7 +29,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      signIn();
+      router.push('/admin/login');
     } else if (session && isAdmin) {
       fetchBookings();
     }
