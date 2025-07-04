@@ -6,11 +6,24 @@ import connectMongo from "./mongo";
 export const authOptions = {
   // Set any random key in .env.local
   secret: process.env.NEXTAUTH_SECRET,
+  
+  // Add production URL configuration
+  ...(process.env.NODE_ENV === "production" && {
+    url: `https://${config.domainName}`,
+  }),
+  
   providers: [
     GoogleProvider({
       // Follow the "Login with Google" tutorial to get your credentials
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      },
       async profile(profile) {
         return {
           id: profile.sub,
@@ -28,6 +41,12 @@ export const authOptions = {
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Ensure redirects stay within the same domain
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
     session: async ({ session, token }) => {
       if (session?.user) {
         session.user.id = token.sub;
@@ -58,11 +77,38 @@ export const authOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   theme: {
     brandColor: config.colors.main,
-    // Add you own logo below. Recommended size is rectangle (i.e. 200x50px) and show your logo + name.
-    // It will be used in the login flow to display your logo. If you don't add it, it will look faded.
-    logo: `https://${config.domainName}/logoAndName.png`,
+    // Remove the logo reference since it doesn't exist and causes 404 errors
+    // logo: `https://${config.domainName}/logoAndName.png`,
+  },
+  pages: {
+    signIn: '/api/auth/signin',
+    error: '/api/auth/error',
+  },
+  debug: process.env.NODE_ENV === 'development',
+  
+  // Add custom error handling
+  events: {
+    async signIn(message) {
+      console.log('Sign in event:', message);
+    },
+    async signOut(message) {
+      console.log('Sign out event:', message);
+    },
+    async createUser(message) {
+      console.log('User created:', message.user.email);
+    },
+    async linkAccount(message) {
+      console.log('Account linked:', message);
+    },
+    async session(message) {
+      // Only log in development to avoid spam
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Session active:', message.session.user.email);
+      }
+    },
   },
 };
