@@ -9,15 +9,15 @@ const getAllowedEmails = () => {
     return cachedAllowedEmails;
   }
   
-  // SECURITY: Only use server-side environment variable (no NEXT_PUBLIC_)
-  const envEmails = process.env.ADMIN_EMAILS;
-  
-  if (envEmails) {
-    // Split by comma and clean up whitespace
+    // SECURITY: Only use server-side environment variable (no NEXT_PUBLIC_)
+    const envEmails = process.env.ADMIN_EMAILS;
+    
+    if (envEmails) {
+      // Split by comma and clean up whitespace
     cachedAllowedEmails = envEmails.split(',').map(email => email.trim()).filter(email => email);
     return cachedAllowedEmails;
-  }
-  
+    }
+    
   // Only log warning once to prevent console spam
   if (!hasLoggedWarning) {
     console.warn('⚠️  ADMIN_EMAILS not set in environment variables. No admin access will be granted.');
