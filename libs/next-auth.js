@@ -7,10 +7,8 @@ export const authOptions = {
   // Set any random key in .env.local
   secret: process.env.NEXTAUTH_SECRET,
   
-  // Add production URL configuration
-  ...(process.env.NEXTAUTH_URL && {
-    url: process.env.NEXTAUTH_URL,
-  }),
+  // Set the base URL for NextAuth
+  url: process.env.NEXTAUTH_URL || `https://${config.domainName}`,
   
   providers: [
     GoogleProvider({

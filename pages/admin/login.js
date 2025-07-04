@@ -27,18 +27,10 @@ export default function AdminLogin() {
     setError('');
     
     try {
-      const result = await signIn('google', {
+      // Use standard NextAuth signin with redirect
+      await signIn('google', {
         callbackUrl: '/admin',
-        redirect: false,
       });
-      
-      if (result?.error) {
-        setError('Failed to sign in with Google. Please try again.');
-        setIsLoading(false);
-      } else if (result?.url) {
-        // Redirect to the callback URL
-        window.location.href = result.url;
-      }
     } catch (error) {
       console.error('Sign in error:', error);
       setError('An unexpected error occurred. Please try again.');
