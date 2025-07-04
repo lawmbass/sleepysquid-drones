@@ -42,7 +42,6 @@ export default function Home() {
         <title>SleepySquid Drones | Professional Drone Services</title>
         <meta name="description" content="Professional drone services including aerial photography, videography, mapping, and more. Elevate your perspective with SleepySquid Drones." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
       
       <Layout>
