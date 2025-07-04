@@ -23,6 +23,7 @@ require('dotenv').config();
 console.log('🔧 Environment Variables:');
 console.log(`   ADMIN_EMAILS: ${process.env.ADMIN_EMAILS ? '✅ Set' : '❌ Not set'}`);
 console.log(`   NEXTAUTH_SECRET: ${process.env.NEXTAUTH_SECRET ? '✅ Set' : '❌ Not set'}`);
+console.log(`   NEXTAUTH_URL: ${process.env.NEXTAUTH_URL ? '✅ Set' : '❌ Not set'}`);
 console.log(`   GOOGLE_ID: ${process.env.GOOGLE_ID ? '✅ Set' : '❌ Not set'}`);
 console.log(`   GOOGLE_SECRET: ${process.env.GOOGLE_SECRET ? '✅ Set' : '❌ Not set'}`);
 console.log(`   MONGODB_URI: ${process.env.MONGODB_URI ? '✅ Set' : '❌ Not set'}\n`);

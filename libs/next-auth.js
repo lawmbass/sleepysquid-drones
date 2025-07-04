@@ -8,8 +8,8 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   
   // Add production URL configuration
-  ...(process.env.NODE_ENV === "production" && {
-    url: `https://${config.domainName}`,
+  ...(process.env.NEXTAUTH_URL && {
+    url: process.env.NEXTAUTH_URL,
   }),
   
   providers: [
@@ -42,9 +42,23 @@ export const authOptions = {
 
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Ensure redirects stay within the same domain
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // Handle same-origin URLs
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(baseUrl);
+        if (urlObj.origin === baseUrlObj.origin) {
+          return url;
+        }
+      } catch (error) {
+        console.error('Invalid URL in redirect:', url);
+      }
+      
+      // Default fallback - return to home page
       return baseUrl;
     },
     session: async ({ session, token }) => {
@@ -85,7 +99,6 @@ export const authOptions = {
     // logo: `https://${config.domainName}/logoAndName.png`,
   },
   pages: {
-    signIn: '/api/auth/signin',
     error: '/api/auth/error',
   },
   debug: process.env.NODE_ENV === 'development',
