@@ -5,15 +5,8 @@ import { MongoClient } from "mongodb";
 // See /libs/nextauth.js file.
 
 const uri = process.env.MONGODB_URI;
-const options = {
-  tls: true,
-  tlsAllowInvalidCertificates: false,
-  tlsAllowInvalidHostnames: false,
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-  family: 4, // Use IPv4, skip trying IPv6
-  maxPoolSize: 10,
-};
+// Minimal options - let MongoDB Atlas handle SSL automatically
+const options = {};
 
 let client;
 let clientPromise;
@@ -30,12 +23,28 @@ if (!uri) {
 } else if (process.env.NODE_ENV === "development") {
   if (!global._mongoClientPromise) {
     client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
+    global._mongoClientPromise = client.connect()
+      .then(client => {
+        console.log("✅ MongoDB connected successfully");
+        return client;
+      })
+      .catch(error => {
+        console.error("❌ MongoDB connection failed:", error.message);
+        throw error;
+      });
   }
   clientPromise = global._mongoClientPromise;
 } else {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  clientPromise = client.connect()
+    .then(client => {
+      console.log("✅ MongoDB connected successfully");
+      return client;
+    })
+    .catch(error => {
+      console.error("❌ MongoDB connection failed:", error.message);
+      throw error;
+    });
 }
 
 export default clientPromise;
