@@ -64,15 +64,14 @@ export const getSEOTags = ({
   };
 };
 
-// Sanitize string to prevent XSS attacks
+// Sanitize string to prevent XSS attacks (but preserve domain names for URLs)
 const sanitizeForJSON = (str) => {
   if (typeof str !== 'string') return str;
-  // Remove HTML tags and escape special characters
-  return str.replace(/<[^>]*>/g, '').replace(/[<>&"']/g, (match) => {
+  // Remove HTML tags and escape dangerous characters, but preserve & in domain names
+  return str.replace(/<[^>]*>/g, '').replace(/[<>"']/g, (match) => {
     const escapeMap = {
       '<': '&lt;',
       '>': '&gt;',
-      '&': '&amp;',
       '"': '&quot;',
       "'": '&#x27;'
     };

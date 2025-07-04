@@ -1,29 +1,45 @@
-// Get allowed emails from environment variable
+// Cache for allowed emails to prevent console spam
+let cachedAllowedEmails = null;
+let hasLoggedWarning = false;
+
+// Get allowed emails from environment variable with caching
 const getAllowedEmails = () => {
+  // Return cached result if available
+  if (cachedAllowedEmails !== null) {
+    return cachedAllowedEmails;
+  }
+  
   // SECURITY: Only use server-side environment variable (no NEXT_PUBLIC_)
   const envEmails = process.env.ADMIN_EMAILS;
   
   if (envEmails) {
     // Split by comma and clean up whitespace
-    return envEmails.split(',').map(email => email.trim()).filter(email => email);
+    cachedAllowedEmails = envEmails.split(',').map(email => email.trim()).filter(email => email);
+    return cachedAllowedEmails;
   }
   
-  // Fallback for development - but this should be set in .env
-  console.warn('⚠️  ADMIN_EMAILS not set in environment variables. No admin access will be granted.');
-  console.warn('⚠️  Please set ADMIN_EMAILS in your .env file to enable admin access.');
-  return []; // Return empty array - no admin access without proper env configuration
+  // Only log warning once to prevent console spam
+  if (!hasLoggedWarning) {
+    console.warn('⚠️  ADMIN_EMAILS not set in environment variables. No admin access will be granted.');
+    console.warn('⚠️  Please set ADMIN_EMAILS in your .env file to enable admin access.');
+    hasLoggedWarning = true;
+  }
+  
+  cachedAllowedEmails = []; // Cache empty array
+  return cachedAllowedEmails;
 };
 
 // Admin configuration
 export const adminConfig = {
-  // Array of allowed admin email addresses from SERVER-SIDE environment variables only
-  allowedEmails: getAllowedEmails(),
+  // Get all allowed admin emails (uses cached version)
+  get allowedEmails() {
+    return getAllowedEmails();
+  },
   
   // Check if an email is authorized for admin access
   isAdmin: (email) => {
     if (!email) return false;
-    const allowedEmails = getAllowedEmails(); // Always get fresh list
-    return allowedEmails.includes(email);
+    return getAllowedEmails().includes(email);
   },
   
   // Get all allowed admin emails
@@ -31,14 +47,16 @@ export const adminConfig = {
     return [...getAllowedEmails()];
   },
   
-  // Reload admin emails from environment (for future use)
+  // Reload admin emails from environment (clears cache)
   reloadFromEnv: () => {
-    // SECURITY: Only use server-side environment variable
-    const envEmails = process.env.ADMIN_EMAILS;
-    if (envEmails) {
-      // This method now just logs the reload attempt since we always get fresh data
-      console.log('Admin emails reloaded from environment');
-    }
+    // Clear cache to force reload
+    cachedAllowedEmails = null;
+    hasLoggedWarning = false;
+    
+    // Get fresh data
+    const emails = getAllowedEmails();
+    console.log(`Admin emails reloaded from environment: ${emails.length} email(s) configured`);
+    return emails;
   },
   
   // Get configured emails info for debugging (server-side only)
@@ -48,7 +66,8 @@ export const adminConfig = {
       count: allowedEmails.length,
       source: process.env.ADMIN_EMAILS ? 'ADMIN_EMAILS' : 'fallback',
       // SECURITY: Don't expose actual email addresses in debug info
-      hasEmails: allowedEmails.length > 0
+      hasEmails: allowedEmails.length > 0,
+      cached: cachedAllowedEmails !== null
     };
   }
 };
