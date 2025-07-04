@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession, signIn, getSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { FiMail, FiShield, FiAlertCircle } from 'react-icons/fi';
