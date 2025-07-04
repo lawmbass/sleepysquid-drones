@@ -10,10 +10,32 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Helper function to translate NextAuth error codes to user-friendly messages
+  const getErrorMessage = (errorCode) => {
+    const errorMessages = {
+      'Callback': 'Authentication failed. Please try again.',
+      'OAuthCallback': 'Google authentication failed. Please try again.',
+      'OAuthSignin': 'Unable to sign in with Google. Please try again.',
+      'OAuthCreateAccount': 'Unable to create account. Please try again.',
+      'EmailCreateAccount': 'Unable to create account with this email.',
+      'Signin': 'Sign in failed. Please try again.',
+      'OAuthAccountNotLinked': 'This email is already associated with another account.',
+      'EmailSignin': 'Unable to send sign in email.',
+      'CredentialsSignin': 'Invalid credentials.',
+      'SessionRequired': 'Please sign in to access this page.',
+      'AccessDenied': 'Access denied. You may not have permission to access this resource.',
+      'Verification': 'Verification failed. Please try again.',
+      'Default': 'An authentication error occurred. Please try again.'
+    };
+    
+    return errorMessages[errorCode] || errorMessages['Default'];
+  };
+
   useEffect(() => {
     // Check for auth errors from URL params
     if (router.query.auth_error) {
-      setError(decodeURIComponent(router.query.auth_error));
+      const errorCode = decodeURIComponent(router.query.auth_error);
+      setError(getErrorMessage(errorCode));
     }
     
     // If already signed in, redirect to admin dashboard
