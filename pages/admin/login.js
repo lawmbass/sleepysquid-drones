@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FiMail, FiShield, FiAlertCircle } from 'react-icons/fi';
+import Link from 'next/link';
+import { FiMail, FiShield, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
 
 export default function AdminLogin() {
   const { data: session, status } = useSession();
@@ -79,6 +80,14 @@ export default function AdminLogin() {
       </Head>
       
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        {/* Back Button */}
+        <div className="absolute top-6 left-6">
+          <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <FiArrowLeft className="h-5 w-5 mr-2" />
+            <span className="text-sm font-medium">Back to Home</span>
+          </Link>
+        </div>
+        
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <div className="bg-blue-600 rounded-full p-3">
