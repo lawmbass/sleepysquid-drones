@@ -23,28 +23,12 @@ if (!uri) {
 } else if (process.env.NODE_ENV === "development") {
   if (!global._mongoClientPromise) {
     client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect()
-      .then(client => {
-        console.log("✅ MongoDB connected successfully");
-        return client;
-      })
-      .catch(error => {
-        console.error("❌ MongoDB connection failed:", error.message);
-        throw error;
-      });
+    global._mongoClientPromise = client.connect();
   }
   clientPromise = global._mongoClientPromise;
 } else {
   client = new MongoClient(uri, options);
-  clientPromise = client.connect()
-    .then(client => {
-      console.log("✅ MongoDB connected successfully");
-      return client;
-    })
-    .catch(error => {
-      console.error("❌ MongoDB connection failed:", error.message);
-      throw error;
-    });
+  clientPromise = client.connect();
 }
 
 export default clientPromise;
