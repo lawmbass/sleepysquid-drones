@@ -1,9 +1,9 @@
 const config = {
   // REQUIRED
-  appName: "Squid Drone",
+  appName: "SleepySquid Drones",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app.",
+    "Professional drone photography, videography, and specialized aerial services. Stunning aerial perspectives for real estate, construction, events, and mapping projects.",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
   domainName: "drones.sleepysquid.com",
   crisp: {
@@ -19,23 +19,27 @@ const config = {
         // REQUIRED — we use this to find the plan in the webhook (for instance if you want to update the user's credits based on the plan)
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
-            : "price_456",
+            ? "price_basic_drone_service"
+            : "price_basic_drone_service_prod",
         //  REQUIRED - Name of the plan, displayed on the pricing page
-        name: "Starter",
+        name: "Basic",
         // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Perfect for small projects",
+        description: "Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects",
         // The price you want to display, the one user will be charged on Stripe.
-        price: 79,
+        price: 199,
         // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
-        priceAnchor: 99,
+        priceAnchor: null,
         features: [
           {
-            name: "NextJS boilerplate",
+            name: "Up to 1 hour flight time",
           },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
+          { name: "15-20 high-resolution photos" },
+          { name: "Key angle coverage (4-8 shots)" },
+          { name: "Birds eye overview shots" },
+          { name: "Property/subject elevation views" },
+          { name: "Basic photo editing & color correction" },
+          { name: "Digital delivery within 48 hours" },
+          { name: "Commercial usage rights included" },
         ],
       },
       {
@@ -43,21 +47,50 @@ const config = {
         isFeatured: true,
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1O5KtcAxyNprDp7iftKnrrpw"
-            : "price_456",
-        name: "Advanced",
-        description: "You need more power",
-        price: 99,
-        priceAnchor: 149,
+            ? "price_standard_drone_service"
+            : "price_standard_drone_service_prod",
+        name: "Standard",
+        description: "Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects",
+        price: 399,
+        priceAnchor: null,
         features: [
           {
-            name: "NextJS boilerplate",
+            name: "Up to 2 hours flight time",
           },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
-          { name: "1 year of updates" },
-          { name: "24/7 support" },
+          { name: "20-30 high-resolution photos" },
+          { name: "Comprehensive angle coverage (8+ positions)" },
+          { name: "Multiple altitude perspectives" },
+          { name: "Detail and overview combinations" },
+          { name: "2-3 minute edited highlight video" },
+          { name: "Advanced photo editing & color grading" },
+          { name: "Next-day digital delivery" },
+          { name: "Raw files included" },
+          { name: "Commercial usage rights" },
+        ],
+      },
+      {
+        priceId:
+          process.env.NODE_ENV === "development"
+            ? "price_premium_drone_service"
+            : "price_premium_drone_service_prod",
+        name: "Premium",
+        description: "Professional-grade package designed for mapping, commercial inspections, or premium documentation needs",
+        price: 799,
+        priceAnchor: null,
+        features: [
+          {
+            name: "Up to 4 hours flight time",
+          },
+          { name: "Comprehensive photo coverage (50+ images)" },
+          { name: "Automated flight planning for precision" },
+          { name: "Specialized data collection (mapping/3D)" },
+          { name: "Complete 360° coverage at multiple altitudes" },
+          { name: "Custom flight path planning" },
+          { name: "5+ minute professional video production" },
+          { name: "Advanced analytics & measurements" },
+          { name: "Same-day rush delivery available" },
+          { name: "Raw footage & source files" },
+          { name: "Extended commercial licensing" },
         ],
       },
     ],
@@ -72,13 +105,13 @@ const config = {
     // subdomain to use when sending emails, if you don't have a subdomain, just remove it. Highly recommended to have one (i.e. mg.yourdomain.com or mail.yourdomain.com)
     subdomain: "mg",
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `ShipFast <noreply@mg.shipfa.st>`,
+    fromNoReply: `SleepySquid Drones <noreply@sleepysquid.com>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Marc at ShipFast <marc@mg.shipfa.st>`,
+    fromAdmin: `Lawrence Bass at SleepySquid Drones <lawrence@sleepysquid.com>`,
     // Email shown to customer if need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
-    supportEmail: "marc@mg.shipfa.st",
+    supportEmail: "support@sleepysquid.com",
     // When someone replies to supportEmail sent by the app, forward it to the email below (otherwise it's lost). If you set supportEmail to empty, this will be ignored.
-    forwardRepliesTo: "marc.louvion@gmail.com",
+    forwardRepliesTo: "lawrence@sleepysquid.com",
   },
   colors: {
     // REQUIRED — The DaisyUI theme to use (added to the main layout.js). Leave blank for default (light & dark mode). If you any other theme than light/dark, you need to add it in config.tailwind.js in daisyui.themes.
