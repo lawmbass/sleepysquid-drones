@@ -1,178 +1,145 @@
-# SleepySquid Drones | Professional Drone Services Website
+# SleepySquid Drones
 
-A modern, responsive website for professional drone services including aerial photography, videography, real estate photography, construction documentation, and specialized mapping services.
+Professional drone services website with admin dashboard and automated mission integration.
 
-## 🚁 Features
+## Quick Setup
 
-- **Modern Design**: Clean, responsive design optimized for all devices
-- **Interactive Portfolio**: Showcase of real drone work with image galleries and project details
-- **Service Categories**: Real estate, construction, commercial, events, and mapping services
-- **Pricing Plans**: Transparent pricing with different service tiers
-- **Online Booking**: Integrated booking system with date/time selection
-- **Contact Forms**: Easy client communication and quote requests
-- **Performance Optimized**: Built with Next.js for fast loading and SEO
-
-## 🛠️ Tech Stack
-
-- **Framework**: Next.js 14
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **UI Components**: React with custom components
-- **Form Handling**: React Hook Form
-- **Date Selection**: React DatePicker
-- **Icons**: React Icons
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- npm or yarn package manager
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd drone-sleepysquid
-```
-
-2. Install dependencies:
-```bash
+# Install and setup
 npm install
-```
-
-3. Run the development server:
-```bash
+cp .env.example .env  # Edit with your settings
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+**Key Environment Variables:**
+```env
+MONGODB_URI=mongodb://localhost:27017/sleepysquid-drones
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
+ADMIN_EMAILS=your-email@domain.com
+```
 
-### Build for Production
+## Features
+
+**Public Website** (`/`)
+- Portfolio showcase with image galleries
+- Service booking system
+- Contact forms and pricing
+
+**Admin Dashboard** (`/admin`)
+- Booking management and analytics
+- Customer data and revenue tracking
+- Mission integration with Zeitview
+
+**Security**
+- Rate limiting, input validation, secure sessions
+- Server-side authentication with NextAuth.js
+
+## Key Commands
 
 ```bash
-npm run build
-npm start
+# Development
+npm run dev
+
+# Production
+npm run build && npm start
+
+# Admin key generation
+node scripts/generateAdminKey.js
+
+# Database testing
+node scripts/test-admin-login.js
 ```
 
-## 📁 Project Structure
+## Admin Access
 
-```
-├── components/
-│   ├── home/
-│   │   ├── HeroSection.jsx       # Landing page hero
-│   │   ├── ServicesSection.jsx   # Services overview
-│   │   ├── PortfolioSection.jsx  # Project portfolio
-│   │   ├── PricingSection.jsx    # Service pricing
-│   │   ├── BookingSection.jsx    # Appointment booking
-│   │   └── ContactSection.jsx    # Contact form
-│   └── layout/
-├── pages/
-│   ├── index.js                  # Main homepage
-│   └── _app.js                   # App configuration
-├── public/
-│   └── images/                   # Portfolio images
-├── styles/                       # Global styles
-└── ...
+1. Add your email to `ADMIN_EMAILS` in `.env`
+2. Visit `/admin` and sign in with Google OAuth
+3. Manage bookings, view analytics, track revenue
+
+## Mission Integration
+
+**drone-gigs** automatically accepts Zeitview missions and saves them to your database. Both systems share the same MongoDB database for unified booking management.
+
+**Setup drone-gigs:**
+```bash
+cd drone-gigs
+npm install
+# Configure .env with same MONGODB_URI
+npm start  # Starts monitoring for missions
 ```
 
-## 🎯 Core Sections
+## Database Schema
 
-### Hero Section
-- Professional landing with call-to-action
-- Service highlights and value proposition
-
-### Services
-- Aerial Photography & Videography
-- Real Estate Documentation  
-- Construction Progress Tracking
-- Commercial & Industrial Inspections
-- Event Coverage
-- Mapping & Surveying
-
-### Portfolio
-- Real project showcases
-- Image galleries with captions
-- Filterable by service category
-- Modal viewing with navigation
-
-### Pricing
-- Transparent service pricing
-- Multiple service tiers
-- Custom quote options
-
-### Booking System
-- Calendar integration
-- Service selection
-- Contact information collection
-- Availability management
-
-## 🔧 Customization
-
-### Adding Portfolio Items
-
-Edit `components/home/PortfolioSection.jsx` and add new items to the `portfolioItems` array:
-
+**Bookings** (customers + missions):
 ```javascript
 {
-  id: 106,
-  title: 'Your Project Name',
-  category: 'real-estate',
-  image: '/images/your-image.jpg',
-  description: 'Project description',
-  gallery: [
-    {
-      src: '/images/image1.jpg',
-      caption: 'Image description'
-    }
-  ]
+  // Customer bookings
+  customerName, email, phone, message
+  serviceType, packageType, eventDate
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed'
+  
+  // Mission bookings (from drone-gigs)
+  missionId, source: 'zeitview', payout
+  travelDistance, autoAccepted: true
 }
 ```
 
-### Updating Services
+## Production Deployment
 
-Modify `components/home/ServicesSection.jsx` to add or edit service offerings.
+**Environment Variables:**
+```env
+NEXTAUTH_URL=https://yourdomain.com
+NEXTAUTH_SECRET=production-secret-here
+ADMIN_EMAILS=your-email@domain.com
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/sleepysquid-drones
+```
 
-### Pricing Changes
+**Google OAuth Setup:**
+- Add `https://yourdomain.com/api/auth/callback/google` to authorized redirect URIs
+- Update authorized origins with your domain
 
-Update pricing in `components/home/PricingSection.jsx`.
+## Common Issues
 
-## 📱 Mobile Responsive
+**Admin login fails:**
+- Check `NEXTAUTH_URL` matches your domain exactly
+- Verify your email is in `ADMIN_EMAILS`
+- Ensure Google OAuth is configured correctly
 
-The website is fully responsive and optimized for:
-- Desktop (1200px+)
-- Tablet (768px - 1199px)  
-- Mobile (320px - 767px)
+**Database connection:**
+- Verify `MONGODB_URI` is correct
+- Check MongoDB server is running
+- Ensure network access for remote databases
 
-## 🔍 SEO Ready
+**Mission integration:**
+- Both apps must use same `MONGODB_URI`
+- Check drone-gigs logs for integration errors
+- Verify Zeitview credentials in drone-gigs
 
-- Meta tags configured
-- Semantic HTML structure
-- Performance optimized
-- Mobile-friendly design
+## File Structure
 
-## 📄 Scripts
+```
+├── components/
+│   ├── home/          # Public website components
+│   ├── admin/         # Admin dashboard components
+│   └── layout/        # Shared components
+├── pages/
+│   ├── index.js       # Homepage
+│   ├── admin/         # Admin pages
+│   └── api/           # API endpoints
+├── models/            # Database models
+├── libs/              # Utilities and configs
+└── scripts/           # Helper scripts
+```
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+## Tech Stack
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📞 Support
-
-For questions or support regarding this website:
-- Create an issue in the repository
-- Contact the development team
+- **Framework:** Next.js 14
+- **Database:** MongoDB with Mongoose
+- **Auth:** NextAuth.js with Google OAuth
+- **Styling:** Tailwind CSS
+- **Security:** Rate limiting, input validation, secure sessions
 
 ---
 
-Built with ❤️ for professional drone services
+**That's it.** Everything you need to run, develop, and deploy your drone services platform.

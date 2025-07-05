@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiEye, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiEye, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {
@@ -94,7 +94,7 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
+                      Customer/Mission
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Service
@@ -106,7 +106,10 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price
+                      Price/Payout
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Travel Info
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
@@ -122,17 +125,34 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 flex items-center">
                               {booking.name}
+                              {booking.source !== 'customer' && (
+                                <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                     booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                                                                                          {booking.source === 'zeitview' ? 'ZV' :
+                                   booking.source?.toUpperCase() || ''}
+                                </span>
+                              )}
                             </div>
+                            {booking.missionId && (
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <FiTarget className="h-3 w-3 mr-1" />
+                                {booking.missionId}
+                              </div>
+                            )}
                             <div className="text-sm text-gray-500 flex items-center">
                               <FiMail className="h-3 w-3 mr-1" />
                               {booking.email}
                             </div>
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <FiPhone className="h-3 w-3 mr-1" />
-                              {booking.phone}
-                            </div>
+                            {booking.source === 'customer' && (
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <FiPhone className="h-3 w-3 mr-1" />
+                                {booking.phone}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -171,13 +191,38 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 flex items-center">
                           <FiDollarSign className="h-3 w-3 mr-1" />
-                          {booking.finalPrice 
-                            ? `$${booking.finalPrice.toLocaleString()}` 
-                            : booking.estimatedPrice 
-                              ? `~$${booking.estimatedPrice.toLocaleString()}` 
-                              : 'TBD'
+                          {booking.payout 
+                            ? `$${booking.payout.toLocaleString()}` 
+                            : booking.finalPrice 
+                              ? `$${booking.finalPrice.toLocaleString()}` 
+                              : booking.estimatedPrice 
+                                ? `~$${booking.estimatedPrice.toLocaleString()}` 
+                                : 'TBD'
                           }
                         </div>
+                        {booking.payout && (
+                          <div className="text-xs text-gray-500">
+                            Mission Payout
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {booking.travelDistance && (
+                          <div className="text-sm text-gray-900 flex items-center">
+                            <FiNavigation className="h-3 w-3 mr-1" />
+                            {booking.travelDistance.toFixed(1)} mi
+                          </div>
+                        )}
+                        {booking.travelTime && (
+                          <div className="text-sm text-gray-500">
+                            {Math.round(booking.travelTime)} min
+                          </div>
+                        )}
+                        {booking.acceptedAt && (
+                          <div className="text-xs text-gray-500">
+                            Auto-accepted
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div>{formatDate(booking.createdAt)}</div>

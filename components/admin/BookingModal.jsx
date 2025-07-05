@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage } from 'react-icons/fi';
+import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign } from 'react-icons/fi';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -101,7 +101,10 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b">
           <h3 className="text-lg font-medium text-gray-900">
-            Booking Details - {booking.name}
+            {booking.source === 'customer' ? 'Booking' : 'Mission'} Details - {booking.name}
+            {booking.missionId && (
+              <span className="ml-2 text-sm text-gray-500">({booking.missionId})</span>
+            )}
           </h3>
           <button
             onClick={onClose}
@@ -115,20 +118,57 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Customer Information */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h4>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">
+                {booking.source === 'customer' ? 'Customer' : 'Mission'} Information
+              </h4>
               <div className="space-y-3">
+                {booking.source !== 'customer' && (
+                  <div className="flex items-center">
+                    <FiTarget className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-900">
+                      Source: {booking.source.charAt(0).toUpperCase() + booking.source.slice(1)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center">
                   <FiMail className="h-4 w-4 text-gray-500 mr-2" />
                   <span className="text-sm text-gray-900">{booking.email}</span>
                 </div>
-                <div className="flex items-center">
-                  <FiPhone className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900">{booking.phone}</span>
-                </div>
+                {booking.source === 'customer' && (
+                  <div className="flex items-center">
+                    <FiPhone className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-900">{booking.phone}</span>
+                  </div>
+                )}
                 <div className="flex items-start">
                   <FiMapPin className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
                   <span className="text-sm text-gray-900">{booking.location}</span>
                 </div>
+                {booking.payout && (
+                  <div className="flex items-center">
+                    <FiDollarSign className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-900">
+                      Mission Payout: ${booking.payout.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {booking.travelDistance && (
+                  <div className="flex items-center">
+                    <FiNavigation className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-900">
+                      Travel: {booking.travelDistance.toFixed(1)} mi
+                      {booking.travelTime && ` (${Math.round(booking.travelTime)} min)`}
+                    </span>
+                  </div>
+                )}
+                {booking.acceptedAt && (
+                  <div className="flex items-center">
+                    <FiClock className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-900">
+                      Auto-accepted: {formatDate(booking.acceptedAt)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -171,6 +211,18 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
             </div>
           )}
 
+          {/* Mission Email Content */}
+          {booking.missionEmail && (
+            <div className="mt-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">Original Mission Email</h4>
+              <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
+                  {booking.missionEmail}
+                </pre>
+              </div>
+            </div>
+          )}
+
           {/* Admin Form */}
           <form onSubmit={handleSubmit} className="mt-6">
             <h4 className="text-lg font-medium text-gray-900 mb-4">Admin Actions</h4>
@@ -203,7 +255,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
               {/* Estimated Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Estimated Price ($)
+                  {booking.source === 'customer' ? 'Estimated Price' : 'Mission Payout'} ($)
                 </label>
                 <input
                   type="number"
@@ -213,7 +265,13 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
                   onChange={(e) => handleChange('estimatedPrice', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="0.00"
+                  readOnly={booking.source !== 'customer' && booking.payout}
                 />
+                {booking.source !== 'customer' && booking.payout && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Mission payout is fixed at ${booking.payout}
+                  </p>
+                )}
               </div>
 
               {/* Final Price */}

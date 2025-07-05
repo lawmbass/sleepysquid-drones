@@ -1,12 +1,27 @@
-import { FiCalendar, FiDollarSign, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiCalendar, FiDollarSign, FiClock, FiCheckCircle, FiAlertCircle, FiTarget, FiNavigation } from 'react-icons/fi';
 
-export default function BookingStats({ stats }) {
+export default function BookingStats({ stats, missionStats }) {
+  const totalBookings = Object.values(stats).reduce((sum, stat) => sum + stat.count, 0);
+  const totalRevenue = Object.values(stats).reduce((sum, stat) => sum + (stat.totalValue || 0), 0);
+  
   const statCards = [
     {
       name: 'Total Bookings',
-      value: Object.values(stats).reduce((sum, stat) => sum + stat.count, 0),
+      value: totalBookings,
       icon: FiCalendar,
       color: 'bg-blue-500',
+    },
+    {
+      name: 'Customer Bookings',
+      value: stats.customerBookings || 0,
+      icon: FiCalendar,
+      color: 'bg-indigo-500',
+    },
+    {
+      name: 'Mission Bookings',
+      value: missionStats?.totalMissions || 0,
+      icon: FiTarget,
+      color: 'bg-cyan-500',
     },
     {
       name: 'Pending',
@@ -34,14 +49,33 @@ export default function BookingStats({ stats }) {
     },
     {
       name: 'Total Revenue',
-      value: `$${Object.values(stats).reduce((sum, stat) => sum + (stat.totalValue || 0), 0).toLocaleString()}`,
+      value: `$${totalRevenue.toLocaleString()}`,
       icon: FiDollarSign,
       color: 'bg-purple-500',
     },
   ];
 
+  // Add mission-specific stats if available
+  if (missionStats?.totalPayout) {
+    statCards.push({
+      name: 'Mission Payouts',
+      value: `$${missionStats.totalPayout.toLocaleString()}`,
+      icon: FiDollarSign,
+      color: 'bg-pink-500',
+    });
+  }
+
+  if (missionStats?.avgTravelDistance) {
+    statCards.push({
+      name: 'Avg Travel Distance',
+      value: `${missionStats.avgTravelDistance.toFixed(1)} mi`,
+      icon: FiNavigation,
+      color: 'bg-teal-500',
+    });
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (

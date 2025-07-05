@@ -11,6 +11,13 @@ const services = [
   { value: 'custom', label: 'Custom Project' }
 ];
 
+const sources = [
+  { value: '', label: 'All Sources' },
+  { value: 'customer', label: 'Customer Bookings' },
+  { value: 'zeitview', label: 'Zeitview Missions' },
+  { value: 'manual', label: 'Manual Entries' }
+];
+
 const statuses = [
   { value: '', label: 'All Statuses' },
   { value: 'pending', label: 'Pending' },
@@ -33,9 +40,13 @@ export default function BookingFilters({ filters, onFilterChange }) {
   const [localFilters, setLocalFilters] = useState({
     status: filters.status || '',
     service: filters.service || '',
+    source: filters.source || '',
     email: filters.email || '',
     date_from: filters.date_from || '',
     date_to: filters.date_to || '',
+    payout_min: filters.payout_min || '',
+    payout_max: filters.payout_max || '',
+    travel_distance_max: filters.travel_distance_max || '',
     sort: filters.sort || '-createdAt'
   });
 
@@ -49,9 +60,13 @@ export default function BookingFilters({ filters, onFilterChange }) {
     const clearedFilters = {
       status: '',
       service: '',
+      source: '',
       email: '',
       date_from: '',
       date_to: '',
+      payout_min: '',
+      payout_max: '',
+      travel_distance_max: '',
       sort: '-createdAt'
     };
     setLocalFilters(clearedFilters);
@@ -78,6 +93,24 @@ export default function BookingFilters({ filters, onFilterChange }) {
               {statuses.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Source Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Source
+            </label>
+            <select
+              value={localFilters.source}
+              onChange={(e) => handleChange('source', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {sources.map((source) => (
+                <option key={source.value} value={source.value}>
+                  {source.label}
                 </option>
               ))}
             </select>
@@ -131,6 +164,49 @@ export default function BookingFilters({ filters, onFilterChange }) {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Mission-specific filters */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Min Payout ($)
+            </label>
+            <input
+              type="number"
+              value={localFilters.payout_min}
+              onChange={(e) => handleChange('payout_min', e.target.value)}
+              placeholder="50"
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Max Payout ($)
+            </label>
+            <input
+              type="number"
+              value={localFilters.payout_max}
+              onChange={(e) => handleChange('payout_max', e.target.value)}
+              placeholder="500"
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Max Travel Distance (miles)
+            </label>
+            <input
+              type="number"
+              value={localFilters.travel_distance_max}
+              onChange={(e) => handleChange('travel_distance_max', e.target.value)}
+              placeholder="50"
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
 

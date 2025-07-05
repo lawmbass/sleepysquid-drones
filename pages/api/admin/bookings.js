@@ -68,13 +68,17 @@ export default async function handler(req, res) {
     // Extract query parameters
     const { 
       status, 
-      service, 
+      service,
+      source,
       limit = 50, 
       page = 1,
       sort = '-createdAt',
       email,
       date_from,
-      date_to
+      date_to,
+      payout_min,
+      payout_max,
+      travel_distance_max
     } = req.query;
 
     // Build filter object
@@ -82,6 +86,7 @@ export default async function handler(req, res) {
     
     if (status) filter.status = status;
     if (service) filter.service = service;
+    if (source) filter.source = source;
     if (email) filter.email = { $regex: email, $options: 'i' };
     
     // Date range filter
@@ -89,6 +94,17 @@ export default async function handler(req, res) {
       filter.date = {};
       if (date_from) filter.date.$gte = new Date(date_from);
       if (date_to) filter.date.$lte = new Date(date_to);
+    }
+
+    // Mission-specific filters
+    if (payout_min || payout_max) {
+      filter.payout = {};
+      if (payout_min) filter.payout.$gte = parseFloat(payout_min);
+      if (payout_max) filter.payout.$lte = parseFloat(payout_max);
+    }
+
+    if (travel_distance_max) {
+      filter.travelDistance = { $lte: parseFloat(travel_distance_max) };
     }
 
     // Calculate pagination
@@ -113,10 +129,81 @@ export default async function handler(req, res) {
         $group: {
           _id: '$status',
           count: { $sum: 1 },
-          totalValue: { $sum: '$estimatedPrice' }
+          totalValue: { 
+            $sum: {
+              $cond: [
+                { $ne: ['$payout', null] },
+                '$payout',
+                { $ifNull: ['$finalPrice', '$estimatedPrice'] }
+              ]
+            }
+          }
         }
       }
     ]);
+
+    // Get mission-specific statistics
+    const missionStats = await Booking.aggregate([
+      {
+        $match: { source: { $ne: 'customer' } }
+      },
+      {
+        $group: {
+          _id: null,
+          totalMissions: { $sum: 1 },
+          totalPayout: { $sum: '$payout' },
+          avgPayout: { $avg: '$payout' },
+          avgTravelDistance: { $avg: '$travelDistance' },
+          avgTravelTime: { $avg: '$travelTime' },
+          sourceBreakdown: {
+            $push: {
+              source: '$source',
+              payout: '$payout'
+            }
+          }
+        }
+      }
+    ]);
+
+    // Get source breakdown
+    const sourceStats = await Booking.aggregate([
+      {
+        $group: {
+          _id: '$source',
+          count: { $sum: 1 },
+          totalValue: { 
+            $sum: {
+              $cond: [
+                { $ne: ['$payout', null] },
+                '$payout',
+                { $ifNull: ['$finalPrice', '$estimatedPrice'] }
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    // Process mission statistics
+    const processedMissionStats = missionStats[0] || {
+      totalMissions: 0,
+      totalPayout: 0,
+      avgPayout: 0,
+      avgTravelDistance: 0,
+      avgTravelTime: 0
+    };
+
+    // Process source statistics
+    const processedSourceStats = sourceStats.reduce((acc, stat) => {
+      acc[stat._id] = {
+        count: stat.count,
+        totalValue: stat.totalValue || 0
+      };
+      return acc;
+    }, {});
+
+    // Calculate customer bookings count
+    const customerBookingsCount = processedSourceStats.customer?.count || 0;
 
     // Return bookings with metadata
     res.status(200).json({
@@ -130,19 +217,28 @@ export default async function handler(req, res) {
           hasNextPage: pageNum < totalPages,
           hasPrevPage: pageNum > 1
         },
-        stats: stats.reduce((acc, stat) => {
-          acc[stat._id] = {
-            count: stat.count,
-            totalValue: stat.totalValue || 0
-          };
-          return acc;
-        }, {}),
+        stats: {
+          ...stats.reduce((acc, stat) => {
+            acc[stat._id] = {
+              count: stat.count,
+              totalValue: stat.totalValue || 0
+            };
+            return acc;
+          }, {}),
+          customerBookings: customerBookingsCount
+        },
+        missionStats: processedMissionStats,
+        sourceStats: processedSourceStats,
         filters: {
           status,
           service,
+          source,
           email,
           date_from,
-          date_to
+          date_to,
+          payout_min,
+          payout_max,
+          travel_distance_max
         }
       }
     });
