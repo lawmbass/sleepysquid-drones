@@ -1,8 +1,12 @@
 import { FiCalendar, FiDollarSign, FiClock, FiCheckCircle, FiAlertCircle, FiTarget, FiNavigation } from 'react-icons/fi';
 
 export default function BookingStats({ stats, missionStats }) {
-  const totalBookings = Object.values(stats).reduce((sum, stat) => sum + stat.count, 0);
-  const totalRevenue = Object.values(stats).reduce((sum, stat) => sum + (stat.totalValue || 0), 0);
+  const totalBookings = Object.values(stats).reduce((sum, stat) => {
+    return sum + (typeof stat === 'object' && stat.count ? stat.count : 0);
+  }, 0);
+  const totalRevenue = Object.values(stats).reduce((sum, stat) => {
+    return sum + (typeof stat === 'object' && stat.totalValue ? stat.totalValue : 0);
+  }, 0);
   
   const statCards = [
     {
@@ -49,7 +53,7 @@ export default function BookingStats({ stats, missionStats }) {
     },
     {
       name: 'Total Revenue',
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: totalRevenue.toLocaleString(),
       icon: FiDollarSign,
       color: 'bg-purple-500',
     },
@@ -59,7 +63,7 @@ export default function BookingStats({ stats, missionStats }) {
   if (missionStats?.totalPayout) {
     statCards.push({
       name: 'Mission Payouts',
-      value: `$${missionStats.totalPayout.toLocaleString()}`,
+      value: missionStats.totalPayout.toLocaleString(),
       icon: FiDollarSign,
       color: 'bg-pink-500',
     });

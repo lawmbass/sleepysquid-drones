@@ -29,10 +29,10 @@ export default async function handler(req, res) {
     return; // Response already sent by rate limiter
   }
 
-  if (req.method !== 'PATCH') {
+  if (req.method !== 'PATCH' && req.method !== 'DELETE') {
     return res.status(405).json({ 
       error: 'Method not allowed',
-      message: 'Only PATCH requests are allowed'
+      message: 'Only PATCH and DELETE requests are allowed'
     });
   }
 
@@ -82,7 +82,32 @@ export default async function handler(req, res) {
       });
     }
 
-    // Find the existing booking
+    // Handle DELETE request
+    if (req.method === 'DELETE') {
+      // Find the existing booking
+      const existingBooking = await Booking.findById(id);
+      
+      if (!existingBooking) {
+        return res.status(404).json({
+          error: 'Booking not found',
+          message: 'The specified booking does not exist'
+        });
+      }
+
+      // Delete the booking
+      await Booking.findByIdAndDelete(id);
+
+      // Return success response
+      return res.status(200).json({
+        success: true,
+        message: 'Booking deleted successfully',
+        data: {
+          deletedBooking: existingBooking
+        }
+      });
+    }
+
+    // Handle PATCH request - Find the existing booking
     const existingBooking = await Booking.findById(id);
     
     if (!existingBooking) {

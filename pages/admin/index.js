@@ -96,6 +96,26 @@ function AdminDashboard() {
     }
   };
 
+  const deleteBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: 'DELETE',
+        credentials: 'include', // Include session cookies for authentication
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete booking');
+      }
+
+      // Refresh bookings list
+      fetchBookings();
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    }
+  };
+
   // Authentication checks
   if (status === 'loading') {
     return (
@@ -185,6 +205,7 @@ function AdminDashboard() {
             loading={loading}
             onPageChange={handlePageChange}
             onUpdateBooking={updateBooking}
+            onDeleteBooking={deleteBooking}
           />
         </div>
       </AdminLayout>
