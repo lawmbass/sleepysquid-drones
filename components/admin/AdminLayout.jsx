@@ -13,11 +13,13 @@ export default function AdminLayout({ children, user, onSignOut }) {
     { name: 'Settings', href: '/admin/settings', icon: FiSettings },
   ];
 
-  // Function to check if a navigation item is current
+  // Function to determine if a navigation item is current
   const isCurrentPage = (href) => {
     if (href === '/admin') {
+      // For dashboard, match exactly or when on /admin root
       return router.pathname === '/admin' || router.pathname === '/admin/';
     }
+    // For other pages, match the pathname
     return router.pathname === href;
   };
 
