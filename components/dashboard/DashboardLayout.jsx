@@ -1,15 +1,89 @@
-import { useState } from 'react';
-import Link from 'next/link';
-import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+// Link removed as we're using router.push instead
+import { useRouter } from 'next/router';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity } from 'react-icons/fi';
+import { userRoles } from '@/libs/userRoles';
 
-export default function AdminLayout({ children, user, onSignOut }) {
+// Icon mapping for dynamic navigation
+const iconMap = {
+  FiHome,
+  FiBarChart,
+  FiSettings,
+  FiCalendar,
+  FiMap,
+  FiUsers,
+  FiFileText,
+  FiPlus,
+  FiFolder,
+  FiUser,
+  FiUpload,
+  FiActivity
+};
+
+export default function DashboardLayout({ children, user, onSignOut, userRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [navigation, setNavigation] = useState([]);
+  const router = useRouter();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: FiHome, current: true },
-    { name: 'Analytics', href: '/admin/analytics', icon: FiBarChart, current: false },
-    { name: 'Settings', href: '/admin/settings', icon: FiSettings, current: false },
-  ];
+  useEffect(() => {
+    // Get navigation based on user role
+    if (userRole) {
+      const roleNav = userRoles.getNavigationForRole(userRole);
+      const navigationWithIcons = roleNav.map(item => {
+        // Only transform href for dashboard-specific routes
+        let href = item.href;
+        let current = false;
+        
+        if (item.href === '/dashboard' || item.href.startsWith('/dashboard?')) {
+          // Dashboard routes use hash-based navigation
+          const section = item.href.includes('?section=') 
+            ? item.href.split('?section=')[1] 
+            : 'dashboard';
+          href = `#${section}`;
+          current = router.query.section === section || (section === 'dashboard' && !router.query.section);
+        } else {
+          // Non-dashboard routes remain unchanged
+          current = router.asPath === item.href;
+        }
+        
+        return {
+          ...item,
+          icon: iconMap[item.icon] || FiHome,
+          href,
+          current
+        };
+      });
+      setNavigation(navigationWithIcons);
+    }
+  }, [userRole, router.asPath, router.query.section]);
+
+  // Get dashboard title based on role
+  const getDashboardTitle = () => {
+    switch (userRole) {
+      case 'admin':
+        return 'Admin Dashboard';
+      case 'client':
+        return 'Client Portal';
+      case 'pilot':
+        return 'Pilot Dashboard';
+      default:
+        return 'Dashboard';
+    }
+  };
+
+  // Handle navigation clicks
+  const handleNavigationClick = (href) => {
+    setSidebarOpen(false);
+    
+    // If it's a hash link, update the URL query parameter
+    if (href.startsWith('#')) {
+      const section = href.substring(1);
+      router.push(`/dashboard?section=${section}`, undefined, { shallow: true });
+    } else {
+      // External link or absolute path
+      router.push(href);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,16 +101,16 @@ export default function AdminLayout({ children, user, onSignOut }) {
           </div>
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-gray-900">{getDashboardTitle()}</h1>
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                    onClick={() => handleNavigationClick(item.href)}
+                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md w-full text-left ${
                       item.current
                         ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -44,7 +118,7 @@ export default function AdminLayout({ children, user, onSignOut }) {
                   >
                     <Icon className="mr-4 h-6 w-6" />
                     {item.name}
-                  </Link>
+                  </button>
                 );
               })}
             </nav>
@@ -65,16 +139,16 @@ export default function AdminLayout({ children, user, onSignOut }) {
         <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-gray-900">{getDashboardTitle()}</h1>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    onClick={() => handleNavigationClick(item.href)}
+                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left ${
                       item.current
                         ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -82,7 +156,7 @@ export default function AdminLayout({ children, user, onSignOut }) {
                   >
                     <Icon className="mr-3 h-5 w-5" />
                     {item.name}
-                  </Link>
+                  </button>
                 );
               })}
             </nav>
@@ -104,6 +178,7 @@ export default function AdminLayout({ children, user, onSignOut }) {
               <div className="ml-3 flex-1">
                 <p className="text-sm font-medium text-gray-700">{user?.name}</p>
                 <p className="text-xs font-medium text-gray-500">{user?.email}</p>
+                <p className="text-xs font-medium text-blue-600 capitalize">{userRole}</p>
               </div>
               <button
                 onClick={onSignOut}
@@ -137,4 +212,4 @@ export default function AdminLayout({ children, user, onSignOut }) {
       </div>
     </div>
   );
-} 
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign } from 'react-icons/fi';
+import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -19,7 +20,7 @@ const serviceLabels = {
   'custom': 'Custom Project'
 };
 
-export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
+export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDelete }) {
   const [formData, setFormData] = useState({
     status: booking.status,
     estimatedPrice: booking.estimatedPrice || '',
@@ -27,7 +28,9 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
     adminNotes: booking.adminNotes || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (booking) {
@@ -85,6 +88,28 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
     }
   };
 
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    setError('');
+
+    try {
+      const success = await onDelete(booking._id);
+      if (success) {
+        onClose();
+      } else {
+        setError('Failed to delete booking. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred while deleting. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -96,8 +121,15 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+    <div 
+      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto" 
+      style={{ margin: 0, padding: 0, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
+      onClick={onClose}
+    >
+      <div 
+        className="relative my-8 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b">
           <h3 className="text-lg font-medium text-gray-900">
@@ -126,7 +158,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
                   <div className="flex items-center">
                     <FiTarget className="h-4 w-4 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-900">
-                      Source: {booking.source.charAt(0).toUpperCase() + booking.source.slice(1)}
+                      Source: {booking.source ? booking.source.charAt(0).toUpperCase() + booking.source.slice(1) : 'Unknown'}
                     </span>
                   </div>
                 )}
@@ -148,7 +180,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
                   <div className="flex items-center">
                     <FiDollarSign className="h-4 w-4 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-900">
-                      Mission Payout: ${booking.payout.toLocaleString()}
+                      Mission Payout: {booking.payout.toLocaleString()}
                     </span>
                   </div>
                 )}
@@ -328,35 +360,67 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-between">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {isSubmitting ? (
+                {isDeleting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
+                    Deleting...
                   </>
                 ) : (
                   <>
-                    <FiSave className="h-4 w-4 mr-2" />
-                    Save Changes
+                    <FiTrash2 className="h-4 w-4 mr-2" />
+                    Delete Booking
                   </>
                 )}
               </button>
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <FiSave className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </div>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Booking"
+        message={`Are you sure you want to delete this booking?\n\nCustomer: ${booking.name}\nEmail: ${booking.email}\nService: ${serviceLabels[booking.service] || booking.service}\nDate: ${formatDate(booking.date)}\n\nThis action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 } 

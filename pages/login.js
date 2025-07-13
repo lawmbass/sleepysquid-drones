@@ -3,9 +3,9 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { FiMail, FiShield, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
+import { FiMail, FiUser, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
 
-export default function AdminLogin() {
+export default function Login() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -39,20 +39,30 @@ export default function AdminLogin() {
       setError(getErrorMessage(errorCode));
     }
     
-    // If already signed in, redirect to admin dashboard
+    // If already signed in, redirect based on user role
     if (session?.user) {
-      router.push('/admin');
+      const redirectTo = router.query.callbackUrl || getDefaultRedirectForUser(session.user);
+      router.push(redirectTo);
     }
   }, [session, router]);
+
+  // Determine where to redirect users based on their role
+  const getDefaultRedirectForUser = (user) => {
+    // Everyone goes to the unified dashboard page
+    return '/dashboard';
+  };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
     
     try {
+      // Get callback URL from query params or determine default
+      const callbackUrl = router.query.callbackUrl || '/dashboard';
+      
       // Use standard NextAuth signin with redirect
       await signIn('google', {
-        callbackUrl: '/admin',
+        callbackUrl,
       });
     } catch (error) {
       console.error('Sign in error:', error);
@@ -75,8 +85,8 @@ export default function AdminLogin() {
   return (
     <>
       <Head>
-        <title>Admin Login - SleepySquid Drones</title>
-        <meta name="robots" content="noindex, nofollow" />
+        <title>Login - SleepySquid Drones</title>
+        <meta name="description" content="Login to access your SleepySquid Drones account" />
       </Head>
       
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -91,14 +101,14 @@ export default function AdminLogin() {
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <div className="bg-blue-600 rounded-full p-3">
-              <FiShield className="h-8 w-8 text-white" />
+              <FiUser className="h-8 w-8 text-white" />
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Access
+            Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access the admin dashboard
+            Access your dashboard and manage your drone services
           </p>
         </div>
 
@@ -142,7 +152,7 @@ export default function AdminLogin() {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-gray-500">
-                    Authorized personnel only
+                    Secure authentication
                   </span>
                 </div>
               </div>
@@ -150,8 +160,8 @@ export default function AdminLogin() {
             
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">
-                Only authorized email addresses can access the admin panel.
-                Contact your administrator if you need access.
+                New to SleepySquid Drones? Sign in with your Google account to get started.
+                Contact support if you need assistance.
               </p>
             </div>
           </div>
@@ -159,4 +169,4 @@ export default function AdminLogin() {
       </div>
     </>
   );
-} 
+}

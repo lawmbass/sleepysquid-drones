@@ -215,7 +215,6 @@ bookingSchema.index({ email: 1, date: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ date: 1 });
 bookingSchema.index({ source: 1, status: 1 });
-bookingSchema.index({ missionId: 1 }, { sparse: true });
 bookingSchema.index({ coordinates: '2dsphere' });
 
 // Virtual for determining if this is a mission

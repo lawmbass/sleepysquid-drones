@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiEye, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {
@@ -20,7 +20,16 @@ const serviceLabels = {
   'custom': 'Custom Project'
 };
 
-export default function BookingsList({ bookings, pagination, loading, onPageChange, onUpdateBooking }) {
+export default function BookingsList({ bookings = [], pagination = {}, loading, onPageChange, onUpdateBooking, onDeleteBooking }) {
+  // Provide default pagination values
+  const paginationDefaults = {
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasPrevPage: false,
+    hasNextPage: false,
+    ...pagination
+  };
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -41,6 +50,8 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
     }
     return success;
   };
+
+
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -79,7 +90,7 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
       <div className="bg-white shadow rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            Bookings ({pagination.totalCount || 0})
+            Bookings ({paginationDefaults.totalCount})
           </h3>
         </div>
         
@@ -114,14 +125,15 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {bookings.map((booking) => (
-                    <tr key={booking._id} className="hover:bg-gray-50">
+                    <tr 
+                      key={booking._id} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleViewBooking(booking)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div>
@@ -185,18 +197,18 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 flex items-center">
                           <FiDollarSign className="h-3 w-3 mr-1" />
                           {booking.payout 
-                            ? `$${booking.payout.toLocaleString()}` 
+                            ? booking.payout.toLocaleString() 
                             : booking.finalPrice 
-                              ? `$${booking.finalPrice.toLocaleString()}` 
+                              ? booking.finalPrice.toLocaleString() 
                               : booking.estimatedPrice 
-                                ? `~$${booking.estimatedPrice.toLocaleString()}` 
+                                ? `~${booking.estimatedPrice.toLocaleString()}` 
                                 : 'TBD'
                           }
                         </div>
@@ -228,15 +240,6 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                         <div>{formatDate(booking.createdAt)}</div>
                         <div>{formatTime(booking.createdAt)}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleViewBooking(booking)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                          title="View/Edit Booking"
-                        >
-                          <FiEye className="h-4 w-4" />
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -244,14 +247,14 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
             </div>
 
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
+            {paginationDefaults.totalPages > 1 && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
-                    onClick={() => onPageChange(pagination.currentPage - 1)}
-                    disabled={!pagination.hasPrevPage}
+                    onClick={() => onPageChange(paginationDefaults.currentPage - 1)}
+                    disabled={!paginationDefaults.hasPrevPage}
                     className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      pagination.hasPrevPage
+                      paginationDefaults.hasPrevPage
                         ? 'text-gray-700 bg-white hover:bg-gray-50'
                         : 'text-gray-400 bg-gray-100 cursor-not-allowed'
                     }`}
@@ -259,10 +262,10 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                     Previous
                   </button>
                   <button
-                    onClick={() => onPageChange(pagination.currentPage + 1)}
-                    disabled={!pagination.hasNextPage}
+                    onClick={() => onPageChange(paginationDefaults.currentPage + 1)}
+                    disabled={!paginationDefaults.hasNextPage}
                     className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                      pagination.hasNextPage
+                      paginationDefaults.hasNextPage
                         ? 'text-gray-700 bg-white hover:bg-gray-50'
                         : 'text-gray-400 bg-gray-100 cursor-not-allowed'
                     }`}
@@ -273,17 +276,17 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      Showing page <span className="font-medium">{pagination.currentPage}</span> of{' '}
-                      <span className="font-medium">{pagination.totalPages}</span> ({pagination.totalCount} total bookings)
+                      Showing page <span className="font-medium">{paginationDefaults.currentPage}</span> of{' '}
+                      <span className="font-medium">{paginationDefaults.totalPages}</span> ({paginationDefaults.totalCount} total bookings)
                     </p>
                   </div>
                   <div>
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                       <button
-                        onClick={() => onPageChange(pagination.currentPage - 1)}
-                        disabled={!pagination.hasPrevPage}
+                        onClick={() => onPageChange(paginationDefaults.currentPage - 1)}
+                        disabled={!paginationDefaults.hasPrevPage}
                         className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
-                          pagination.hasPrevPage
+                          paginationDefaults.hasPrevPage
                             ? 'text-gray-500 bg-white hover:bg-gray-50'
                             : 'text-gray-300 bg-gray-100 cursor-not-allowed'
                         }`}
@@ -291,10 +294,10 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                         Previous
                       </button>
                       <button
-                        onClick={() => onPageChange(pagination.currentPage + 1)}
-                        disabled={!pagination.hasNextPage}
+                        onClick={() => onPageChange(paginationDefaults.currentPage + 1)}
+                        disabled={!paginationDefaults.hasNextPage}
                         className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
-                          pagination.hasNextPage
+                          paginationDefaults.hasNextPage
                             ? 'text-gray-500 bg-white hover:bg-gray-50'
                             : 'text-gray-300 bg-gray-100 cursor-not-allowed'
                         }`}
@@ -317,8 +320,11 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onUpdate={handleUpdateBooking}
+          onDelete={onDeleteBooking}
         />
       )}
+
+
     </>
   );
 } 
