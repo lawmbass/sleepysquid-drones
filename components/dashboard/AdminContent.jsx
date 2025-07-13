@@ -6,7 +6,7 @@ import BookingFilters from '@/components/admin/BookingFilters';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
 import AdminSettings from '@/components/admin/AdminSettings';
 
-export default function AdminDashboard({ user }) {
+export default function AdminContent({ user }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [bookings, setBookings] = useState([]);

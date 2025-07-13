@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiHome, FiUser, FiSettings, FiHeart, FiInfo } from 'react-icons/fi';
+import { FiHeart, FiInfo } from 'react-icons/fi';
 
 export default function UserDashboard({ user }) {
   const router = useRouter();
