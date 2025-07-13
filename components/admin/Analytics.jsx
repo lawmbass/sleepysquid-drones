@@ -57,28 +57,60 @@ export default function Analytics() {
     return new Intl.NumberFormat('en-US').format(num || 0);
   };
 
-  const StatCard = ({ title, value, icon: Icon, color = 'blue', subtitle, change }) => (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+  const StatCard = ({ title, value, icon: Icon, color = 'blue', subtitle, change }) => {
+    // Define color classes explicitly to avoid Tailwind purging
+    const colorClasses = {
+      blue: {
+        bg: 'bg-blue-100',
+        text: 'text-blue-600'
+      },
+      green: {
+        bg: 'bg-green-100',
+        text: 'text-green-600'
+      },
+      purple: {
+        bg: 'bg-purple-100',
+        text: 'text-purple-600'
+      },
+      orange: {
+        bg: 'bg-orange-100',
+        text: 'text-orange-600'
+      },
+      red: {
+        bg: 'bg-red-100',
+        text: 'text-red-600'
+      },
+      yellow: {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-600'
+      }
+    };
+
+    const selectedColor = colorClasses[color] || colorClasses.blue;
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-2xl font-semibold text-gray-900">{value}</p>
+            {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+          </div>
+          <div className={`p-3 rounded-md ${selectedColor.bg}`}>
+            <Icon className={`h-6 w-6 ${selectedColor.text}`} />
+          </div>
         </div>
-        <div className={`p-3 rounded-md bg-${color}-100`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
-        </div>
+        {change && (
+          <div className="mt-4 flex items-center">
+            <span className={`text-sm ${change.type === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
+              {change.type === 'increase' ? '+' : '-'}{change.value}
+            </span>
+            <span className="text-sm text-gray-500 ml-1">vs last period</span>
+          </div>
+        )}
       </div>
-      {change && (
-        <div className="mt-4 flex items-center">
-          <span className={`text-sm ${change.type === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
-            {change.type === 'increase' ? '+' : '-'}{change.value}
-          </span>
-          <span className="text-sm text-gray-500 ml-1">vs last period</span>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   const SourceBreakdownChart = ({ data }) => {
     if (!data || Object.keys(data).length === 0) {
