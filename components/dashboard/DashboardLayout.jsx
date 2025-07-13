@@ -124,11 +124,31 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             </nav>
           </div>
           <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="ml-3">
+            <div className="flex items-center w-full">
+              <div className="flex-shrink-0">
+                {user?.image ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="h-8 w-8 rounded-full" src={user.image} alt="" />
+                  </>
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                    <FiUser className="h-4 w-4 text-gray-600" />
+                  </div>
+                )}
+              </div>
+              <div className="ml-3 flex-1">
                 <p className="text-base font-medium text-gray-700">{user?.name}</p>
                 <p className="text-sm font-medium text-gray-500">{user?.email}</p>
+                <p className="text-sm font-medium text-blue-600 capitalize">{userRole}</p>
               </div>
+              <button
+                onClick={onSignOut}
+                className="ml-3 flex-shrink-0 p-1 text-gray-400 hover:text-gray-600"
+                title="Sign out"
+              >
+                <FiLogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>
