@@ -3,7 +3,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { FiTrendingUp, FiDollarSign, FiCalendar, FiUsers, FiMap } from 'react-icons/fi';
+import { FiTrendingUp, FiDollarSign, FiCalendar, FiUsers, FiMap, FiActivity, FiClock, FiTarget } from 'react-icons/fi';
 import { adminConfig } from '@/libs/adminConfig';
 
 function AdminAnalytics() {
@@ -12,8 +12,15 @@ function AdminAnalytics() {
   const [analytics, setAnalytics] = useState({
     monthlyStats: [],
     serviceBreakdown: [],
-    revenueOverTime: [],
     popularLocations: [],
+    statusBreakdown: [],
+    sourceBreakdown: [],
+    recentActivity: [],
+    totalStats: {
+      totalBookings: 0,
+      totalRevenue: 0,
+      averagePayout: 0
+    },
     loading: true
   });
 
@@ -48,14 +55,14 @@ function AdminAnalytics() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You don&apos;t have permission to access this admin area.</p>
-          <p className="text-sm text-gray-500 mb-6">
-            Signed in as: {session.user.email}
-          </p>
+          <div className="text-red-500 mb-4">
+            <FiUsers className="mx-auto h-12 w-12" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">You don't have permission to access this page.</p>
           <button
             onClick={() => signOut()}
-            className="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
           >
             Sign Out
           </button>
@@ -66,30 +73,16 @@ function AdminAnalytics() {
 
   const fetchAnalytics = async () => {
     try {
-      // For now, using mock data - you can replace with real API calls
+      setAnalytics(prev => ({ ...prev, loading: true }));
+      
+      const response = await fetch('/api/admin/analytics');
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics');
+      }
+      
+      const data = await response.json();
       setAnalytics({
-        monthlyStats: [
-          { month: 'Jan', bookings: 12, revenue: 4800 },
-          { month: 'Feb', bookings: 19, revenue: 7200 },
-          { month: 'Mar', bookings: 25, revenue: 9800 },
-          { month: 'Apr', bookings: 31, revenue: 12400 },
-          { month: 'May', bookings: 28, revenue: 11200 },
-          { month: 'Jun', bookings: 35, revenue: 14000 }
-        ],
-        serviceBreakdown: [
-          { service: 'Real Estate', count: 45, percentage: 35 },
-          { service: 'Aerial Photography', count: 32, percentage: 25 },
-          { service: 'Inspections', count: 28, percentage: 22 },
-          { service: 'Event Coverage', count: 15, percentage: 12 },
-          { service: 'Mapping', count: 8, percentage: 6 }
-        ],
-        popularLocations: [
-          { location: 'Downtown Area', count: 23 },
-          { location: 'Suburban Districts', count: 18 },
-          { location: 'Industrial Zone', count: 12 },
-          { location: 'Coastal Region', count: 9 },
-          { location: 'Rural Areas', count: 6 }
-        ],
+        ...data,
         loading: false
       });
     } catch (error) {
@@ -98,11 +91,20 @@ function AdminAnalytics() {
     }
   };
 
-  const { monthlyStats, serviceBreakdown, popularLocations, loading } = analytics;
+  const { 
+    monthlyStats, 
+    serviceBreakdown, 
+    popularLocations, 
+    statusBreakdown, 
+    sourceBreakdown, 
+    recentActivity, 
+    totalStats, 
+    loading 
+  } = analytics;
 
-  const totalBookings = monthlyStats.reduce((sum, month) => sum + month.bookings, 0);
-  const totalRevenue = monthlyStats.reduce((sum, month) => sum + month.revenue, 0);
-  const avgBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+  const totalBookings = totalStats.totalBookings;
+  const totalRevenue = totalStats.totalRevenue;
+  const avgBookingValue = totalStats.averagePayout;
 
   if (loading) {
     return (
@@ -141,7 +143,7 @@ function AdminAnalytics() {
                   <FiCalendar className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Bookings (6M)</p>
+                  <p className="text-sm font-medium text-gray-500">Total Bookings</p>
                   <p className="text-2xl font-bold text-gray-900">{totalBookings}</p>
                 </div>
               </div>
@@ -153,7 +155,7 @@ function AdminAnalytics() {
                   <FiDollarSign className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Revenue (6M)</p>
+                  <p className="text-sm font-medium text-gray-500">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
                 </div>
               </div>
@@ -165,81 +167,98 @@ function AdminAnalytics() {
                   <FiTrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Avg Booking Value</p>
-                  <p className="text-2xl font-bold text-gray-900">${avgBookingValue.toFixed(0)}</p>
+                  <p className="text-sm font-medium text-gray-500">Avg. Booking Value</p>
+                  <p className="text-2xl font-bold text-gray-900">${avgBookingValue}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Monthly Trends */}
+          {/* Monthly Stats Chart */}
           <div className="bg-white p-6 rounded-lg shadow border">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Trends</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Bookings Chart */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Bookings by Month</h4>
-                <div className="space-y-3">
-                  {monthlyStats.map((month) => (
-                    <div key={month.month} className="flex items-center">
-                      <div className="w-12 text-sm text-gray-600">{month.month}</div>
-                      <div className="flex-1 mx-3">
-                        <div className="bg-gray-200 rounded-full h-3">
-                          <div 
-                            className="bg-blue-500 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(month.bookings / Math.max(...monthlyStats.map(m => m.bookings))) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 w-8">{month.bookings}</div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Monthly Performance (Last 6 Months)</h2>
+            <div className="space-y-4">
+              {monthlyStats.map((month, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <FiCalendar className="h-6 w-6 text-blue-600" />
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Revenue Chart */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Revenue by Month</h4>
-                <div className="space-y-3">
-                  {monthlyStats.map((month) => (
-                    <div key={month.month} className="flex items-center">
-                      <div className="w-12 text-sm text-gray-600">{month.month}</div>
-                      <div className="flex-1 mx-3">
-                        <div className="bg-gray-200 rounded-full h-3">
-                          <div 
-                            className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${(month.revenue / Math.max(...monthlyStats.map(m => m.revenue))) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 w-16">${(month.revenue/1000).toFixed(1)}k</div>
+                    <div>
+                      <p className="font-medium text-gray-900">{month.month}</p>
+                      <p className="text-sm text-gray-500">{month.bookings} bookings</p>
                     </div>
-                  ))}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900">${month.revenue.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500">Revenue</p>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Service Breakdown & Popular Locations */}
+          {/* Service Breakdown and Status Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Service Breakdown */}
             <div className="bg-white p-6 rounded-lg shadow border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <FiUsers className="h-5 w-5 mr-2" />
-                Service Breakdown
-              </h3>
-              <div className="space-y-4">
-                {serviceBreakdown.map((service) => (
-                  <div key={service.service}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-700">{service.service}</span>
-                      <span className="text-gray-900 font-medium">{service.count} ({service.percentage}%)</span>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Service Breakdown</h2>
+              <div className="space-y-3">
+                {serviceBreakdown.map((service, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-900">{service.service}</span>
                     </div>
-                    <div className="bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${service.percentage}%` }}
-                      ></div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{service.count} bookings</span>
+                      <span className="text-sm font-medium text-gray-900">{service.percentage}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Breakdown */}
+            <div className="bg-white p-6 rounded-lg shadow border">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Status</h2>
+              <div className="space-y-3">
+                {statusBreakdown.map((status, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-4 h-4 rounded-full ${
+                        status.status === 'Completed' ? 'bg-green-500' :
+                        status.status === 'Pending' ? 'bg-yellow-500' :
+                        status.status === 'Accepted' ? 'bg-blue-500' :
+                        'bg-red-500'
+                      }`}></div>
+                      <span className="text-sm font-medium text-gray-900">{status.status}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{status.count} bookings</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Source Breakdown and Popular Locations */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Source Breakdown */}
+            <div className="bg-white p-6 rounded-lg shadow border">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Sources</h2>
+              <div className="space-y-3">
+                {sourceBreakdown.map((source, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <FiTarget className="h-4 w-4 text-gray-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{source.source}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{source.count} bookings</span>
                     </div>
                   </div>
                 ))}
@@ -248,42 +267,76 @@ function AdminAnalytics() {
 
             {/* Popular Locations */}
             <div className="bg-white p-6 rounded-lg shadow border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <FiMap className="h-5 w-5 mr-2" />
-                Popular Locations
-              </h3>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Popular Locations</h2>
               <div className="space-y-3">
-                {popularLocations.map((location, index) => (
-                  <div key={location.location} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                        {index + 1}
+                {popularLocations.slice(0, 5).map((location, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <FiMap className="h-4 w-4 text-green-600" />
                       </div>
-                      <span className="ml-3 text-sm text-gray-900">{location.location}</span>
+                      <span className="text-sm font-medium text-gray-900">{location.location}</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-600">{location.count} bookings</span>
+                    <span className="text-sm text-gray-500">{location.count} bookings</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Growth Insights */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">📈 Growth Insights</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="bg-white p-4 rounded-md">
-                <div className="font-medium text-green-600">📅 Peak Season</div>
-                <div className="text-gray-700 mt-1">April-June shows highest booking volume</div>
-              </div>
-              <div className="bg-white p-4 rounded-md">
-                <div className="font-medium text-blue-600">🏆 Top Service</div>
-                <div className="text-gray-700 mt-1">Real estate photography leads at 35%</div>
-              </div>
-              <div className="bg-white p-4 rounded-md">
-                <div className="font-medium text-purple-600">💰 Revenue Growth</div>
-                <div className="text-gray-700 mt-1">+18% increase vs previous quarter</div>
-              </div>
+          {/* Recent Activity */}
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity (Last 30 Days)</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Service
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {recentActivity.map((activity, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(activity.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {activity.service.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {activity.location || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {activity.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          activity.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          activity.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          activity.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {activity.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -295,7 +348,7 @@ function AdminAnalytics() {
 // This page requires authentication and should not be statically generated
 export async function getServerSideProps() {
   return {
-    props: {}, // Empty props, we'll handle auth on client side
+    props: {},
   };
 }
 
