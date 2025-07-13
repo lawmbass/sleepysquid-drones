@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import BookingsList from '@/components/admin/BookingsList';
 import BookingStats from '@/components/admin/BookingStats';
@@ -30,9 +30,9 @@ export default function AdminContent({ user }) {
     if (section === 'dashboard' || section === 'bookings') {
       fetchBookings();
     }
-  }, [router.query.section, filters]);
+  }, [router.query.section, fetchBookings]);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError('');
     
@@ -50,7 +50,9 @@ export default function AdminContent({ user }) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const response_data = await response.json();
+      // Handle nested API response structure: response.data.bookings, response.data.stats, etc.
+      const data = response_data.data || response_data;
       setBookings(data.bookings || []);
       setStats(data.stats || {});
       setPagination(data.pagination || {});
@@ -60,7 +62,7 @@ export default function AdminContent({ user }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
