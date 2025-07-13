@@ -1,15 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
+import { useRouter } from 'next/router';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity } from 'react-icons/fi';
+import { userRoles } from '@/libs/userRoles';
+
+// Icon mapping for dynamic navigation
+const iconMap = {
+  FiHome,
+  FiBarChart,
+  FiSettings,
+  FiCalendar,
+  FiMap,
+  FiUsers,
+  FiFileText,
+  FiPlus,
+  FiFolder,
+  FiUser,
+  FiUpload,
+  FiActivity
+};
 
 export default function AdminLayout({ children, user, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [navigation, setNavigation] = useState([]);
+  const router = useRouter();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: FiHome, current: true },
-    { name: 'Analytics', href: '/admin/analytics', icon: FiBarChart, current: false },
-    { name: 'Settings', href: '/admin/settings', icon: FiSettings, current: false },
-  ];
+  useEffect(() => {
+    // Get navigation based on user role
+    if (user?.role) {
+      const roleNav = userRoles.getNavigationForRole(user.role);
+      const navigationWithIcons = roleNav.map(item => ({
+        ...item,
+        icon: iconMap[item.icon] || FiHome,
+        current: router.pathname === item.href
+      }));
+      setNavigation(navigationWithIcons);
+    }
+  }, [user?.role, router.pathname]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,7 +54,11 @@ export default function AdminLayout({ children, user, onSignOut }) {
           </div>
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                {user?.role === 'admin' ? 'Admin Panel' : 
+                 user?.role === 'client' ? 'Client Portal' : 
+                 user?.role === 'pilot' ? 'Pilot Dashboard' : 'Dashboard'}
+              </h1>
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => {

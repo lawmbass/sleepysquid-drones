@@ -29,7 +29,11 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/admin/login');
+      router.push('/login?callbackUrl=' + encodeURIComponent('/admin'));
+    } else if (session && !isAdmin) {
+      // If user is not admin, redirect to their appropriate dashboard
+      const redirectUrl = session.user.role === 'client' ? '/client/dashboard' : '/dashboard';
+      router.push(redirectUrl);
     } else if (session && isAdmin) {
       fetchBookings();
     }
