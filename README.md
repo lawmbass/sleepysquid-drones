@@ -17,7 +17,27 @@ MONGODB_URI=mongodb://localhost:27017/sleepysquid-drones
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
 ADMIN_EMAILS=your-email@domain.com
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
+RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
 ```
+
+## reCAPTCHA Setup (Anti-Spam Protection)
+
+1. **Create Google reCAPTCHA keys:**
+   - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
+   - Create a new site with reCAPTCHA v2 ("I'm not a robot" checkbox)
+   - Add your domain(s): `localhost`, `yourdomain.com`
+
+2. **Add to your `.env` file:**
+   ```env
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lc...your-site-key
+   RECAPTCHA_SECRET_KEY=6Lc...your-secret-key
+   ```
+
+3. **Test the booking form:**
+   - Visit `/` and try submitting the booking form
+   - reCAPTCHA should appear before form submission
+   - Form won't submit without completing reCAPTCHA
 
 ## Features
 

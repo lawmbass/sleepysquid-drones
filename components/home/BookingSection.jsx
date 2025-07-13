@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const services = [
   { id: 'aerial-photography', name: 'Aerial Photography' },
@@ -36,9 +37,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [minDate, setMinDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
   
   // Create refs
   const dateInputRef = useRef(null);
+  const recaptchaRef = useRef(null);
 
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -99,6 +102,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.email = 'Please enter a valid email';
       }
       if (!formData.phone) newErrors.phone = 'Please enter your phone number';
+      if (!recaptchaToken) newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
     }
     
     setErrors(newErrors);
@@ -128,7 +132,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken
+        }),
       });
 
       const data = await response.json();
@@ -145,6 +152,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           setErrors({ email: data.message });
         } else if (data.error === 'Invalid date') {
           setErrors({ date: data.message });
+        } else if (data.error === 'Missing reCAPTCHA' || data.error === 'reCAPTCHA verification failed') {
+          setErrors({ recaptcha: data.message });
+          // Reset reCAPTCHA on error
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset();
+          }
+          setRecaptchaToken('');
         } else {
           setErrors({ general: data.message || 'Something went wrong. Please try again.' });
         }
@@ -182,6 +196,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     if (dateInputRef.current) {
       dateInputRef.current.showPicker();
     }
+  };
+
+  // Handle reCAPTCHA change
+  const handleRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+    if (errors.recaptcha) {
+      setErrors(prev => ({ ...prev, recaptcha: '' }));
+    }
+  };
+
+  // Handle reCAPTCHA expiration
+  const handleRecaptchaExpired = () => {
+    setRecaptchaToken('');
   };
 
   return (
@@ -481,6 +508,20 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   {errors.phone && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.phone}</p>}
                 </div>
 
+                {/* reCAPTCHA */}
+                <div className="mb-6">
+                  <div className="flex justify-center">
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                      onChange={handleRecaptchaChange}
+                      onExpired={handleRecaptchaExpired}
+                      theme="light"
+                    />
+                  </div>
+                  {errors.recaptcha && <p className="text-red-500 dark:text-red-400 text-sm mt-2 text-center">{errors.recaptcha}</p>}
+                </div>
+
                 {errors.general && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
@@ -562,6 +603,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     setErrors({});
                     setBookingResult(null);
                     setIsSubmitting(false);
+                    setRecaptchaToken('');
+                    if (recaptchaRef.current) {
+                      recaptchaRef.current.reset();
+                    }
                   }}
                   className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >

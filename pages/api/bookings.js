@@ -53,7 +53,41 @@ export default async function handler(req, res) {
       name,
       email,
       phone,
+      recaptchaToken,
     } = req.body;
+
+    // Verify reCAPTCHA token
+    if (!recaptchaToken) {
+      return res.status(400).json({
+        error: 'Missing reCAPTCHA',
+        message: 'Please complete the reCAPTCHA verification'
+      });
+    }
+
+    try {
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+      });
+
+      const recaptchaData = await recaptchaResponse.json();
+
+      if (!recaptchaData.success || recaptchaData.score < 0.5) {
+        return res.status(400).json({
+          error: 'reCAPTCHA verification failed',
+          message: 'Please try again with the reCAPTCHA verification'
+        });
+      }
+    } catch (recaptchaError) {
+      console.error('reCAPTCHA verification error:', recaptchaError);
+      return res.status(500).json({
+        error: 'reCAPTCHA verification failed',
+        message: 'Unable to verify reCAPTCHA. Please try again.'
+      });
+    }
 
     // Enhanced input validation and sanitization
     if (!service || !date || !location || !duration || !name || !email || !phone) {
