@@ -168,31 +168,31 @@ export const userRoles = {
       case ROLES.ADMIN:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
-          { name: 'Bookings', href: '/dashboard/bookings', icon: 'FiCalendar' },
-          { name: 'Analytics', href: '/dashboard/analytics', icon: 'FiBarChart' },
-          { name: 'Users', href: '/dashboard/users', icon: 'FiUsers' },
-          { name: 'Settings', href: '/dashboard/settings', icon: 'FiSettings' }
+          { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
+          { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
+          { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' },
+          { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
       case ROLES.CLIENT:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
-          { name: 'My Jobs', href: '/dashboard/jobs', icon: 'FiFileText' },
-          { name: 'Create Job', href: '/dashboard/create', icon: 'FiPlus' },
-          { name: 'Assets', href: '/dashboard/assets', icon: 'FiFolder' },
-          { name: 'Profile', href: '/dashboard/profile', icon: 'FiUser' }
+          { name: 'My Jobs', href: '/dashboard?section=jobs', icon: 'FiFileText' },
+          { name: 'Create Job', href: '/dashboard?section=create', icon: 'FiPlus' },
+          { name: 'Assets', href: '/dashboard?section=assets', icon: 'FiFolder' },
+          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
       case ROLES.PILOT:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
-          { name: 'Missions', href: '/dashboard/missions', icon: 'FiMap' },
-          { name: 'Upload Assets', href: '/dashboard/upload', icon: 'FiUpload' },
-          { name: 'Flight Data', href: '/dashboard/flights', icon: 'FiActivity' },
-          { name: 'Profile', href: '/dashboard/profile', icon: 'FiUser' }
+          { name: 'Missions', href: '/dashboard?section=missions', icon: 'FiMap' },
+          { name: 'Upload Assets', href: '/dashboard?section=upload', icon: 'FiUpload' },
+          { name: 'Flight Data', href: '/dashboard?section=flights', icon: 'FiActivity' },
+          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
       default:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
-          { name: 'Profile', href: '/dashboard/profile', icon: 'FiUser' }
+          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
     }
   }

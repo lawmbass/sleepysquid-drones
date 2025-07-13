@@ -89,9 +89,32 @@ export default function AdminContent({ user }) {
 
       // Refresh bookings list
       fetchBookings();
+      return true;
     } catch (error) {
       console.error('Error updating booking:', error);
       setError('Failed to update booking. Please try again.');
+      return false;
+    }
+  };
+
+  const onDeleteBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Refresh bookings list
+      fetchBookings();
+      return true;
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      setError('Failed to delete booking. Please try again.');
+      return false;
     }
   };
 
@@ -115,9 +138,9 @@ export default function AdminContent({ user }) {
                 bookings={bookings.slice(0, 5)} 
                 pagination={pagination}
                 onUpdateBooking={updateBooking}
+                onDeleteBooking={onDeleteBooking}
                 loading={loading}
                 error={error}
-                compact={true}
               />
             </div>
           </div>
@@ -140,6 +163,7 @@ export default function AdminContent({ user }) {
               bookings={bookings}
               pagination={pagination}
               onUpdateBooking={updateBooking}
+              onDeleteBooking={onDeleteBooking}
               onPageChange={handlePageChange}
               loading={loading}
               error={error}

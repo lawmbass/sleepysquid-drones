@@ -29,13 +29,30 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
     // Get navigation based on user role
     if (userRole) {
       const roleNav = userRoles.getNavigationForRole(userRole);
-      const navigationWithIcons = roleNav.map(item => ({
-        ...item,
-        icon: iconMap[item.icon] || FiHome,
-        // Update href to use hash-based navigation for single page dashboard
-        href: item.href.includes('/dashboard') ? `#${item.href.split('/').pop()}` : item.href,
-        current: router.asPath === item.href || router.query.section === item.href.split('/').pop()
-      }));
+      const navigationWithIcons = roleNav.map(item => {
+        // Only transform href for dashboard-specific routes
+        let href = item.href;
+        let current = false;
+        
+        if (item.href === '/dashboard' || item.href.startsWith('/dashboard?')) {
+          // Dashboard routes use hash-based navigation
+          const section = item.href.includes('?section=') 
+            ? item.href.split('?section=')[1] 
+            : 'dashboard';
+          href = `#${section}`;
+          current = router.query.section === section || (section === 'dashboard' && !router.query.section);
+        } else {
+          // Non-dashboard routes remain unchanged
+          current = router.asPath === item.href;
+        }
+        
+        return {
+          ...item,
+          icon: iconMap[item.icon] || FiHome,
+          href,
+          current
+        };
+      });
       setNavigation(navigationWithIcons);
     }
   }, [userRole, router.asPath, router.query.section]);
