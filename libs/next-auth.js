@@ -67,15 +67,23 @@ export const authOptions = {
         // Add admin status to session (server-side check)
         try {
           const { adminConfig } = await import('./adminConfig');
-          session.user.isAdmin = adminConfig.isAdmin(session.user.email);
+          const { userRoles } = await import('./userRoles');
           
-          // Add debug logging for admin access (production safe)
+          session.user.isAdmin = adminConfig.isAdmin(session.user.email);
+          session.user.role = await userRoles.getUserRole(session.user.email);
+          
+          // Add permissions based on role
+          session.user.permissions = await userRoles.getUserPermissions(session.user.email);
+          
+          // Add debug logging for user access (production safe)
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Admin check for ${session.user.email}: ${session.user.isAdmin}`);
+            console.log(`User ${session.user.email}: Admin=${session.user.isAdmin}, Role=${session.user.role}`);
           }
         } catch (error) {
-          console.error('Error checking admin status:', error);
+          console.error('Error checking user status:', error);
           session.user.isAdmin = false; // Fail safe
+          session.user.role = 'user'; // Default role
+          session.user.permissions = [];
         }
       }
       return session;
@@ -97,6 +105,7 @@ export const authOptions = {
     // logo: `https://${config.domainName}/logoAndName.png`,
   },
   pages: {
+    signIn: '/login', // Updated to use the new generic login page
     error: '/api/auth/error',
   },
   debug: process.env.NODE_ENV === 'development',
