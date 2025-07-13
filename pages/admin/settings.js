@@ -59,7 +59,7 @@ function AdminSettings() {
   }
 
   if (!session) {
-    router.push('/admin/login');
+    router.push('/login?callbackUrl=' + encodeURIComponent('/admin/settings'));
     return null;
   }
 

@@ -40,7 +40,7 @@ function AdminAnalytics() {
   }
 
   if (!session) {
-    router.push('/admin/login');
+    router.push('/login?callbackUrl=' + encodeURIComponent('/admin/analytics'));
     return null;
   }
 
