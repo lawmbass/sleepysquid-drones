@@ -89,6 +89,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isCurrent = isCurrentPage(item.href);
                 return (
                   <button
                     key={item.name}
@@ -127,6 +128,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isCurrent = isCurrentPage(item.href);
                 return (
                   <button
                     key={item.name}

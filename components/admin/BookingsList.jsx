@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiEye, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {
@@ -20,7 +20,7 @@ const serviceLabels = {
   'custom': 'Custom Project'
 };
 
-export default function BookingsList({ bookings, pagination, loading, onPageChange, onUpdateBooking }) {
+export default function BookingsList({ bookings, pagination, loading, onPageChange, onUpdateBooking, onDeleteBooking }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -41,6 +41,8 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
     }
     return success;
   };
+
+
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -114,14 +116,15 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {bookings.map((booking) => (
-                    <tr key={booking._id} className="hover:bg-gray-50">
+                    <tr 
+                      key={booking._id} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleViewBooking(booking)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div>
@@ -185,18 +188,18 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 flex items-center">
                           <FiDollarSign className="h-3 w-3 mr-1" />
                           {booking.payout 
-                            ? `$${booking.payout.toLocaleString()}` 
+                            ? booking.payout.toLocaleString() 
                             : booking.finalPrice 
-                              ? `$${booking.finalPrice.toLocaleString()}` 
+                              ? booking.finalPrice.toLocaleString() 
                               : booking.estimatedPrice 
-                                ? `~$${booking.estimatedPrice.toLocaleString()}` 
+                                ? `~${booking.estimatedPrice.toLocaleString()}` 
                                 : 'TBD'
                           }
                         </div>
@@ -227,15 +230,6 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div>{formatDate(booking.createdAt)}</div>
                         <div>{formatTime(booking.createdAt)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleViewBooking(booking)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                          title="View/Edit Booking"
-                        >
-                          <FiEye className="h-4 w-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}
@@ -317,8 +311,11 @@ export default function BookingsList({ bookings, pagination, loading, onPageChan
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onUpdate={handleUpdateBooking}
+          onDelete={onDeleteBooking}
         />
       )}
+
+
     </>
   );
 } 
