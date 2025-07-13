@@ -21,17 +21,6 @@ export default function AdminContent({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Update active section based on URL query
-  useEffect(() => {
-    const section = router.query.section || 'dashboard';
-    setActiveSection(section);
-    
-    // Fetch data based on section
-    if (section === 'dashboard' || section === 'bookings') {
-      fetchBookings();
-    }
-  }, [router.query.section, fetchBookings]);
-
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -63,6 +52,17 @@ export default function AdminContent({ user }) {
       setLoading(false);
     }
   }, [filters]);
+
+  // Update active section based on URL query
+  useEffect(() => {
+    const section = router.query.section || 'dashboard';
+    setActiveSection(section);
+    
+    // Fetch data based on section
+    if (section === 'dashboard' || section === 'bookings') {
+      fetchBookings();
+    }
+  }, [router.query.section, fetchBookings]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
@@ -113,6 +113,7 @@ export default function AdminContent({ user }) {
               </div>
               <BookingsList 
                 bookings={bookings.slice(0, 5)} 
+                pagination={pagination}
                 onUpdateBooking={updateBooking}
                 loading={loading}
                 error={error}
