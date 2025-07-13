@@ -65,11 +65,73 @@ export default async function handler(req, res) {
     // Connect to MongoDB
     await connectMongo();
 
-    // Get current date and calculate date ranges
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-    
+    // Get basic counts and stats
+    const totalBookings = await Booking.countDocuments();
+    const totalRevenue = await Booking.aggregate([
+      { $group: { _id: null, total: { $sum: { $ifNull: ["$payout", 0] } } } }
+    ]);
+    const avgPayout = await Booking.aggregate([
+      { $group: { _id: null, avg: { $avg: { $ifNull: ["$payout", 0] } } } }
+    ]);
+
+    // Get recent bookings for activity feed
+    const recentBookings = await Booking.find({})
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('service location status createdAt name email source');
+
+    // Get service breakdown
+    const serviceStats = await Booking.aggregate([
+      {
+        $group: {
+          _id: "$service",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get status breakdown
+    const statusStats = await Booking.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get source breakdown
+    const sourceStats = await Booking.aggregate([
+      {
+        $group: {
+          _id: "$source",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get location stats
+    const locationStats = await Booking.aggregate([
+      {
+        $match: { location: { $exists: true, $ne: "" } }
+      },
+      {
+        $group: {
+          _id: "$location",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
     // Get monthly stats for the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
     const monthlyStats = await Booking.aggregate([
       {
         $match: {
@@ -86,186 +148,43 @@ export default async function handler(req, res) {
           revenue: { $sum: { $ifNull: ["$payout", 0] } }
         }
       },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 }
-      },
-      {
-        $project: {
-          month: {
-            $let: {
-              vars: {
-                monthNames: ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-              },
-              in: { $arrayElemAt: ["$$monthNames", "$_id.month"] }
-            }
-          },
-          bookings: 1,
-          revenue: 1
-        }
-      }
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // Get service breakdown
-    const serviceBreakdown = await Booking.aggregate([
-      {
-        $group: {
-          _id: "$service",
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $project: {
-          service: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$_id", "real-estate"] }, then: "Real Estate" },
-                { case: { $eq: ["$_id", "aerial-photography"] }, then: "Aerial Photography" },
-                { case: { $eq: ["$_id", "inspection"] }, then: "Inspections" },
-                { case: { $eq: ["$_id", "event-coverage"] }, then: "Event Coverage" },
-                { case: { $eq: ["$_id", "mapping-surveying"] }, then: "Mapping & Surveying" },
-                { case: { $eq: ["$_id", "drone-videography"] }, then: "Drone Videography" },
-                { case: { $eq: ["$_id", "custom"] }, then: "Custom" }
-              ],
-              default: "$_id"
-            }
-          },
-          count: 1
-        }
-      }
-    ]);
-
-    // Calculate percentages for service breakdown
-    const totalBookings = serviceBreakdown.reduce((sum, item) => sum + item.count, 0);
-    const serviceBreakdownWithPercentages = serviceBreakdown.map(item => ({
-      ...item,
-      percentage: totalBookings > 0 ? Math.round((item.count / totalBookings) * 100) : 0
-    }));
-
-    // Get popular locations
-    const popularLocations = await Booking.aggregate([
-      {
-        $match: {
-          location: { $exists: true, $ne: "" }
-        }
-      },
-      {
-        $group: {
-          _id: "$location",
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $limit: 10
-      },
-      {
-        $project: {
-          location: "$_id",
-          count: 1
-        }
-      }
-    ]);
-
-    // Get status breakdown
-    const statusBreakdown = await Booking.aggregate([
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $project: {
-          status: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$_id", "pending"] }, then: "Pending" },
-                { case: { $eq: ["$_id", "accepted"] }, then: "Accepted" },
-                { case: { $eq: ["$_id", "completed"] }, then: "Completed" },
-                { case: { $eq: ["$_id", "cancelled"] }, then: "Cancelled" }
-              ],
-              default: "$_id"
-            }
-          },
-          count: 1
-        }
-      }
-    ]);
-
-    // Get source breakdown
-    const sourceBreakdown = await Booking.aggregate([
-      {
-        $group: {
-          _id: "$source",
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      },
-      {
-        $project: {
-          source: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$_id", "customer"] }, then: "Customer" },
-                { case: { $eq: ["$_id", "zeitview"] }, then: "Zeitview" },
-                { case: { $eq: ["$_id", "manual"] }, then: "Manual" }
-              ],
-              default: "$_id"
-            }
-          },
-          count: 1
-        }
-      }
-    ]);
-
-    // Get recent activity (last 30 days)
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const recentActivity = await Booking.find({
-      createdAt: { $gte: thirtyDaysAgo }
-    })
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .select('service location status createdAt name email');
-
-    // Get total counts
-    const totalStats = await Booking.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalBookings: { $sum: 1 },
-          totalRevenue: { $sum: { $ifNull: ["$payout", 0] } },
-          averagePayout: { $avg: { $ifNull: ["$payout", 0] } }
-        }
-      }
-    ]);
-
-    const stats = totalStats[0] || { totalBookings: 0, totalRevenue: 0, averagePayout: 0 };
-
-    const analyticsData = {
-      monthlyStats,
-      serviceBreakdown: serviceBreakdownWithPercentages,
-      popularLocations,
-      statusBreakdown,
-      sourceBreakdown,
-      recentActivity,
+    // Format the response
+    const response = {
       totalStats: {
-        totalBookings: stats.totalBookings,
-        totalRevenue: stats.totalRevenue,
-        averagePayout: Math.round(stats.averagePayout || 0)
-      }
+        totalBookings,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        avgPayout: Math.round(avgPayout[0]?.avg || 0)
+      },
+      recentActivity: recentBookings,
+      serviceBreakdown: serviceStats.map(item => ({
+        service: formatServiceName(item._id),
+        count: item.count,
+        percentage: totalBookings > 0 ? Math.round((item.count / totalBookings) * 100) : 0
+      })),
+      statusBreakdown: statusStats.map(item => ({
+        status: formatStatusName(item._id),
+        count: item.count
+      })),
+      sourceBreakdown: sourceStats.map(item => ({
+        source: formatSourceName(item._id),
+        count: item.count
+      })),
+      locationStats: locationStats.map(item => ({
+        location: item._id,
+        count: item.count
+      })),
+      monthlyStats: monthlyStats.map(item => ({
+        month: getMonthName(item._id.month),
+        year: item._id.year,
+        bookings: item.bookings,
+        revenue: item.revenue
+      }))
     };
 
-    return res.status(200).json(analyticsData);
+    return res.status(200).json(response);
 
   } catch (error) {
     console.error('Error fetching analytics:', error);
@@ -274,4 +193,42 @@ export default async function handler(req, res) {
       message: 'Failed to fetch analytics data'
     });
   }
+}
+
+// Helper functions
+function formatServiceName(service) {
+  const serviceMap = {
+    'aerial-photography': 'Aerial Photography',
+    'drone-videography': 'Drone Videography',
+    'mapping-surveying': 'Mapping & Surveying',
+    'real-estate': 'Real Estate',
+    'inspection': 'Inspection',
+    'event-coverage': 'Event Coverage',
+    'custom': 'Custom'
+  };
+  return serviceMap[service] || service;
+}
+
+function formatStatusName(status) {
+  const statusMap = {
+    'pending': 'Pending',
+    'accepted': 'Accepted',
+    'completed': 'Completed',
+    'cancelled': 'Cancelled'
+  };
+  return statusMap[status] || status;
+}
+
+function formatSourceName(source) {
+  const sourceMap = {
+    'customer': 'Customer',
+    'zeitview': 'Zeitview',
+    'manual': 'Manual'
+  };
+  return sourceMap[source] || source;
+}
+
+function getMonthName(monthNumber) {
+  const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[monthNumber] || monthNumber;
 }
