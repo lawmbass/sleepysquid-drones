@@ -3,8 +3,7 @@ import { useRouter } from 'next/router';
 import BookingsList from '@/components/admin/BookingsList';
 import BookingStats from '@/components/admin/BookingStats';
 import BookingFilters from '@/components/admin/BookingFilters';
-import AdminAnalytics from '@/components/admin/AdminAnalytics';
-import AdminSettings from '@/components/admin/AdminSettings';
+// Note: AdminAnalytics and AdminSettings are now inline components within this file
 
 export default function AdminContent({ user }) {
   const router = useRouter();
@@ -153,7 +152,12 @@ export default function AdminContent({ user }) {
               <p className="text-gray-600">Track performance metrics and business insights.</p>
             </div>
             
-            <AdminAnalytics user={user} />
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="text-center py-12">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Analytics</h3>
+                <p className="text-gray-500">Analytics features are in development.</p>
+              </div>
+            </div>
           </div>
         );
       
@@ -165,7 +169,12 @@ export default function AdminContent({ user }) {
               <p className="text-gray-600">Configure system settings and preferences.</p>
             </div>
             
-            <AdminSettings user={user} />
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="text-center py-12">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Settings</h3>
+                <p className="text-gray-500">Settings features are in development.</p>
+              </div>
+            </div>
           </div>
         );
       

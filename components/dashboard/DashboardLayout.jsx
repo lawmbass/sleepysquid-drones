@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+// Link removed as we're using router.push instead
 import { useRouter } from 'next/router';
 import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
   };
 
   // Handle navigation clicks
-  const handleNavigationClick = (href, name) => {
+  const handleNavigationClick = (href) => {
     setSidebarOpen(false);
     
     // If it's a hash link, update the URL query parameter
@@ -92,7 +92,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
                 return (
                   <button
                     key={item.name}
-                    onClick={() => handleNavigationClick(item.href, item.name)}
+                    onClick={() => handleNavigationClick(item.href)}
                     className={`group flex items-center px-2 py-2 text-base font-medium rounded-md w-full text-left ${
                       item.current
                         ? 'bg-gray-100 text-gray-900'
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
                 return (
                   <button
                     key={item.name}
-                    onClick={() => handleNavigationClick(item.href, item.name)}
+                    onClick={() => handleNavigationClick(item.href)}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left ${
                       item.current
                         ? 'bg-gray-100 text-gray-900'

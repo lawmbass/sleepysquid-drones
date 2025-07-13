@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FiFileText, FiPlus, FiFolder, FiCheckCircle } from 'react-icons/fi';
 
-export default function ClientDashboard({ user }) {
+export default function ClientContent({ user }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
 

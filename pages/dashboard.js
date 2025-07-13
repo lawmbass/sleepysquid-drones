@@ -3,11 +3,11 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import AdminDashboard from '@/components/dashboard/AdminDashboard';
-import ClientDashboard from '@/components/dashboard/ClientDashboard';
-import PilotDashboard from '@/components/dashboard/PilotDashboard';
-import UserDashboard from '@/components/dashboard/UserDashboard';
-import { adminConfig } from '@/libs/adminConfig';
+import AdminContent from '@/components/dashboard/AdminContent';
+import ClientContent from '@/components/dashboard/ClientContent';
+import PilotContent from '@/components/dashboard/PilotContent';
+import DefaultContent from '@/components/dashboard/DefaultContent';
+// Removed adminConfig import as it's no longer needed
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -53,13 +53,13 @@ export default function Dashboard() {
   const renderDashboardContent = () => {
     switch (userRole) {
       case 'admin':
-        return <AdminDashboard user={session.user} />;
+        return <AdminContent user={session.user} />;
       case 'client':
-        return <ClientDashboard user={session.user} />;
+        return <ClientContent user={session.user} />;
       case 'pilot':
-        return <PilotDashboard user={session.user} />;
+        return <PilotContent user={session.user} />;
       default:
-        return <UserDashboard user={session.user} />;
+        return <DefaultContent user={session.user} />;
     }
   };
 

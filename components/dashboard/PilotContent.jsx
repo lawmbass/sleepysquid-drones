@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FiMap, FiUpload, FiActivity, FiCheckCircle } from 'react-icons/fi';
 
-export default function PilotDashboard({ user }) {
+export default function PilotContent({ user }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
 
