@@ -29,15 +29,15 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login?callbackUrl=' + encodeURIComponent('/admin'));
+      router.push('/login?callbackUrl=' + encodeURIComponent('/dashboard'));
     } else if (session && !isAdmin) {
-      // If user is not admin, redirect to their appropriate dashboard
-      const redirectUrl = session.user.role === 'client' ? '/client/dashboard' : '/dashboard';
-      router.push(redirectUrl);
+      // If user is not admin, redirect to dashboard
+      router.push('/dashboard');
     } else if (session && isAdmin) {
-      fetchBookings();
+      // Redirect admins to the unified dashboard
+      router.push('/dashboard');
     }
-  }, [status, session, isAdmin, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, session, isAdmin, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchBookings = async () => {
     setLoading(true);

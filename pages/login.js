@@ -48,13 +48,8 @@ export default function Login() {
 
   // Determine where to redirect users based on their role
   const getDefaultRedirectForUser = (user) => {
-    if (user.isAdmin) {
-      return '/admin';
-    } else if (user.role === 'client') {
-      return '/client/dashboard';
-    } else {
-      return '/dashboard'; // Default user dashboard
-    }
+    // Everyone goes to the unified dashboard page
+    return '/dashboard';
   };
 
   const handleGoogleSignIn = async () => {

@@ -20,12 +20,12 @@ function AdminAnalytics() {
   // Check if user is admin
   const isAdmin = session?.user?.isAdmin || adminConfig.isAdmin(session?.user?.email);
 
-  // Move useEffect before any conditional returns to avoid hook order issues
+  // Redirect to unified dashboard
   useEffect(() => {
-    if (session && isAdmin) {
-      fetchAnalytics();
+    if (session) {
+      router.push('/dashboard?section=analytics');
     }
-  }, [session, isAdmin]);
+  }, [session, router]);
 
   // Authentication checks
   if (status === 'loading') {
@@ -40,28 +40,14 @@ function AdminAnalytics() {
   }
 
   if (!session) {
-    router.push('/login?callbackUrl=' + encodeURIComponent('/admin/analytics'));
+    router.push('/login?callbackUrl=' + encodeURIComponent('/dashboard?section=analytics'));
     return null;
   }
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You don&apos;t have permission to access this admin area.</p>
-          <p className="text-sm text-gray-500 mb-6">
-            Signed in as: {session.user.email}
-          </p>
-          <button
-            onClick={() => signOut()}
-            className="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
+    // Redirect non-admins to dashboard
+    router.push('/dashboard');
+    return null;
   }
 
   const fetchAnalytics = async () => {

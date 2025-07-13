@@ -46,6 +46,12 @@ function AdminSettings() {
   // Check if user is admin
   const isAdmin = session?.user?.isAdmin || adminConfig.isAdmin(session?.user?.email);
 
+  // Redirect to unified dashboard
+  if (session) {
+    router.push('/dashboard?section=settings');
+    return null;
+  }
+
   // Authentication checks
   if (status === 'loading') {
     return (
@@ -59,7 +65,7 @@ function AdminSettings() {
   }
 
   if (!session) {
-    router.push('/login?callbackUrl=' + encodeURIComponent('/admin/settings'));
+    router.push('/login?callbackUrl=' + encodeURIComponent('/dashboard?section=settings'));
     return null;
   }
 
