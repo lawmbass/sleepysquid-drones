@@ -1,15 +1,27 @@
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
 
 export default function AdminLayout({ children, user, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router = useRouter();
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: FiHome, current: true },
-    { name: 'Analytics', href: '/admin/analytics', icon: FiBarChart, current: false },
-    { name: 'Settings', href: '/admin/settings', icon: FiSettings, current: false },
+    { name: 'Dashboard', href: '/admin', icon: FiHome },
+    { name: 'Analytics', href: '/admin/analytics', icon: FiBarChart },
+    { name: 'Settings', href: '/admin/settings', icon: FiSettings },
   ];
+
+  // Function to determine if a navigation item is current
+  const isCurrentPage = (href) => {
+    if (href === '/admin') {
+      // For dashboard, match exactly or when on /admin root
+      return router.pathname === '/admin' || router.pathname === '/admin/';
+    }
+    // For other pages, match the pathname
+    return router.pathname === href;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -32,12 +44,13 @@ export default function AdminLayout({ children, user, onSignOut }) {
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isCurrent = isCurrentPage(item.href);
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                      item.current
+                      isCurrent
                         ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
@@ -70,12 +83,13 @@ export default function AdminLayout({ children, user, onSignOut }) {
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isCurrent = isCurrentPage(item.href);
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                      item.current
+                      isCurrent
                         ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
