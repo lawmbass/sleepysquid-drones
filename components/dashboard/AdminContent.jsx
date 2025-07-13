@@ -3,7 +3,8 @@ import { useRouter } from 'next/router';
 import BookingsList from '@/components/admin/BookingsList';
 import BookingStats from '@/components/admin/BookingStats';
 import BookingFilters from '@/components/admin/BookingFilters';
-// Note: AdminAnalytics and AdminSettings are now inline components within this file
+import Analytics from '@/components/admin/Analytics';
+// Note: AdminSettings is now an inline component within this file
 
 export default function AdminContent({ user }) {
   const router = useRouter();
@@ -172,21 +173,7 @@ export default function AdminContent({ user }) {
         );
       
       case 'analytics':
-        return (
-          <div className="space-y-6">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-              <p className="text-gray-600">Track performance metrics and business insights.</p>
-            </div>
-            
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="text-center py-12">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Analytics</h3>
-                <p className="text-gray-500">Analytics features are in development.</p>
-              </div>
-            </div>
-          </div>
-        );
+        return <Analytics />;
       
       case 'settings':
         return (
