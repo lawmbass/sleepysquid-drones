@@ -5,7 +5,7 @@
 I've successfully added reCAPTCHA protection and email notifications to your contact form!
 
 ### 🔐 Anti-Spam Protection Added
-- **reCAPTCHA v2 widget** - "I'm not a robot" checkbox protection
+- **reCAPTCHA v2 widget** - "I'm not a robot" checkbox protection (uses boolean success, not score)
 - **Rate limiting** - Max 3 contact attempts per IP per 15 minutes (more restrictive than bookings)
 - **Input validation** - Field length limits and XSS protection
 - **Server-side verification** - Validates reCAPTCHA with Google's API

@@ -75,7 +75,9 @@ export default async function handler(req, res) {
 
       const recaptchaData = await recaptchaResponse.json();
 
-      if (!recaptchaData.success || recaptchaData.score < 0.5) {
+      // reCAPTCHA v2 only returns success: true/false (no score)
+      // reCAPTCHA v3 would return both success and score (0.0-1.0)
+      if (!recaptchaData.success) {
         return res.status(400).json({
           error: 'reCAPTCHA verification failed',
           message: 'Please try again with the reCAPTCHA verification'

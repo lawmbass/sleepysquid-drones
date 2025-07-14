@@ -25,8 +25,9 @@ RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
 
 1. **Create Google reCAPTCHA keys:**
    - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
-   - Create a new site with reCAPTCHA v2 ("I'm not a robot" checkbox)
+   - Create a new site with **reCAPTCHA v2** ("I'm not a robot" checkbox)
    - Add your domain(s): `localhost`, `yourdomain.com`
+   - **Note:** We use v2 (checkbox) instead of v3 (invisible) for better user experience and clearer spam detection
 
 2. **Add to your `.env` file:**
    ```env

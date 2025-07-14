@@ -13,6 +13,8 @@ Good news - your book service form was already fully connected to the bookings s
 
 I've implemented Google reCAPTCHA v2 to prevent spam submissions:
 
+**✅ FIXED:** Removed incorrect v3 score check - v2 only returns boolean success
+
 ### What I Added:
 - ✅ reCAPTCHA widget in the booking form (step 2)
 - ✅ Frontend validation for reCAPTCHA completion
