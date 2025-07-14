@@ -34,17 +34,20 @@ RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
    RECAPTCHA_SECRET_KEY=6Lc...your-secret-key
    ```
 
-3. **Test the booking form:**
+3. **Test the forms:**
    - Visit `/` and try submitting the booking form
+   - Scroll down and test the contact form
    - reCAPTCHA should appear before form submission
-   - Form won't submit without completing reCAPTCHA
+   - Forms won't submit without completing reCAPTCHA
+   - Contact form submissions send email notifications to admin emails
 
 ## Features
 
 **Public Website** (`/`)
 - Portfolio showcase with image galleries
-- Service booking system
-- Contact forms and pricing
+- Service booking system with reCAPTCHA protection
+- Contact form with email notifications to admins
+- Pricing and service information
 
 **Admin Dashboard** (`/admin`)
 - Booking management and analytics
@@ -52,8 +55,10 @@ RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
 - Mission integration with Zeitview
 
 **Security**
-- Rate limiting, input validation, secure sessions
-- Server-side authentication with NextAuth.js
+- Rate limiting on booking and contact forms
+- reCAPTCHA protection against spam submissions
+- Input validation and sanitization
+- Secure sessions with NextAuth.js
 
 ## Key Commands
 

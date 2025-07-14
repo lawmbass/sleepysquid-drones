@@ -1,26 +1,103 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const ContactSection = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+  const recaptchaRef = useRef(null);
   
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-    // Here you would typically send the data to your backend
-    
-    // Reset form after submission
-    reset();
-    
-    // Show success message (you could implement a toast notification here)
-    alert('Message sent successfully! We will get back to you soon.');
+  const handleRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+    if (formErrors.recaptcha) {
+      setFormErrors(prev => ({ ...prev, recaptcha: '' }));
+    }
+  };
+
+  const handleRecaptchaExpired = () => {
+    setRecaptchaToken('');
+  };
+
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    setFormErrors({});
+    setSubmitStatus(null);
+
+    // Validate reCAPTCHA
+    if (!recaptchaToken) {
+      setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          recaptchaToken
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Success
+        setSubmitStatus({
+          type: 'success',
+          message: result.message || 'Message sent successfully! We will get back to you within 24 hours.'
+        });
+        
+        // Reset form
+        reset();
+        setRecaptchaToken('');
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset();
+        }
+      } else {
+        // Handle API errors
+        if (result.error === 'Missing reCAPTCHA' || result.error === 'reCAPTCHA verification failed') {
+          setFormErrors({ recaptcha: result.message });
+          // Reset reCAPTCHA on error
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset();
+          }
+          setRecaptchaToken('');
+        } else if (result.error === 'Rate limit exceeded') {
+          setSubmitStatus({
+            type: 'error',
+            message: result.message
+          });
+        } else {
+          setSubmitStatus({
+            type: 'error',
+            message: result.message || 'Something went wrong. Please try again.'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Contact form submission error:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: 'Network error. Please check your connection and try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -52,14 +129,16 @@ const ContactSection = () => {
                   </label>
                   <input
                     type="text"
-                    {...register("name", { required: true })}
+                    {...register("name", { required: true, maxLength: 100 })}
                     className={`w-full p-3 border rounded-lg bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
                       errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="John Doe"
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-500 dark:text-red-400 mt-1">Please enter your name</p>
+                    <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                      {errors.name.type === 'maxLength' ? 'Name cannot exceed 100 characters' : 'Please enter your name'}
+                    </p>
                   )}
                 </div>
                 
@@ -90,14 +169,16 @@ const ContactSection = () => {
                 </label>
                 <input
                   type="text"
-                  {...register("subject", { required: true })}
+                  {...register("subject", { required: true, maxLength: 200 })}
                   className={`w-full p-3 border rounded-lg bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
                     errors.subject ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="How can we help you?"
                 />
                 {errors.subject && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">Please enter a subject</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                    {errors.subject.type === 'maxLength' ? 'Subject cannot exceed 200 characters' : 'Please enter a subject'}
+                  </p>
                 )}
               </div>
               
@@ -106,7 +187,7 @@ const ContactSection = () => {
                   Message
                 </label>
                 <textarea
-                  {...register("message", { required: true })}
+                  {...register("message", { required: true, maxLength: 2000 })}
                   rows="5"
                   className={`w-full p-3 border rounded-lg bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${
                     errors.message ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
@@ -114,15 +195,61 @@ const ContactSection = () => {
                   placeholder="Tell us about your project or question..."
                 ></textarea>
                 {errors.message && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">Please enter your message</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                    {errors.message.type === 'maxLength' ? 'Message cannot exceed 2000 characters' : 'Please enter your message'}
+                  </p>
                 )}
               </div>
+
+              {/* reCAPTCHA */}
+              <div className="mb-6">
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                    onChange={handleRecaptchaChange}
+                    onExpired={handleRecaptchaExpired}
+                    theme="light"
+                  />
+                </div>
+                {formErrors.recaptcha && (
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-2 text-center">{formErrors.recaptcha}</p>
+                )}
+              </div>
+
+              {/* Status Messages */}
+              {submitStatus && (
+                <div className={`mb-6 p-4 rounded-lg border ${
+                  submitStatus.type === 'success' 
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                }`}>
+                  <p className={`text-sm ${
+                    submitStatus.type === 'success' 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {submitStatus.message}
+                  </p>
+                </div>
+              )}
               
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-teal-400 dark:from-blue-600 dark:to-teal-500 text-white py-3 px-6 rounded-lg font-medium hover:shadow-lg transition-all"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-blue-500 to-teal-400 dark:from-blue-600 dark:to-teal-500 text-white py-3 px-6 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Send Message
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message'
+                )}
               </button>
             </form>
           </div>
