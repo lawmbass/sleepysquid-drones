@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { FiTrendingUp, FiDollarSign, FiMapPin, FiClock, FiBarChart, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { FiTrendingUp, FiDollarSign, FiMapPin, FiBarChart, FiActivity, FiRefreshCw } from 'react-icons/fi';
 
 export default function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -8,7 +8,7 @@ export default function Analytics() {
   const [period, setPeriod] = useState('30d');
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async (selectedPeriod = period) => {
+  const fetchAnalytics = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     setError('');
     
@@ -30,11 +30,11 @@ export default function Analytics() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [fetchAnalytics]);
 
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);

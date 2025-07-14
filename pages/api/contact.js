@@ -1,7 +1,6 @@
 import connectMongo from "@/libs/mongoose";
 import { sendEmail } from "@/libs/mailgun";
-import { getAdminEmails } from "@/libs/adminConfig";
-import config from "@/config";
+import adminConfig from "@/libs/adminConfig";
 
 // Rate limiting for contact form (more restrictive than bookings)
 const contactAttempts = new Map();
@@ -163,7 +162,7 @@ export default async function handler(req, res) {
     }
 
     // Get admin emails
-    const adminEmails = getAdminEmails();
+    const adminEmails = adminConfig.getAllowedEmails();
     
     if (!adminEmails || adminEmails.length === 0) {
       console.error('No admin emails configured for contact notifications');
