@@ -183,7 +183,16 @@ export default async function handler(req, res) {
     // Prepare email content
     const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date().toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
 
     const emailSubject = `New Contact Form Submission: ${sanitizedData.subject}`;
     
