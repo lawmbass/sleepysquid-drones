@@ -129,7 +129,7 @@ const ContactSection = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Full Name
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -148,7 +148,7 @@ const ContactSection = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -169,7 +169,7 @@ const ContactSection = () => {
               
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Subject
+                  Subject <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -188,7 +188,7 @@ const ContactSection = () => {
               
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Message
+                  Message <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   {...register("message", { required: true, maxLength: 2000 })}
