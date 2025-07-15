@@ -138,9 +138,40 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   // Smooth scroll to form when step changes
   const scrollToForm = () => {
     if (formContainerRef.current) {
-      const yOffset = -20; // Small offset to keep some space at the top
-      const y = formContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      const rect = formContainerRef.current.getBoundingClientRect();
+      const currentScrollY = window.pageYOffset;
+      
+      // Calculate the target position with a safe offset
+      const yOffset = -80; // Increased offset to ensure we stay within the booking section
+      const targetY = rect.top + currentScrollY + yOffset;
+      
+      // Get the booking section element to ensure we don't scroll past it
+      const bookingSection = document.getElementById('booking');
+      if (bookingSection) {
+        const bookingSectionRect = bookingSection.getBoundingClientRect();
+        const bookingSectionTop = bookingSectionRect.top + currentScrollY;
+        const bookingSectionBottom = bookingSectionTop + bookingSectionRect.height;
+        
+        // Check if booking section is shorter than viewport
+        const isShortSection = bookingSectionRect.height < window.innerHeight;
+        
+        let safeTargetY;
+        if (isShortSection) {
+          // For short sections, just ensure we don't go above the booking section
+          // and use the target position directly since the whole section fits in viewport
+          safeTargetY = Math.max(bookingSectionTop, targetY);
+        } else {
+          // For tall sections, ensure we don't scroll past the bottom
+          const maxScrollY = bookingSectionBottom - window.innerHeight + 100;
+          const upperBound = Math.max(bookingSectionTop, maxScrollY);
+          safeTargetY = Math.max(bookingSectionTop, Math.min(targetY, upperBound));
+        }
+        
+        window.scrollTo({ top: safeTargetY, behavior: 'smooth' });
+      } else {
+        // Fallback if booking section isn't found
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
     }
   };
 
