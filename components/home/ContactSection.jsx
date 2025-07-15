@@ -35,10 +35,12 @@ const ContactSection = () => {
     setSubmitStatus(null);
 
     // Validate reCAPTCHA (only if configured)
-    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
-      setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
-      setIsSubmitting(false);
-      return;
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      if (!recaptchaToken) {
+        setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     try {

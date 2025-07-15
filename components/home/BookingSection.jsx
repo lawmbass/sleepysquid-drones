@@ -103,7 +103,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.email = 'Please enter a valid email';
       }
       if (!formData.phone) newErrors.phone = 'Please enter your phone number';
-      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
+      
+      // Always validate reCAPTCHA if it's configured
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+        if (!recaptchaToken) {
+          newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
+        }
+      }
     }
     
     setErrors(newErrors);
