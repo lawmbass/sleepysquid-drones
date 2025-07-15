@@ -152,8 +152,21 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         const bookingSectionTop = bookingSectionRect.top + currentScrollY;
         const bookingSectionBottom = bookingSectionTop + bookingSectionRect.height;
         
-        // Ensure we don't scroll past the booking section
-        const safeTargetY = Math.max(bookingSectionTop, Math.min(targetY, bookingSectionBottom - window.innerHeight + 100));
+        // Check if booking section is shorter than viewport
+        const isShortSection = bookingSectionRect.height < window.innerHeight;
+        
+        let safeTargetY;
+        if (isShortSection) {
+          // For short sections, just ensure we don't go above the booking section
+          // and use the target position directly since the whole section fits in viewport
+          safeTargetY = Math.max(bookingSectionTop, targetY);
+        } else {
+          // For tall sections, ensure we don't scroll past the bottom
+          const maxScrollY = bookingSectionBottom - window.innerHeight + 100;
+          const upperBound = Math.max(bookingSectionTop, maxScrollY);
+          safeTargetY = Math.max(bookingSectionTop, Math.min(targetY, upperBound));
+        }
+        
         window.scrollTo({ top: safeTargetY, behavior: 'smooth' });
       } else {
         // Fallback if booking section isn't found
