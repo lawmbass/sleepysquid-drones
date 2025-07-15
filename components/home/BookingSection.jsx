@@ -116,6 +116,25 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function to check if Step 1 is ready for next step
+  const isStep1ReadyForNext = () => {
+    return formData.service && formData.date && formData.location && formData.duration;
+  };
+
+  // Helper function to check if form is ready for submission
+  const isFormReadyForSubmission = () => {
+    // Check if all required fields are filled
+    const requiredFieldsFilled = formData.name && formData.email && formData.phone;
+    
+    // Check if email is valid (only if email is provided)
+    const emailValid = formData.email ? /\S+@\S+\.\S+/.test(formData.email) : false;
+    
+    // Check if reCAPTCHA is completed (if required)
+    const recaptchaValid = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? recaptchaToken : true;
+    
+    return requiredFieldsFilled && emailValid && recaptchaValid;
+  };
+
   // Smooth scroll to form when step changes
   const scrollToForm = () => {
     if (formContainerRef.current) {
@@ -410,11 +429,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
                     >
                       <option value="">Select duration</option>
-                      <option value="1-hour">1 Hour</option>
-                      <option value="2-hours">2 Hours</option>
-                      <option value="half-day">Half Day (4 Hours)</option>
-                      <option value="full-day">Full Day (8 Hours)</option>
-                      <option value="custom">Custom (Please specify in details)</option>
+                      <option value="1-2 hours">1-2 Hours</option>
+                      <option value="3-4 hours">3-4 Hours</option>
+                      <option value="5-8 hours">5-8 Hours</option>
+                      <option value="Full day">Full Day</option>
+                      <option value="Multiple days">Multiple Days</option>
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -447,7 +466,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    disabled={!isStep1ReadyForNext()}
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next Step
                   </button>
@@ -568,7 +588,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isFormReadyForSubmission()}
                     className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
                     {isSubmitting ? (
@@ -609,7 +629,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
-                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration}</p>
                   {bookingResult?.estimatedPrice && (
                     <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Estimated Price:</span> ${bookingResult.estimatedPrice}</p>
                   )}
