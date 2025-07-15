@@ -47,7 +47,7 @@ export default function Login() {
   }, [session, router]);
 
   // Determine where to redirect users based on their role
-  const getDefaultRedirectForUser = (user) => {
+  const getDefaultRedirectForUser = () => {
     // Everyone goes to the unified dashboard page
     return '/dashboard';
   };

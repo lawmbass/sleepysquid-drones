@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const services = [
   { id: 'aerial-photography', name: 'Aerial Photography' },
@@ -36,9 +37,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [minDate, setMinDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
   
   // Create refs
   const dateInputRef = useRef(null);
+  const recaptchaRef = useRef(null);
+  const formContainerRef = useRef(null);
 
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -99,20 +103,59 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.email = 'Please enter a valid email';
       }
       if (!formData.phone) newErrors.phone = 'Please enter your phone number';
+      
+      // Always validate reCAPTCHA (required for security)
+      if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+        newErrors.recaptcha = 'reCAPTCHA is required but not configured';
+      } else if (!recaptchaToken) {
+        newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
+      }
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function to check if Step 1 is ready for next step
+  const isStep1ReadyForNext = () => {
+    return formData.service && formData.date && formData.location && formData.duration;
+  };
+
+  // Helper function to check if form is ready for submission
+  const isFormReadyForSubmission = () => {
+    // Check if all required fields are filled
+    const requiredFieldsFilled = formData.name && formData.email && formData.phone;
+    
+    // Check if email is valid (only if email is provided)
+    const emailValid = formData.email ? /\S+@\S+\.\S+/.test(formData.email) : false;
+    
+    // Check if reCAPTCHA is configured and completed (always required)
+    const recaptchaValid = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && recaptchaToken;
+    
+    return requiredFieldsFilled && emailValid && recaptchaValid;
+  };
+
+  // Smooth scroll to form when step changes
+  const scrollToForm = () => {
+    if (formContainerRef.current) {
+      const yOffset = -20; // Small offset to keep some space at the top
+      const y = formContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   const nextStep = () => {
     if (validateStep(step)) {
       setStep(prev => prev + 1);
+      // Scroll to form after state update
+      setTimeout(scrollToForm, 100);
     }
   };
 
   const prevStep = () => {
     setStep(prev => prev - 1);
+    // Scroll to form after state update
+    setTimeout(scrollToForm, 100);
   };
 
   const handleSubmit = async (e) => {
@@ -128,7 +171,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken
+        }),
       });
 
       const data = await response.json();
@@ -145,6 +191,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           setErrors({ email: data.message });
         } else if (data.error === 'Invalid date') {
           setErrors({ date: data.message });
+        } else if (data.error === 'Missing reCAPTCHA' || data.error === 'reCAPTCHA verification failed') {
+          setErrors({ recaptcha: data.message });
+          // Reset reCAPTCHA on error
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset();
+          }
+          setRecaptchaToken('');
         } else {
           setErrors({ general: data.message || 'Something went wrong. Please try again.' });
         }
@@ -184,6 +237,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   };
 
+  // Handle reCAPTCHA change
+  const handleRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+    if (errors.recaptcha) {
+      setErrors(prev => ({ ...prev, recaptcha: '' }));
+    }
+  };
+
+  // Handle reCAPTCHA expiration
+  const handleRecaptchaExpired = () => {
+    setRecaptchaToken('');
+  };
+
   return (
     <section id="booking" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-6">
@@ -201,6 +267,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           transition={{ duration: 0.5 }}
           className="max-w-3xl mx-auto"
         >
+          <div ref={formContainerRef}>
           {/* Progress Steps */}
           <div className="flex justify-between items-center mb-8">
             <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -362,11 +429,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
                     >
                       <option value="">Select duration</option>
-                      <option value="1-hour">1 Hour</option>
-                      <option value="2-hours">2 Hours</option>
-                      <option value="half-day">Half Day (4 Hours)</option>
-                      <option value="full-day">Full Day (8 Hours)</option>
-                      <option value="custom">Custom (Please specify in details)</option>
+                      <option value="1-2 hours">1-2 Hours</option>
+                      <option value="3-4 hours">3-4 Hours</option>
+                      <option value="5-8 hours">5-8 Hours</option>
+                      <option value="Full day">Full Day</option>
+                      <option value="Multiple days">Multiple Days</option>
                     </select>
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -399,7 +466,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                    disabled={!isStep1ReadyForNext()}
+                    className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next Step
                   </button>
@@ -481,6 +549,28 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   {errors.phone && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.phone}</p>}
                 </div>
 
+                {/* reCAPTCHA */}
+                <div className="mb-6">
+                  <div className="flex justify-center">
+                    {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+                      <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                        onChange={handleRecaptchaChange}
+                        onExpired={handleRecaptchaExpired}
+                        theme="light"
+                      />
+                    ) : (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          ❌ reCAPTCHA is required but not configured. Please contact the administrator.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {errors.recaptcha && <p className="text-red-500 dark:text-red-400 text-sm mt-2 text-center">{errors.recaptcha}</p>}
+                </div>
+
                 {errors.general && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
@@ -498,7 +588,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isFormReadyForSubmission()}
                     className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
                     {isSubmitting ? (
@@ -539,7 +629,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
-                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration}</p>
                   {bookingResult?.estimatedPrice && (
                     <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Estimated Price:</span> ${bookingResult.estimatedPrice}</p>
                   )}
@@ -562,6 +652,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     setErrors({});
                     setBookingResult(null);
                     setIsSubmitting(false);
+                    setRecaptchaToken('');
+                    if (recaptchaRef.current) {
+                      recaptchaRef.current.reset();
+                    }
                   }}
                   className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                 >
@@ -569,6 +663,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </button>
               </div>
             )}
+          </div>
           </div>
         </motion.div>
       </div>

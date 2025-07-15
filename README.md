@@ -17,14 +17,38 @@ MONGODB_URI=mongodb://localhost:27017/sleepysquid-drones
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
 ADMIN_EMAILS=your-email@domain.com
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
+RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
 ```
+
+## reCAPTCHA Setup (Anti-Spam Protection)
+
+1. **Create Google reCAPTCHA keys:**
+   - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
+   - Create a new site with **reCAPTCHA v2** ("I'm not a robot" checkbox)
+   - Add your domain(s): `localhost`, `yourdomain.com`
+   - **Note:** We use v2 (checkbox) instead of v3 (invisible) for better user experience and clearer spam detection
+
+2. **Add to your `.env` file:**
+   ```env
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lc...your-site-key
+   RECAPTCHA_SECRET_KEY=6Lc...your-secret-key
+   ```
+
+3. **Test the forms:**
+   - Visit `/` and try submitting the booking form
+   - Scroll down and test the contact form
+   - reCAPTCHA should appear before form submission
+   - Forms won't submit without completing reCAPTCHA
+   - Contact form submissions send email notifications to admin emails
 
 ## Features
 
 **Public Website** (`/`)
 - Portfolio showcase with image galleries
-- Service booking system
-- Contact forms and pricing
+- Service booking system with reCAPTCHA protection
+- Contact form with email notifications to admins
+- Pricing and service information
 
 **Admin Dashboard** (`/admin`)
 - Booking management and analytics
@@ -32,8 +56,10 @@ ADMIN_EMAILS=your-email@domain.com
 - Mission integration with Zeitview
 
 **Security**
-- Rate limiting, input validation, secure sessions
-- Server-side authentication with NextAuth.js
+- Rate limiting on booking and contact forms
+- reCAPTCHA protection against spam submissions
+- Input validation and sanitization
+- Secure sessions with NextAuth.js
 
 ## Key Commands
 

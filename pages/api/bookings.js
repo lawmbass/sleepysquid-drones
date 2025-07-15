@@ -53,7 +53,51 @@ export default async function handler(req, res) {
       name,
       email,
       phone,
+      recaptchaToken,
     } = req.body;
+
+    // Verify reCAPTCHA token (always required)
+    if (!recaptchaToken) {
+      return res.status(400).json({
+        error: 'Missing reCAPTCHA',
+        message: 'Please complete the reCAPTCHA verification'
+      });
+    }
+
+    // Ensure reCAPTCHA is configured on the server
+    if (!process.env.RECAPTCHA_SECRET_KEY) {
+      return res.status(500).json({
+        error: 'reCAPTCHA not configured',
+        message: 'reCAPTCHA verification is required but not configured on the server'
+      });
+    }
+
+    try {
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+      });
+
+      const recaptchaData = await recaptchaResponse.json();
+
+      // reCAPTCHA v2 only returns success: true/false (no score)
+      // reCAPTCHA v3 would return both success and score (0.0-1.0)
+      if (!recaptchaData.success) {
+        return res.status(400).json({
+          error: 'reCAPTCHA verification failed',
+          message: 'Please try again with the reCAPTCHA verification'
+        });
+      }
+    } catch (recaptchaError) {
+      console.error('reCAPTCHA verification error:', recaptchaError);
+      return res.status(500).json({
+        error: 'reCAPTCHA verification failed',
+        message: 'Unable to verify reCAPTCHA. Please try again.'
+      });
+    }
 
     // Enhanced input validation and sanitization
     if (!service || !date || !location || !duration || !name || !email || !phone) {
