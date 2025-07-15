@@ -269,7 +269,7 @@ const ContactSection = () => {
           {/* Contact Information */}
           <div className="flex flex-col justify-between">
             <div>
-              <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Contact Information</h3>
+              <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Business Information</h3>
               
               <div className="space-y-6">
                 {/* <div className="flex items-start">
