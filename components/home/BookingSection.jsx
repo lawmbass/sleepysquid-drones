@@ -42,6 +42,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   // Create refs
   const dateInputRef = useRef(null);
   const recaptchaRef = useRef(null);
+  const formContainerRef = useRef(null);
 
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -102,21 +103,34 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.email = 'Please enter a valid email';
       }
       if (!formData.phone) newErrors.phone = 'Please enter your phone number';
-      if (!recaptchaToken) newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Smooth scroll to form when step changes
+  const scrollToForm = () => {
+    if (formContainerRef.current) {
+      const yOffset = -20; // Small offset to keep some space at the top
+      const y = formContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   const nextStep = () => {
     if (validateStep(step)) {
       setStep(prev => prev + 1);
+      // Scroll to form after state update
+      setTimeout(scrollToForm, 100);
     }
   };
 
   const prevStep = () => {
     setStep(prev => prev - 1);
+    // Scroll to form after state update
+    setTimeout(scrollToForm, 100);
   };
 
   const handleSubmit = async (e) => {
@@ -134,7 +148,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         },
         body: JSON.stringify({
           ...formData,
-          recaptchaToken
+          ...(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && { recaptchaToken })
         }),
       });
 
@@ -228,6 +242,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           transition={{ duration: 0.5 }}
           className="max-w-3xl mx-auto"
         >
+          <div ref={formContainerRef}>
           {/* Progress Steps */}
           <div className="flex justify-between items-center mb-8">
             <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -511,13 +526,21 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 {/* reCAPTCHA */}
                 <div className="mb-6">
                   <div className="flex justify-center">
-                    <ReCAPTCHA
-                      ref={recaptchaRef}
-                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-                      onChange={handleRecaptchaChange}
-                      onExpired={handleRecaptchaExpired}
-                      theme="light"
-                    />
+                    {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+                      <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                        onChange={handleRecaptchaChange}
+                        onExpired={handleRecaptchaExpired}
+                        theme="light"
+                      />
+                    ) : (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                          ⚠️ reCAPTCHA not configured. Please set NEXT_PUBLIC_RECAPTCHA_SITE_KEY in your environment variables.
+                        </p>
+                      </div>
+                    )}
                   </div>
                   {errors.recaptcha && <p className="text-red-500 dark:text-red-400 text-sm mt-2 text-center">{errors.recaptcha}</p>}
                 </div>
@@ -614,6 +637,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </button>
               </div>
             )}
+          </div>
           </div>
         </motion.div>
       </div>

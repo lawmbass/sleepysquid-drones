@@ -74,39 +74,44 @@ export default async function handler(req, res) {
       recaptchaToken,
     } = req.body;
 
-    // Verify reCAPTCHA token
-    if (!recaptchaToken) {
-      return res.status(400).json({
-        error: 'Missing reCAPTCHA',
-        message: 'Please complete the reCAPTCHA verification'
-      });
-    }
-
-    try {
-      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-      });
-
-      const recaptchaData = await recaptchaResponse.json();
-
-      // reCAPTCHA v2 only returns success: true/false (no score)
-      // reCAPTCHA v3 would return both success and score (0.0-1.0)
-      if (!recaptchaData.success) {
+    // Verify reCAPTCHA token (only if configured)
+    if (process.env.RECAPTCHA_SECRET_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      if (!recaptchaToken) {
         return res.status(400).json({
-          error: 'reCAPTCHA verification failed',
-          message: 'Please try again with the reCAPTCHA verification'
+          error: 'Missing reCAPTCHA',
+          message: 'Please complete the reCAPTCHA verification'
         });
       }
-    } catch (recaptchaError) {
-      console.error('reCAPTCHA verification error:', recaptchaError);
-      return res.status(500).json({
-        error: 'reCAPTCHA verification failed',
-        message: 'Unable to verify reCAPTCHA. Please try again.'
-      });
+
+      try {
+        const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+        });
+
+        const recaptchaData = await recaptchaResponse.json();
+
+        // reCAPTCHA v2 only returns success: true/false (no score)
+        // reCAPTCHA v3 would return both success and score (0.0-1.0)
+        if (!recaptchaData.success) {
+          return res.status(400).json({
+            error: 'reCAPTCHA verification failed',
+            message: 'Please try again with the reCAPTCHA verification'
+          });
+        }
+      } catch (recaptchaError) {
+        console.error('reCAPTCHA verification error:', recaptchaError);
+        return res.status(500).json({
+          error: 'reCAPTCHA verification failed',
+          message: 'Unable to verify reCAPTCHA. Please try again.'
+        });
+      }
+    } else {
+      // Log warning if reCAPTCHA is not configured
+      console.warn('⚠️ reCAPTCHA not configured. Contact form submissions will not be protected against spam.');
     }
 
     // Enhanced input validation

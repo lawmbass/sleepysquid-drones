@@ -34,8 +34,8 @@ const ContactSection = () => {
     setFormErrors({});
     setSubmitStatus(null);
 
-    // Validate reCAPTCHA
-    if (!recaptchaToken) {
+    // Validate reCAPTCHA (only if configured)
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
       setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
       setIsSubmitting(false);
       return;
@@ -49,7 +49,7 @@ const ContactSection = () => {
         },
         body: JSON.stringify({
           ...data,
-          recaptchaToken
+          ...(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && { recaptchaToken })
         }),
       });
 
@@ -204,13 +204,21 @@ const ContactSection = () => {
               {/* reCAPTCHA */}
               <div className="mb-6">
                 <div className="flex justify-center">
-                  <ReCAPTCHA
-                    ref={recaptchaRef}
-                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-                    onChange={handleRecaptchaChange}
-                    onExpired={handleRecaptchaExpired}
-                    theme="light"
-                  />
+                  {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                      onChange={handleRecaptchaChange}
+                      onExpired={handleRecaptchaExpired}
+                      theme="light"
+                    />
+                  ) : (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        ⚠️ reCAPTCHA not configured. Please set NEXT_PUBLIC_RECAPTCHA_SITE_KEY in your environment variables.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 {formErrors.recaptcha && (
                   <p className="text-sm text-red-500 dark:text-red-400 mt-2 text-center">{formErrors.recaptcha}</p>
