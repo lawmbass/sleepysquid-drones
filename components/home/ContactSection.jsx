@@ -34,13 +34,15 @@ const ContactSection = () => {
     setFormErrors({});
     setSubmitStatus(null);
 
-    // Validate reCAPTCHA (only if configured)
-    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-      if (!recaptchaToken) {
-        setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
-        setIsSubmitting(false);
-        return;
-      }
+    // Validate reCAPTCHA (always required)
+    if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      setFormErrors({ recaptcha: 'reCAPTCHA is required but not configured' });
+      setIsSubmitting(false);
+      return;
+    } else if (!recaptchaToken) {
+      setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
+      setIsSubmitting(false);
+      return;
     }
 
     try {
@@ -51,7 +53,7 @@ const ContactSection = () => {
         },
         body: JSON.stringify({
           ...data,
-          ...(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && { recaptchaToken })
+          recaptchaToken
         }),
       });
 
@@ -215,9 +217,9 @@ const ContactSection = () => {
                       theme="light"
                     />
                   ) : (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                        ⚠️ reCAPTCHA not configured. Please set NEXT_PUBLIC_RECAPTCHA_SITE_KEY in your environment variables.
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                      <p className="text-sm text-red-600 dark:text-red-400">
+                        ❌ reCAPTCHA is required but not configured. Please contact the administrator.
                       </p>
                     </div>
                   )}

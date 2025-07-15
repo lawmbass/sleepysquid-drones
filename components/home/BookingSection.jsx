@@ -104,11 +104,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
       }
       if (!formData.phone) newErrors.phone = 'Please enter your phone number';
       
-      // Always validate reCAPTCHA if it's configured
-      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-        if (!recaptchaToken) {
-          newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
-        }
+      // Always validate reCAPTCHA (required for security)
+      if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+        newErrors.recaptcha = 'reCAPTCHA is required but not configured';
+      } else if (!recaptchaToken) {
+        newErrors.recaptcha = 'Please complete the reCAPTCHA verification';
       }
     }
     
@@ -129,8 +129,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     // Check if email is valid (only if email is provided)
     const emailValid = formData.email ? /\S+@\S+\.\S+/.test(formData.email) : false;
     
-    // Check if reCAPTCHA is completed (if required)
-    const recaptchaValid = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? recaptchaToken : true;
+    // Check if reCAPTCHA is configured and completed (always required)
+    const recaptchaValid = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && recaptchaToken;
     
     return requiredFieldsFilled && emailValid && recaptchaValid;
   };
@@ -173,7 +173,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         },
         body: JSON.stringify({
           ...formData,
-          ...(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && { recaptchaToken })
+          recaptchaToken
         }),
       });
 
@@ -561,9 +561,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                         theme="light"
                       />
                     ) : (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                          ⚠️ reCAPTCHA not configured. Please set NEXT_PUBLIC_RECAPTCHA_SITE_KEY in your environment variables.
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          ❌ reCAPTCHA is required but not configured. Please contact the administrator.
                         </p>
                       </div>
                     )}

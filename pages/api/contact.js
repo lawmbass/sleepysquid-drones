@@ -74,11 +74,19 @@ export default async function handler(req, res) {
       recaptchaToken,
     } = req.body;
 
-    // Verify reCAPTCHA token
+    // Verify reCAPTCHA token (always required)
     if (!recaptchaToken) {
       return res.status(400).json({
         error: 'Missing reCAPTCHA',
         message: 'Please complete the reCAPTCHA verification'
+      });
+    }
+
+    // Ensure reCAPTCHA is configured on the server
+    if (!process.env.RECAPTCHA_SECRET_KEY) {
+      return res.status(500).json({
+        error: 'reCAPTCHA not configured',
+        message: 'reCAPTCHA verification is required but not configured on the server'
       });
     }
 

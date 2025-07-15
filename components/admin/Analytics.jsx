@@ -38,7 +38,7 @@ export default function Analytics() {
 
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
-    fetchAnalytics(newPeriod);
+    // Remove direct fetchAnalytics call - useEffect will handle it when period changes
   };
 
   const handleRefresh = () => {
