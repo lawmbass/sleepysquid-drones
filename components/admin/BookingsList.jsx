@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation, FiUser, FiMoreVertical } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {
@@ -51,8 +51,6 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
     return success;
   };
 
-
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -68,25 +66,179 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
     });
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white shadow rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Bookings</h3>
-        </div>
-        <div className="p-6">
-          <div className="animate-pulse space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
+  // Mobile booking card component
+  const MobileBookingCard = ({ booking }) => (
+    <div 
+      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => handleViewBooking(booking)}
+    >
+      {/* Header with name and status */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center">
+            <FiUser className="h-4 w-4 text-gray-500 mr-2" />
+            <span className="font-medium text-gray-900">{booking.name}</span>
+            {booking.source !== 'customer' && (
+              <span className={`ml-2 px-2 py-0.5 text-xs font-semibold rounded-full ${
+                booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {booking.source === 'zeitview' ? 'ZV' : booking.source?.toUpperCase() || ''}
+              </span>
+            )}
           </div>
+          {booking.missionId && (
+            <div className="flex items-center mt-1">
+              <FiTarget className="h-3 w-3 text-gray-400 mr-1" />
+              <span className="text-xs text-gray-500">{booking.missionId}</span>
+            </div>
+          )}
+        </div>
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
+          {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
+        </span>
+      </div>
+
+      {/* Service and Date Info */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <div className="text-xs text-gray-500 mb-1">Service</div>
+          <div className="text-sm font-medium text-gray-900">
+            {serviceLabels[booking.service] || booking.service}
+          </div>
+          {booking.package && (
+            <div className="text-xs text-gray-500 capitalize">{booking.package} pkg</div>
+          )}
+        </div>
+        <div>
+          <div className="text-xs text-gray-500 mb-1">Event Date</div>
+          <div className="text-sm font-medium text-gray-900 flex items-center">
+            <FiCalendar className="h-3 w-3 mr-1" />
+            {formatDate(booking.date)}
+          </div>
+          <div className="text-xs text-gray-500">{booking.duration}</div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <>
+      {/* Location and Contact */}
+      <div className="space-y-2 mb-3">
+        <div className="flex items-start">
+          <FiMapPin className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+          <span className="text-xs text-gray-600 line-clamp-2">
+            {booking.location.length > 50 ? `${booking.location.substring(0, 50)}...` : booking.location}
+          </span>
+        </div>
+        <div className="flex items-center">
+          <FiMail className="h-3 w-3 text-gray-400 mr-1" />
+          <span className="text-xs text-gray-600">{booking.email}</span>
+        </div>
+        {booking.source === 'customer' && booking.phone && (
+          <div className="flex items-center">
+            <FiPhone className="h-3 w-3 text-gray-400 mr-1" />
+            <span className="text-xs text-gray-600">{booking.phone}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Price and Travel Info */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center">
+          <FiDollarSign className="h-3 w-3 text-gray-400 mr-1" />
+          <span className="font-medium text-gray-900">
+            {booking.payout 
+              ? `$${booking.payout.toLocaleString()}` 
+              : booking.finalPrice 
+                ? `$${booking.finalPrice.toLocaleString()}` 
+                : booking.estimatedPrice 
+                  ? `~$${booking.estimatedPrice.toLocaleString()}` 
+                  : 'TBD'
+            }
+          </span>
+          {booking.payout && <span className="text-gray-500 ml-1">(payout)</span>}
+        </div>
+        {booking.travelDistance && (
+          <div className="flex items-center text-gray-500">
+            <FiNavigation className="h-3 w-3 mr-1" />
+            <span>{booking.travelDistance.toFixed(1)}mi</span>
+            {booking.travelTime && <span className="ml-1">({Math.round(booking.travelTime)}min)</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Created date */}
+      <div className="mt-2 pt-2 border-t border-gray-100">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Created: {formatDate(booking.createdAt)}</span>
+          <span>{formatTime(booking.createdAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Mobile view component
+  const MobileBookingsList = () => (
+    <div className="md:hidden">
+      <div className="bg-white shadow rounded-lg border border-gray-200">
+        <div className="px-4 py-3 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">
+            Bookings ({paginationDefaults.totalCount})
+          </h3>
+        </div>
+        
+        {bookings.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            <p>No bookings found matching your criteria.</p>
+          </div>
+        ) : (
+          <>
+            <div className="p-4 space-y-4">
+              {bookings.map((booking) => (
+                <MobileBookingCard key={booking._id} booking={booking} />
+              ))}
+            </div>
+
+            {/* Mobile Pagination */}
+            {paginationDefaults.totalPages > 1 && (
+              <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Page {paginationDefaults.currentPage} of {paginationDefaults.totalPages}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onPageChange(paginationDefaults.currentPage - 1)}
+                      disabled={!paginationDefaults.hasPrevPage}
+                      className={`px-3 py-1 text-sm rounded-md ${
+                        paginationDefaults.hasPrevPage
+                          ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                      }`}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => onPageChange(paginationDefaults.currentPage + 1)}
+                      disabled={!paginationDefaults.hasNextPage}
+                      className={`px-3 py-1 text-sm rounded-md ${
+                        paginationDefaults.hasNextPage
+                          ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // Desktop view component (original table)
+  const DesktopBookingsList = () => (
+    <div className="hidden md:block">
       <div className="bg-white shadow rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
@@ -141,10 +293,10 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                               {booking.name}
                               {booking.source !== 'customer' && (
                                 <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                                                                     booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' :
+                                  booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' :
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                                                                                          {booking.source === 'zeitview' ? 'ZV' :
+                                  {booking.source === 'zeitview' ? 'ZV' :
                                    booking.source?.toUpperCase() || ''}
                                 </span>
                               )}
@@ -246,7 +398,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               </table>
             </div>
 
-            {/* Pagination */}
+            {/* Desktop Pagination */}
             {paginationDefaults.totalPages > 1 && (
               <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
@@ -312,6 +464,30 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
           </>
         )}
       </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="bg-white shadow rounded-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Bookings</h3>
+        </div>
+        <div className="p-6">
+          <div className="animate-pulse space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <MobileBookingsList />
+      <DesktopBookingsList />
 
       {/* Booking Modal */}
       {isModalOpen && selectedBooking && (
@@ -323,8 +499,6 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
           onDelete={onDeleteBooking}
         />
       )}
-
-
     </>
   );
 } 
