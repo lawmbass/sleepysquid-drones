@@ -85,7 +85,7 @@ export default function BookingStats({ stats, missionStats, user }) {
       <div className="bg-white rounded-lg shadow border border-gray-200 p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Dashboard Overview</h3>
-          <div className="text-sm text-gray-500">Welcome back, {user?.name || 'Lawrence'}</div>
+          <div className="text-sm text-gray-500">Welcome back, {user?.name || 'User'}</div>
         </div>
         
         {/* Key metrics in compact grid */}
