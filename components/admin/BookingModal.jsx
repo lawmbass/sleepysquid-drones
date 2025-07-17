@@ -122,12 +122,12 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto" 
+      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-4 pb-8 overflow-y-auto" 
       style={{ margin: 0, padding: 0, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
       onClick={onClose}
     >
       <div 
-        className="relative my-8 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white"
+        className="relative my-8 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white mb-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -360,7 +360,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between">
+            <div className="flex justify-between mb-6">
               <button
                 type="button"
                 onClick={handleDelete}
