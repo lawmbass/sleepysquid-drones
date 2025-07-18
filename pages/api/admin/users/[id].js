@@ -57,7 +57,7 @@ export default async function handler(req, res) {
   }
   
   // Additional check: Only SleepySquid admins can access user management
-  const isSleepySquidAdmin = session.user.email.toLowerCase().endsWith('@sleepysquid.com');
+  const isSleepySquidAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com');
   if (!isSleepySquidAdmin) {
     return res.status(403).json({
       error: 'Forbidden',
@@ -74,9 +74,9 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       return handleGetUser(req, res, id);
     } else if (req.method === 'PATCH') {
-      return handleUpdateUser(req, res, id);
+      return handleUpdateUser(req, res, id, session);
     } else if (req.method === 'DELETE') {
-      return handleDeleteUser(req, res, id);
+      return handleDeleteUser(req, res, id, session);
     } else {
       return res.status(405).json({ 
         error: 'Method not allowed',
@@ -119,7 +119,7 @@ async function handleGetUser(req, res, id) {
   }
 }
 
-async function handleUpdateUser(req, res, id) {
+async function handleUpdateUser(req, res, id, session) {
   try {
     const user = await User.findById(id);
     
@@ -131,7 +131,7 @@ async function handleUpdateUser(req, res, id) {
     }
 
     // Prevent admins from modifying their own admin status
-    if (user.email === req.session?.user?.email && 'hasAccess' in req.body) {
+    if (user.email === session?.user?.email && 'hasAccess' in req.body) {
       return res.status(400).json({
         error: 'Invalid operation',
         message: 'Cannot modify your own access status'
@@ -225,7 +225,7 @@ async function handleUpdateUser(req, res, id) {
   }
 }
 
-async function handleDeleteUser(req, res, id) {
+async function handleDeleteUser(req, res, id, session) {
   try {
     const user = await User.findById(id);
     
@@ -237,7 +237,7 @@ async function handleDeleteUser(req, res, id) {
     }
 
     // Prevent admins from deleting themselves
-    if (user.email === req.session?.user?.email) {
+    if (user.email === session?.user?.email) {
       return res.status(400).json({
         error: 'Invalid operation',
         message: 'Cannot delete your own account'

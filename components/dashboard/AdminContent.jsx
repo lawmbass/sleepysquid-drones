@@ -26,6 +26,18 @@ export default function AdminContent({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Handle redirect for non-SleepySquid admins trying to access user management
+  useEffect(() => {
+    if (activeSection === 'users' && !isSleepySquidAdmin) {
+      const redirectTimer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+      
+      // Cleanup timeout on unmount or when dependencies change
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [activeSection, isSleepySquidAdmin, router]);
+
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -184,11 +196,6 @@ export default function AdminContent({ user }) {
       
       case 'users':
         if (!isSleepySquidAdmin) {
-          // Redirect non-SleepySquid admins away from user management
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
-          
           return (
             <div className="space-y-6">
               <div className="mb-8">

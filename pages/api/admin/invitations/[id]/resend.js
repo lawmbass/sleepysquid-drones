@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../auth/[...nextauth]';
+import { authOptions } from '@/libs/next-auth';
 import { adminConfig } from '@/libs/adminConfig';
 import connectMongo from '@/libs/mongoose';
 import Invitation from '@/models/Invitation';

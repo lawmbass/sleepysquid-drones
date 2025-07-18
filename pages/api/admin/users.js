@@ -57,7 +57,7 @@ export default async function handler(req, res) {
   }
   
   // Additional check: Only SleepySquid admins can access user management
-  const isSleepySquidAdmin = session.user.email.toLowerCase().endsWith('@sleepysquid.com');
+  const isSleepySquidAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com');
   if (!isSleepySquidAdmin) {
     return res.status(403).json({
       error: 'Forbidden',
