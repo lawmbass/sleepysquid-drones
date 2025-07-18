@@ -123,7 +123,6 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
   return (
     <div 
       className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" 
-      style={{ margin: 0, padding: 0, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
       onClick={onClose}
     >
       <div 
