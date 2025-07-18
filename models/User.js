@@ -36,6 +36,94 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Additional profile fields
+    phone: {
+      type: String,
+      trim: true,
+    },
+    company: {
+      type: String,
+      trim: true,
+    },
+    bio: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      trim: true,
+    },
+    website: {
+      type: String,
+      trim: true,
+    },
+    // User preferences
+    preferences: {
+      theme: {
+        type: String,
+        enum: ['light', 'dark', 'auto'],
+        default: 'light',
+      },
+      language: {
+        type: String,
+        enum: ['en', 'es', 'fr', 'de'],
+        default: 'en',
+      },
+      timezone: {
+        type: String,
+        default: 'UTC',
+      },
+      dateFormat: {
+        type: String,
+        enum: ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'],
+        default: 'MM/DD/YYYY',
+      },
+      currency: {
+        type: String,
+        enum: ['USD', 'EUR', 'GBP', 'CAD'],
+        default: 'USD',
+      },
+    },
+    // Notification preferences
+    notifications: {
+      emailNotifications: {
+        type: Boolean,
+        default: true,
+      },
+      pushNotifications: {
+        type: Boolean,
+        default: true,
+      },
+      bookingUpdates: {
+        type: Boolean,
+        default: true,
+      },
+      marketingEmails: {
+        type: Boolean,
+        default: false,
+      },
+      weeklyReports: {
+        type: Boolean,
+        default: true,
+      },
+      securityAlerts: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    // Security settings
+    password: {
+      type: String,
+      select: false, // Don't include in queries by default
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false, // Don't include in queries by default
+    },
   },
   {
     timestamps: true,
