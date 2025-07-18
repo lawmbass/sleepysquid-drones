@@ -37,6 +37,11 @@ export default function InvitePage() {
       return;
     }
 
+    // Wait for router to be ready before checking query params
+    if (!router.isReady) {
+      return;
+    }
+
     const { token } = router.query;
     
     if (token) {
@@ -46,7 +51,7 @@ export default function InvitePage() {
       setError('Invalid invitation link. The invitation token is missing. Please use the invitation link from your email or contact an administrator to send you a new invitation.');
       setLoading(false);
     }
-  }, [router.query, session]);
+  }, [router.isReady, router.query, session]);
 
   const handleAcceptInvitation = async () => {
     setLoading(true);
