@@ -1,9 +1,9 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]';
-import { adminConfig } from '../../../../libs/adminConfig';
-import connectMongo from '../../../../libs/mongo';
-import { sendEmail } from '../../../../libs/mailgun';
-import config from '../../../../config';
+import { adminConfig } from '@/libs/adminConfig';
+import connectMongo from '@/libs/mongoose';
+import { sendEmail } from '@/libs/mailgun';
+import config from '@/config';
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -120,7 +120,8 @@ async function handleSendInvitation(req, res, session) {
     console.log('Invitation sent:', invitationData);
 
     // Generate the invitation link
-    const invitationLink = `${process.env.NEXTAUTH_URL || config.domainName}/invite?token=${invitationToken}`;
+    const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;
+    const invitationLink = `${baseUrl}/invite?token=${invitationToken}`;
 
     // Send invitation email
     await sendInvitationEmail(email, name, invitationLink, assignedRole, session.user.name);
