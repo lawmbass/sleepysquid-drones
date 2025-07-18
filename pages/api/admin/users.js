@@ -127,7 +127,7 @@ async function handleGetUsers(req, res) {
       .skip(skip)
       .lean();
 
-    // Get pending invitations
+    // Get pending invitations only
     const invitationFilter = { status: 'pending' };
     if (search) {
       invitationFilter.$or = [
