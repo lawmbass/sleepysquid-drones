@@ -175,4 +175,7 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.models.User || mongoose.model("User", userSchema);
+// Ensure mongoose is initialized before creating/accessing models
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+
+export default User;

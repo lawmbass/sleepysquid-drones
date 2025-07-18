@@ -1,5 +1,4 @@
 import { adminConfig } from './adminConfig';
-import User from '../models/User';
 
 // Define user roles and their permissions
 const ROLES = {
@@ -98,6 +97,8 @@ const getPilotEmails = () => {
 // Get user role from database
 const getUserRoleFromDatabase = async (email) => {
   try {
+    // Dynamic import to avoid circular dependency
+    const { default: User } = await import('../models/User.js');
     const user = await User.findOne({ email: email.toLowerCase() }).lean();
     return user?.role || ROLES.USER;
   } catch (error) {
@@ -194,6 +195,8 @@ export const userRoles = {
     }
     
     try {
+      // Dynamic import to avoid circular dependency
+      const { default: User } = await import('../models/User.js');
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
         throw new Error('User not found');
@@ -228,6 +231,8 @@ export const userRoles = {
     }
     
     try {
+      // Dynamic import to avoid circular dependency
+      const { default: User } = await import('../models/User.js');
       const user = await User.findOne({ email: email.toLowerCase() }, 'roleHistory').lean();
       return user?.roleHistory || [];
     } catch (error) {
