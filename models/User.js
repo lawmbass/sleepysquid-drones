@@ -17,6 +17,12 @@ const userSchema = mongoose.Schema(
     image: {
       type: String,
     },
+    // Role-based access control
+    role: {
+      type: String,
+      enum: ['admin', 'client', 'pilot', 'user'],
+      default: 'user',
+    },
     // Used in the Stripe webhook to identify the user in Stripe and later create Customer Portal or prefill user credit card details
     customerId: {
       type: String,
@@ -124,6 +130,26 @@ const userSchema = mongoose.Schema(
       type: String,
       select: false, // Don't include in queries by default
     },
+    // Role change audit trail
+    roleHistory: [{
+      role: {
+        type: String,
+        enum: ['admin', 'client', 'pilot', 'user'],
+        required: true,
+      },
+      changedBy: {
+        type: String, // Email of the user who made the change
+        required: true,
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      reason: {
+        type: String,
+        trim: true,
+      },
+    }],
   },
   {
     timestamps: true,
@@ -134,4 +160,22 @@ const userSchema = mongoose.Schema(
 // add plugin that converts mongoose to json
 userSchema.plugin(toJSON);
 
-export default mongoose.models.User || mongoose.model("User", userSchema);
+// Pre-save middleware to track role changes
+userSchema.pre('save', function(next) {
+  // Only track role changes if role field is modified
+  if (this.isModified('role') && !this.isNew) {
+    // Add to role history
+    this.roleHistory.push({
+      role: this.role,
+      changedBy: this._roleChangedBy || 'system', // Set this before saving
+      changedAt: new Date(),
+      reason: this._roleChangeReason || 'Role updated',
+    });
+  }
+  next();
+});
+
+// Ensure mongoose is initialized before creating/accessing models
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+
+export default User;

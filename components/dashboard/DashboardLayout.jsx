@@ -28,7 +28,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
   useEffect(() => {
     // Get navigation based on user role
     if (userRole) {
-      const roleNav = userRoles.getNavigationForRole(userRole);
+      const roleNav = userRoles.getNavigationForRole(userRole, user?.email);
       const navigationWithIcons = roleNav.map(item => {
         // Only transform href for dashboard-specific routes
         let href = item.href;
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
       });
       setNavigation(navigationWithIcons);
     }
-  }, [userRole, router.asPath, router.query.section]);
+  }, [userRole, user?.email, router.asPath, router.query.section]);
 
   // Get dashboard title based on role
   const getDashboardTitle = () => {

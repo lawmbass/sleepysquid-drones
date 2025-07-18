@@ -39,6 +39,11 @@ export const authOptions = {
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // Allow sign-in to proceed normally
+      // Invitation processing will happen in the session callback after user creation
+      return true;
+    },
     async redirect({ url, baseUrl }) {
       // Handle relative URLs
       if (url.startsWith("/")) {
@@ -70,7 +75,33 @@ export const authOptions = {
           const { userRoles } = await import('./userRoles');
           
           session.user.isAdmin = adminConfig.isAdmin(session.user.email);
-          session.user.role = await userRoles.getUserRole(session.user.email);
+          
+          // For new users who might have just accepted an invitation,
+          // ensure we get the most up-to-date role from the database
+          const connectMongo = (await import('./mongoose')).default;
+          const User = (await import('../models/User')).default;
+          
+          await connectMongo();
+          
+          // Check if user has an accepted invitation that was just processed
+          const Invitation = (await import('../models/Invitation')).default;
+          const recentInvitation = await Invitation.findOne({
+            email: session.user.email.toLowerCase(),
+            status: 'accepted',
+            acceptedAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Within last 5 minutes
+          });
+          
+          if (recentInvitation) {
+            // For users with recently accepted invitations, get role directly from database
+            console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
+            const user = await User.findOne({ email: session.user.email.toLowerCase() });
+            session.user.role = user?.role || 'user';
+            // Clear cache to ensure future requests get fresh data
+            userRoles.clearCache();
+          } else {
+            // Use cached role lookup for other users
+            session.user.role = await userRoles.getUserRole(session.user.email);
+          }
           
           // Add permissions based on role
           session.user.permissions = await userRoles.getUserPermissions(session.user.email);
@@ -120,6 +151,60 @@ export const authOptions = {
     },
     async createUser(message) {
       console.log('User created:', message.user.email);
+      
+      // Process invitation immediately after user creation
+      try {
+        const connectMongo = (await import('./mongoose')).default;
+        const User = (await import('../models/User')).default;
+        const Invitation = (await import('../models/Invitation')).default;
+        
+        await connectMongo();
+        
+        // Check if there's a pending invitation for this email
+        const invitation = await Invitation.findOne({ 
+          email: message.user.email.toLowerCase(),
+          status: 'pending'
+        });
+        
+        if (invitation) {
+          console.log(`Processing invitation for new user ${message.user.email}`);
+          
+          // Find the user that was just created by NextAuth
+          const newUser = await User.findOne({ email: message.user.email.toLowerCase() });
+          
+          if (newUser) {
+            // Update user with invitation data
+            newUser.role = invitation.role;
+            newUser.hasAccess = invitation.hasAccess;
+            newUser.company = invitation.company || newUser.company;
+            newUser.phone = invitation.phone || newUser.phone;
+            newUser.name = invitation.name || newUser.name;
+            
+            // Add to role history
+            if (!newUser.roleHistory) {
+              newUser.roleHistory = [];
+            }
+            newUser.roleHistory.push({
+              role: invitation.role,
+              changedAt: new Date(),
+              changedBy: invitation.invitedBy,
+              reason: 'Initial role assignment from invitation'
+            });
+            
+            await newUser.save();
+            console.log(`Updated new user ${message.user.email} with role ${invitation.role}`);
+            
+            // Mark invitation as accepted
+            invitation.status = 'accepted';
+            invitation.acceptedAt = new Date();
+            await invitation.save();
+            
+            console.log(`Invitation accepted for new user ${message.user.email}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing invitation in createUser event:', error);
+      }
     },
     async linkAccount(message) {
       console.log('Account linked:', message);

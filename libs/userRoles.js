@@ -73,7 +73,10 @@ const ROLE_PERMISSIONS = {
 // Cache for user roles to prevent repeated lookups
 let userRoleCache = new Map();
 
-// Get client emails from environment variable
+// Configuration flag to switch between database and environment-based roles
+const USE_DATABASE_ROLES = process.env.USE_DATABASE_ROLES === 'true';
+
+// Get client emails from environment variable (fallback)
 const getClientEmails = () => {
   const envEmails = process.env.CLIENT_EMAILS;
   if (envEmails) {
@@ -82,7 +85,7 @@ const getClientEmails = () => {
   return [];
 };
 
-// Get pilot emails from environment variable
+// Get pilot emails from environment variable (fallback)
 const getPilotEmails = () => {
   const envEmails = process.env.PILOT_EMAILS;
   if (envEmails) {
@@ -91,33 +94,68 @@ const getPilotEmails = () => {
   return [];
 };
 
+// Get user role from database
+const getUserRoleFromDatabase = async (email) => {
+  try {
+    // Dynamic import to avoid circular dependency
+    const { default: User } = await import('../models/User.js');
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    return user?.role || ROLES.USER;
+  } catch (error) {
+    console.error('Error fetching user role from database:', error);
+    return ROLES.USER;
+  }
+};
+
+// Get user role from environment variables (legacy)
+const getUserRoleFromEnvironment = async (email) => {
+  let role = ROLES.USER; // Default role
+  
+  // Check if user is admin
+  if (adminConfig.isAdmin(email)) {
+    role = ROLES.ADMIN;
+  }
+  // Check if user is a client
+  else if (getClientEmails().includes(email)) {
+    role = ROLES.CLIENT;
+  }
+  // Check if user is a pilot
+  else if (getPilotEmails().includes(email)) {
+    role = ROLES.PILOT;
+  }
+  
+  return role;
+};
+
 export const userRoles = {
   // Get user role based on email
   getUserRole: async (email) => {
     if (!email) return ROLES.USER;
     
+    // Normalize email
+    const normalizedEmail = email.toLowerCase();
+    
     // Check cache first
-    if (userRoleCache.has(email)) {
-      return userRoleCache.get(email);
+    if (userRoleCache.has(normalizedEmail)) {
+      return userRoleCache.get(normalizedEmail);
     }
     
-    let role = ROLES.USER; // Default role
+    let role;
     
-    // Check if user is admin
-    if (adminConfig.isAdmin(email)) {
-      role = ROLES.ADMIN;
-    }
-    // Check if user is a client
-    else if (getClientEmails().includes(email)) {
-      role = ROLES.CLIENT;
-    }
-    // Check if user is a pilot
-    else if (getPilotEmails().includes(email)) {
-      role = ROLES.PILOT;
+    // Use database-based roles if enabled, otherwise fall back to environment
+    if (USE_DATABASE_ROLES) {
+      role = await getUserRoleFromDatabase(normalizedEmail);
+      
+      // Double-check admin status from environment for security
+      if (adminConfig.isAdmin(normalizedEmail)) {
+        role = ROLES.ADMIN;
+      }
+    } else {
+      role = await getUserRoleFromEnvironment(normalizedEmail);
     }
     
     // Cache the result
-    userRoleCache.set(email, role);
+    userRoleCache.set(normalizedEmail, role);
     
     return role;
   },
@@ -146,9 +184,75 @@ export const userRoles = {
     return permissionList.every(permission => permissions.includes(permission));
   },
   
+  // Update user role in database (admin only)
+  updateUserRole: async (email, newRole, changedBy, reason = 'Role updated') => {
+    if (!USE_DATABASE_ROLES) {
+      throw new Error('Database roles are not enabled. Set USE_DATABASE_ROLES=true in your environment.');
+    }
+    
+    if (!Object.values(ROLES).includes(newRole)) {
+      throw new Error(`Invalid role: ${newRole}`);
+    }
+    
+    try {
+      // Dynamic import to avoid circular dependency
+      const { default: User } = await import('../models/User.js');
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Prevent non-admins from creating admin users
+      if (newRole === ROLES.ADMIN && !adminConfig.isAdmin(changedBy)) {
+        throw new Error('Only admins can create admin users');
+      }
+      
+      // Set metadata for role change tracking
+      user._roleChangedBy = changedBy;
+      user._roleChangeReason = reason;
+      
+      user.role = newRole;
+      await user.save();
+      
+      // Clear cache for this user
+      userRoleCache.delete(email.toLowerCase());
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      throw error;
+    }
+  },
+  
+  // Get user role history (admin only)
+  getUserRoleHistory: async (email) => {
+    if (!USE_DATABASE_ROLES) {
+      throw new Error('Database roles are not enabled. Set USE_DATABASE_ROLES=true in your environment.');
+    }
+    
+    try {
+      // Dynamic import to avoid circular dependency
+      const { default: User } = await import('../models/User.js');
+      const user = await User.findOne({ email: email.toLowerCase() }, 'roleHistory').lean();
+      return user?.roleHistory || [];
+    } catch (error) {
+      console.error('Error fetching user role history:', error);
+      return [];
+    }
+  },
+  
   // Clear cache (useful for testing or when roles change)
   clearCache: () => {
     userRoleCache.clear();
+  },
+  
+  // Get system configuration
+  getSystemConfig: () => {
+    return {
+      useDatabaseRoles: USE_DATABASE_ROLES,
+      roleSource: USE_DATABASE_ROLES ? 'database' : 'environment',
+      cacheSize: userRoleCache.size
+    };
   },
   
   // Get all role definitions
@@ -163,16 +267,24 @@ export const userRoles = {
   },
   
   // Get navigation items based on user role
-  getNavigationForRole: (role) => {
+  getNavigationForRole: (role, userEmail = '') => {
+    const isSleepySquidAdmin = userEmail.toLowerCase().endsWith('@sleepysquid.com');
+    
     switch (role) {
       case ROLES.ADMIN:
-        return [
+        const adminNav = [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
           { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
-          { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
+        
+        // Only show Users link for SleepySquid admins
+        if (isSleepySquidAdmin) {
+          adminNav.splice(3, 0, { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' });
+        }
+        
+        return adminNav;
       case ROLES.CLIENT:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },

@@ -5,9 +5,12 @@ import BookingStats from '@/components/admin/BookingStats';
 import BookingFilters from '@/components/admin/BookingFilters';
 import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
+import UserManagement from '@/components/admin/UserManagement';
 // Note: AdminSettings is now an inline component within this file
 
 export default function AdminContent({ user }) {
+  // Check if user is SleepySquid admin
+  const isSleepySquidAdmin = user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [bookings, setBookings] = useState([]);
@@ -22,6 +25,18 @@ export default function AdminContent({ user }) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Handle redirect for non-SleepySquid admins trying to access user management
+  useEffect(() => {
+    if (activeSection === 'users' && !isSleepySquidAdmin) {
+      const redirectTimer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+      
+      // Cleanup timeout on unmount or when dependencies change
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [activeSection, isSleepySquidAdmin, router]);
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -180,21 +195,35 @@ export default function AdminContent({ user }) {
         return <Settings user={user} />;
       
       case 'users':
-        return (
-          <div className="space-y-6">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-              <p className="text-gray-600">Manage user accounts and permissions.</p>
-            </div>
-            
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="text-center py-12">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
-                <p className="text-gray-500">User management features are in development.</p>
+        if (!isSleepySquidAdmin) {
+          return (
+            <div className="space-y-6">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
+                <p className="text-gray-600">You don&apos;t have permission to access user management.</p>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded-md p-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Access Restricted
+                    </h3>
+                    <p className="mt-1 text-sm text-red-700">
+                      User management is restricted to SleepySquid administrators only. You will be redirected to the dashboard shortly.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        );
+          );
+        }
+        return <UserManagement />;
       
       default:
         return (
