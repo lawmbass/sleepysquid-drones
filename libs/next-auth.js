@@ -75,7 +75,33 @@ export const authOptions = {
           const { userRoles } = await import('./userRoles');
           
           session.user.isAdmin = adminConfig.isAdmin(session.user.email);
-          session.user.role = await userRoles.getUserRole(session.user.email);
+          
+          // For new users who might have just accepted an invitation,
+          // ensure we get the most up-to-date role from the database
+          const connectMongo = (await import('./mongoose')).default;
+          const User = (await import('../models/User')).default;
+          
+          await connectMongo();
+          
+          // Check if user has an accepted invitation that was just processed
+          const Invitation = (await import('../models/Invitation')).default;
+          const recentInvitation = await Invitation.findOne({
+            email: session.user.email.toLowerCase(),
+            status: 'accepted',
+            acceptedAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Within last 5 minutes
+          });
+          
+          if (recentInvitation) {
+            // For users with recently accepted invitations, get role directly from database
+            console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
+            const user = await User.findOne({ email: session.user.email.toLowerCase() });
+            session.user.role = user?.role || 'user';
+            // Clear cache to ensure future requests get fresh data
+            userRoles.clearCache();
+          } else {
+            // Use cached role lookup for other users
+            session.user.role = await userRoles.getUserRole(session.user.email);
+          }
           
           // Add permissions based on role
           session.user.permissions = await userRoles.getUserPermissions(session.user.email);
