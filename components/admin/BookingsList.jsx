@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation, FiUser, FiMoreVertical } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation, FiUser } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {

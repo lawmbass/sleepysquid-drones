@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiChevronDown, FiChevronUp, FiFilter, FiX } from 'react-icons/fi';
+import { FiChevronDown, FiChevronUp, FiFilter } from 'react-icons/fi';
 
 const services = [
   { value: '', label: 'All Services' },
