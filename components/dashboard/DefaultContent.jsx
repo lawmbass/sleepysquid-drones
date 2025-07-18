@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiHeart, FiInfo } from 'react-icons/fi';
+import { FiHeart, FiInfo, FiCamera, FiVideo, FiMap } from 'react-icons/fi';
 
 export default function DefaultContent({ user }) {
   const router = useRouter();
@@ -12,94 +12,169 @@ export default function DefaultContent({ user }) {
     setActiveSection(section);
   }, [router.query.section]);
 
+  // Mobile compact dashboard component
+  const MobileCompactDashboard = () => (
+    <div className="md:hidden space-y-4">
+      {/* Welcome header */}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome to SleepySquid Drones</h1>
+        <p className="text-sm text-gray-600">Hi {user.name}, explore our drone services</p>
+      </div>
+      
+      {/* Services grid */}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Our Services</h3>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <FiCamera className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+            <div className="text-xs text-gray-600">Aerial Photography</div>
+          </div>
+          
+          <div className="p-3 bg-purple-50 rounded-lg">
+            <FiVideo className="h-6 w-6 text-purple-600 mx-auto mb-1" />
+            <div className="text-xs text-gray-600">Videography</div>
+          </div>
+          
+          <div className="p-3 bg-green-50 rounded-lg">
+            <FiMap className="h-6 w-6 text-green-600 mx-auto mb-1" />
+            <div className="text-xs text-gray-600">Mapping</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Quick actions */}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Get Started</h3>
+        <div className="space-y-2">
+          <button 
+            onClick={() => router.push('/#booking')}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium"
+          >
+            Book a Service
+          </button>
+          <button 
+            onClick={() => router.push('/#contact')}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-md text-sm font-medium"
+          >
+            Contact Support
+          </button>
+        </div>
+      </div>
+      
+      {/* Account status */}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-2">Account Status</h3>
+        <div className="flex items-center justify-between">
+          <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Standard User
+          </div>
+          <button 
+            onClick={() => router.push('/#contact')}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            Upgrade
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Desktop dashboard component
+  const DesktopDashboard = () => (
+    <div className="hidden md:block space-y-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Welcome to SleepySquid Drones</h1>
+        <p className="text-gray-600">Hi {user.name}, welcome to your dashboard. Explore our drone services and get started.</p>
+      </div>
+      
+      {/* Welcome Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <FiInfo className="h-6 w-6 text-blue-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <h3 className="text-lg font-medium text-gray-900">Getting Started</h3>
+                <p className="text-sm text-gray-500">Learn about our drone services and how to book them.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <FiHeart className="h-6 w-6 text-red-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <h3 className="text-lg font-medium text-gray-900">Need Help?</h3>
+                <p className="text-sm text-gray-500">Contact our support team for assistance.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Services Overview */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Our Services</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900">Aerial Photography</h3>
+              <p className="text-xs text-gray-500 mt-1">Professional drone photography services</p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900">Videography</h3>
+              <p className="text-xs text-gray-500 mt-1">High-quality aerial video production</p>
+            </div>
+            <div className="text-center p-4 border border-gray-200 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900">Mapping & Surveying</h3>
+              <p className="text-xs text-gray-500 mt-1">Precision mapping and surveying solutions</p>
+            </div>
+          </div>
+          <div className="mt-6 text-center">
+            <button 
+              onClick={() => router.push('/#booking')}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
+            >
+              Book a Service
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Account Status */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Account Status</h2>
+        </div>
+        <div className="p-6">
+          <div className="text-center">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+              Standard User
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Contact us to upgrade your account for additional features.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
         return (
           <div className="space-y-6">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Welcome to SleepySquid Drones</h1>
-              <p className="text-gray-600">Hi {user.name}, welcome to your dashboard. Explore our drone services and get started.</p>
-            </div>
-            
-            {/* Welcome Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FiInfo className="h-6 w-6 text-blue-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <h3 className="text-lg font-medium text-gray-900">Getting Started</h3>
-                      <p className="text-sm text-gray-500">Learn about our drone services and how to book them.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FiHeart className="h-6 w-6 text-red-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <h3 className="text-lg font-medium text-gray-900">Need Help?</h3>
-                      <p className="text-sm text-gray-500">Contact our support team for assistance.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Services Overview */}
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">Our Services</h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border border-gray-200 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-900">Aerial Photography</h3>
-                    <p className="text-xs text-gray-500 mt-1">Professional drone photography services</p>
-                  </div>
-                  <div className="text-center p-4 border border-gray-200 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-900">Videography</h3>
-                    <p className="text-xs text-gray-500 mt-1">High-quality aerial video production</p>
-                  </div>
-                  <div className="text-center p-4 border border-gray-200 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-900">Mapping & Surveying</h3>
-                    <p className="text-xs text-gray-500 mt-1">Precision mapping and surveying solutions</p>
-                  </div>
-                </div>
-                <div className="mt-6 text-center">
-                  <button 
-                    onClick={() => router.push('/#booking')}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
-                  >
-                    Book a Service
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Account Status */}
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">Account Status</h2>
-              </div>
-              <div className="p-6">
-                <div className="text-center">
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    Standard User
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Contact us to upgrade your account for additional features.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <MobileCompactDashboard />
+            <DesktopDashboard />
           </div>
         );
 

@@ -122,12 +122,11 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto" 
-      style={{ margin: 0, padding: 0, top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}
+      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" 
       onClick={onClose}
     >
       <div 
-        className="relative my-8 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white"
+        className="relative my-2 sm:my-8 mx-auto p-4 sm:p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -147,7 +146,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         </div>
 
         <div className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Customer Information */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="text-lg font-medium text-gray-900 mb-4">
@@ -265,7 +264,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               {/* Status */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -344,7 +343,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             {/* Booking Metadata */}
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <h5 className="text-sm font-medium text-gray-900 mb-2">Booking Information</h5>
-              <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs text-gray-600">
                 <div>
                   <span className="font-medium">Created:</span> {formatDate(booking.createdAt)}
                 </div>
@@ -360,12 +359,13 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
+              {/* Delete button - full width on mobile, left-aligned on desktop */}
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isDeleting ? (
                   <>
@@ -379,18 +379,20 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   </>
                 )}
               </button>
-              <div className="flex space-x-3">
+              
+              {/* Cancel and Save buttons - stacked on mobile, side by side on desktop */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:space-x-3 sm:gap-0">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSubmitting ? (
                     <>
