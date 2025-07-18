@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FiHeart, FiInfo, FiCamera, FiVideo, FiMap } from 'react-icons/fi';
+import AccessStatusBanner from './AccessStatusBanner';
 
 export default function DefaultContent({ user }) {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function DefaultContent({ user }) {
   // Mobile compact dashboard component
   const MobileCompactDashboard = () => (
     <div className="md:hidden space-y-4">
+      {/* Access Status Banner */}
+      <AccessStatusBanner user={user} />
+      
       {/* Welcome header */}
       <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
         <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome to SleepySquid Drones</h1>
@@ -82,6 +86,9 @@ export default function DefaultContent({ user }) {
   // Desktop dashboard component
   const DesktopDashboard = () => (
     <div className="hidden md:block space-y-6">
+      {/* Access Status Banner */}
+      <AccessStatusBanner user={user} />
+      
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Welcome to SleepySquid Drones</h1>
         <p className="text-gray-600">Hi {user.name}, welcome to your dashboard. Explore our drone services and get started.</p>

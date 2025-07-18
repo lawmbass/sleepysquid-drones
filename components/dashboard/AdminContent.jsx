@@ -6,6 +6,7 @@ import BookingFilters from '@/components/admin/BookingFilters';
 import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
 import UserManagement from '@/components/admin/UserManagement';
+import AccessStatusBanner from './AccessStatusBanner';
 // Note: AdminSettings is now an inline component within this file
 
 export default function AdminContent({ user }) {
@@ -140,6 +141,8 @@ export default function AdminContent({ user }) {
       case 'dashboard':
         return (
           <div className="space-y-6">
+            <AccessStatusBanner user={user} />
+            
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
               <p className="text-gray-600">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>

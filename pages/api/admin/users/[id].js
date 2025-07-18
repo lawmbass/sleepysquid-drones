@@ -204,6 +204,13 @@ async function handleUpdateUser(req, res, id, session) {
       user._roleChangeReason = `Role changed from ${user.role} to ${updates.role} via admin panel`;
     }
 
+    // Handle access changes with tracking
+    if (updates.hasAccess !== undefined && updates.hasAccess !== user.hasAccess) {
+      // Set metadata for access change tracking
+      user._accessChangedBy = session.user.email;
+      user._accessChangeReason = `Access ${updates.hasAccess ? 'granted' : 'revoked'} via admin panel`;
+    }
+
     // Update user
     Object.assign(user, updates);
     await user.save();

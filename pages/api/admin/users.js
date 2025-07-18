@@ -5,7 +5,7 @@ import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
-import { userRoles } from "@/libs/userRoles";
+
 
 // Apply rate limiting middleware
 const rateLimitMiddleware = (req, res) => {

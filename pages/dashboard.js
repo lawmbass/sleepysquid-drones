@@ -21,9 +21,18 @@ export default function Dashboard() {
     if (status === 'unauthenticated') {
       router.push('/login?callbackUrl=' + encodeURIComponent('/dashboard'));
     } else if (status === 'authenticated') {
+      // Check if user has access
+      if (session?.user?.hasAccess === false) {
+        // Allow admins to bypass access check
+        const isAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com');
+        if (!isAdmin) {
+          router.push('/access-denied?reason=inactive');
+          return;
+        }
+      }
       setLoading(false);
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
