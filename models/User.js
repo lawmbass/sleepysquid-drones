@@ -150,6 +150,30 @@ const userSchema = mongoose.Schema(
         trim: true,
       },
     }],
+    // Access change audit trail
+    accessHistory: [{
+      hasAccess: {
+        type: Boolean,
+        required: true,
+      },
+      changedBy: {
+        type: String, // Email of the user who made the change
+        required: true,
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      reason: {
+        type: String,
+        trim: true,
+      },
+      action: {
+        type: String,
+        enum: ['activated', 'deactivated', 'created'],
+        required: true,
+      },
+    }],
   },
   {
     timestamps: true,
@@ -160,9 +184,9 @@ const userSchema = mongoose.Schema(
 // add plugin that converts mongoose to json
 userSchema.plugin(toJSON);
 
-// Pre-save middleware to track role changes
+// Pre-save middleware to track role and access changes
 userSchema.pre('save', function(next) {
-  // Only track role changes if role field is modified
+  // Track role changes if role field is modified
   if (this.isModified('role') && !this.isNew) {
     // Add to role history
     this.roleHistory.push({
@@ -172,6 +196,30 @@ userSchema.pre('save', function(next) {
       reason: this._roleChangeReason || 'Role updated',
     });
   }
+  
+  // Track access changes if hasAccess field is modified
+  if (this.isModified('hasAccess') && !this.isNew) {
+    // Add to access history
+    this.accessHistory.push({
+      hasAccess: this.hasAccess,
+      changedBy: this._accessChangedBy || 'system', // Set this before saving
+      changedAt: new Date(),
+      reason: this._accessChangeReason || 'Access updated',
+      action: this.hasAccess ? 'activated' : 'deactivated',
+    });
+  }
+  
+  // Track initial access setting for new users
+  if (this.isNew && this.hasAccess !== undefined) {
+    this.accessHistory.push({
+      hasAccess: this.hasAccess,
+      changedBy: this._accessChangedBy || 'system',
+      changedAt: new Date(),
+      reason: this._accessChangeReason || 'Account created',
+      action: 'created',
+    });
+  }
+  
   next();
 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import AccessHistory from './AccessHistory';
 
 export default function UserModal({ user, onClose, onSaved }) {
   const { data: session } = useSession();
@@ -257,6 +258,13 @@ export default function UserModal({ user, onClose, onSaved }) {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Access History - only show for existing users */}
+            {user && user.accessHistory && user.accessHistory.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <AccessHistory accessHistory={user.accessHistory} />
               </div>
             )}
           </div>

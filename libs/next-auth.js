@@ -91,16 +91,20 @@ export const authOptions = {
             acceptedAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Within last 5 minutes
           });
           
+          // Get user data from database to check access status
+          const user = await User.findOne({ email: session.user.email.toLowerCase() });
+          
           if (recentInvitation) {
             // For users with recently accepted invitations, get role directly from database
             console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
-            const user = await User.findOne({ email: session.user.email.toLowerCase() });
             session.user.role = user?.role || 'user';
+            session.user.hasAccess = user?.hasAccess || false;
             // Clear cache to ensure future requests get fresh data
             userRoles.clearCache();
           } else {
             // Use cached role lookup for other users
             session.user.role = await userRoles.getUserRole(session.user.email);
+            session.user.hasAccess = user?.hasAccess || false;
           }
           
           // Add permissions based on role
@@ -108,7 +112,7 @@ export const authOptions = {
           
           // Add debug logging for user access (production safe)
           if (process.env.NODE_ENV === 'development') {
-            console.log(`User ${session.user.email}: Admin=${session.user.isAdmin}, Role=${session.user.role}`);
+            console.log(`User ${session.user.email}: Admin=${session.user.isAdmin}, Role=${session.user.role}, HasAccess=${session.user.hasAccess}`);
           }
         } catch (error) {
           console.error('Error checking user status:', error);
