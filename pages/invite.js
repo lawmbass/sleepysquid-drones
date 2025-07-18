@@ -38,7 +38,7 @@ export default function InvitePage() {
       setInvitationData(mockInvitationData);
       setLoading(false);
     } else {
-      setError('Invalid invitation link. The invitation token is missing.');
+      setError('Invalid invitation link. The invitation token is missing. Please use the invitation link from your email or contact an administrator to send you a new invitation.');
       setLoading(false);
     }
   }, [router.query, session]);
@@ -99,21 +99,39 @@ export default function InvitePage() {
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
           <div className="sm:mx-auto sm:w-full sm:max-w-md">
             <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-              <div className="text-center">
-                <FiAlertCircle className="mx-auto h-12 w-12 text-red-400" />
-                <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                  Invalid Invitation
-                </h2>
-                <p className="mt-2 text-sm text-gray-600">{error}</p>
-                <div className="mt-6">
+                          <div className="text-center">
+              <FiAlertCircle className="mx-auto h-12 w-12 text-red-400" />
+              <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+                Invalid Invitation
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">{error}</p>
+              
+              <div className="mt-6 space-y-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Expected URL format:</strong><br/>
+                    <code className="text-xs bg-blue-100 px-2 py-1 rounded">
+                      /invite?token=abc123...
+                    </code>
+                  </p>
+                </div>
+                
+                <div className="flex space-x-4 justify-center">
                   <Link 
                     href="/"
                     className="text-blue-600 hover:text-blue-500 font-medium"
                   >
                     ← Back to Home
                   </Link>
+                  <Link 
+                    href="/test-invite"
+                    className="text-green-600 hover:text-green-500 font-medium"
+                  >
+                    Test Invitation System
+                  </Link>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
