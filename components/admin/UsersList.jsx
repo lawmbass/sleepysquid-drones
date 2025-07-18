@@ -9,6 +9,7 @@ export default function UsersList({
   onUpdateUser, 
   onDeleteUser, 
   onEditUser,
+  onResendInvitation,
   onPageChange,
   loading,
   error 
@@ -16,6 +17,7 @@ export default function UsersList({
   const { data: session } = useSession();
   const [deletingUser, setDeletingUser] = useState(null);
   const [updatingUser, setUpdatingUser] = useState(null);
+  const [resendingInvitation, setResendingInvitation] = useState(null);
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
@@ -31,6 +33,14 @@ export default function UsersList({
     const success = await onDeleteUser(user._id, user.isPendingInvitation);
     if (success) {
       setDeletingUser(null);
+    }
+  };
+
+  const handleResendInvitation = async (user) => {
+    setResendingInvitation(user._id);
+    const success = await onResendInvitation(user._id);
+    if (success) {
+      setResendingInvitation(null);
     }
   };
 
@@ -275,11 +285,16 @@ export default function UsersList({
                           {isPendingInvitation ? (
                             <>
                               <button
-                                onClick={() => onEditUser(user)}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="Resend invitation"
+                                onClick={() => handleResendInvitation(user)}
+                                disabled={resendingInvitation === user._id}
+                                className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                                title="Resend invitation email"
                               >
-                                <FiMail className="h-4 w-4" />
+                                {resendingInvitation === user._id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                ) : (
+                                  <FiMail className="h-4 w-4" />
+                                )}
                               </button>
                               <button
                                 onClick={() => handleDeleteUser(user)}
