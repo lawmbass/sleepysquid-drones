@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
@@ -100,7 +101,7 @@ export default function UsersList({
           <div className="flex items-center space-x-3 flex-1">
             <div className="flex-shrink-0">
               {user.image ? (
-                <img className="h-12 w-12 rounded-full" src={user.image} alt={user.name} />
+                <Image className="h-12 w-12 rounded-full" src={user.image} alt={user.name} width={48} height={48} />
               ) : (
                 <div className={`h-12 w-12 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
                   <FiUser className={`h-6 w-6 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
@@ -390,7 +391,7 @@ export default function UsersList({
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           {user.image ? (
-                            <img className="h-10 w-10 rounded-full" src={user.image} alt={user.name} />
+                            <Image className="h-10 w-10 rounded-full" src={user.image} alt={user.name} width={40} height={40} />
                           ) : (
                             <div className={`h-10 w-10 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
                               <FiUser className={`h-5 w-5 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
