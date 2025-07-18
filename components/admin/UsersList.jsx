@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiBuilding, FiMoreVertical } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
+import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
 
 export default function UsersList({ 
@@ -26,7 +27,7 @@ export default function UsersList({
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
-    const success = await onUpdateUser(user._id, { hasAccess: !user.hasAccess });
+    await onUpdateUser(user._id, { hasAccess: !user.hasAccess });
     setUpdatingUser(null);
   };
 
@@ -195,7 +196,7 @@ export default function UsersList({
             <div className="space-y-3">
               {user.company && (
                 <div className="flex items-center text-sm text-gray-600">
-                  <FiBuilding className="h-4 w-4 mr-2 text-gray-400" />
+                  <HiOfficeBuilding className="h-4 w-4 mr-2 text-gray-400" />
                   {user.company}
                 </div>
               )}
@@ -409,12 +410,12 @@ export default function UsersList({
                             <FiMail className="h-3 w-3 mr-1" />
                             {user.email}
                           </div>
-                          {user.company && (
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <FiBuilding className="h-3 w-3 mr-1" />
-                              {user.company}
-                            </div>
-                          )}
+                                                     {user.company && (
+                             <div className="text-sm text-gray-500 flex items-center">
+                               <HiOfficeBuilding className="h-3 w-3 mr-1" />
+                               {user.company}
+                             </div>
+                           )}
                           {user.phone && (
                             <div className="text-sm text-gray-500 flex items-center">
                               <FiPhone className="h-3 w-3 mr-1" />

@@ -94,9 +94,7 @@ export default function UserManagement() {
     fetchUsers();
   };
 
-  const handleUserDeleted = () => {
-    fetchUsers();
-  };
+
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -167,7 +165,7 @@ export default function UserManagement() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       setSuccess('Invitation resent successfully!');
       
       // Clear success message after 5 seconds

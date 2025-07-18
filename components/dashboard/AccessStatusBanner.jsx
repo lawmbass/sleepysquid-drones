@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiAlertTriangle, FiCheck, FiX } from 'react-icons/fi';
+import { FiAlertTriangle, FiX } from 'react-icons/fi';
 
 export default function AccessStatusBanner({ user }) {
   // Don't show banner if user has access or is admin

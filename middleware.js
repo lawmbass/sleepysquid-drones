@@ -46,11 +46,6 @@ export async function middleware(request) {
     pathname.startsWith(route)
   );
 
-  // Check if the current path is a public route
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname === route || pathname.startsWith(route)
-  );
-
   // If it's a protected route, check user access
   if (isProtectedRoute) {
     try {
@@ -67,31 +62,42 @@ export async function middleware(request) {
         return NextResponse.redirect(loginUrl);
       }
 
-      // Check if user has access (for routes that require active users)
-      // We need to get fresh user data from the database
+      // Check if user has access by making an API call to our own endpoint
+      // This avoids the mongoose import issue in middleware
       if (token.email) {
         try {
-          // Import here to avoid circular dependencies
-          const { default: connectMongo } = await import('./libs/mongoose');
-          const { default: User } = await import('./models/User');
+          // Make an internal API call to check user access
+          const baseUrl = request.nextUrl.origin;
+          const checkAccessUrl = new URL('/api/auth/check-access', baseUrl);
           
-          await connectMongo();
-          const user = await User.findOne({ email: token.email.toLowerCase() });
-          
-          // If user doesn't exist or doesn't have access, redirect to access denied
-          if (!user || !user.hasAccess) {
-            // Allow admins to always access (SleepySquid emails)
-            const isAdmin = token.email?.toLowerCase()?.endsWith('@sleepysquid.com');
+          const accessResponse = await fetch(checkAccessUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token.sub}`, // Use token subject as identifier
+            },
+            body: JSON.stringify({ email: token.email })
+          });
+
+          if (accessResponse.ok) {
+            const accessData = await accessResponse.json();
             
-            if (!isAdmin) {
-              const accessDeniedUrl = new URL('/access-denied', request.url);
-              accessDeniedUrl.searchParams.set('reason', 'inactive');
-              return NextResponse.redirect(accessDeniedUrl);
+            // If user doesn't have access, redirect to access denied
+            if (!accessData.hasAccess) {
+              // Allow admins to always access (SleepySquid emails)
+              const isAdmin = token.email?.toLowerCase()?.endsWith('@sleepysquid.com');
+              
+              if (!isAdmin) {
+                const accessDeniedUrl = new URL('/access-denied', request.url);
+                accessDeniedUrl.searchParams.set('reason', 'inactive');
+                return NextResponse.redirect(accessDeniedUrl);
+              }
             }
           }
-        } catch (dbError) {
-          console.error('Database error in middleware:', dbError);
-          // On database error, let the request through to avoid breaking the app
+          // If API call fails, let the request through (graceful degradation)
+        } catch (apiError) {
+          console.error('API error in middleware:', apiError);
+          // On API error, let the request through to avoid breaking the app
           // The session callback will handle the access check as fallback
         }
       }

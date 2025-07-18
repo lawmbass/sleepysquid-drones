@@ -5,7 +5,7 @@ import Head from 'next/head';
 import { FiAlertCircle, FiLogOut, FiHome, FiMail } from 'react-icons/fi';
 
 export default function AccessDenied() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const [reason, setReason] = useState('');
 
