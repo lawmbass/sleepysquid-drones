@@ -234,9 +234,9 @@ async function sendInvitationEmail(email, name, invitationLink, role, inviterNam
         
         <p>To get started, click the button below to sign in with your Google account:</p>
         
-        <div style="text-align: center;">
-          <a href="${invitationLink}" class="button">Join SleepySquid Drones</a>
-        </div>
+                 <div style="text-align: center;">
+           <a href="${invitationLink}" style="display: inline-block; background: #2563eb; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Join SleepySquid Drones</a>
+         </div>
         
         <p><small><strong>Important:</strong> This invitation expires in 7 days. If you don't have a Google account, you can create one for free at <a href="https://accounts.google.com">accounts.google.com</a>.</small></p>
         
