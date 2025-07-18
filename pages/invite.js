@@ -194,7 +194,7 @@ export default function InvitePage() {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            You're Invited!
+                          You&apos;re Invited!
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Join SleepySquid Drones and start managing your drone services
@@ -235,7 +235,7 @@ export default function InvitePage() {
                     <FiUser className="h-5 w-5 text-yellow-600 mr-2" />
                     <div>
                       <p className="text-sm font-medium text-yellow-900">
-                        You're already signed in as:
+                        You&apos;re already signed in as:
                       </p>
                       <p className="text-sm text-yellow-700 mt-1">
                         <strong>{session.user.email}</strong>
@@ -273,7 +273,7 @@ export default function InvitePage() {
                           This invitation is for a different email address
                         </p>
                         <p className="text-sm text-orange-700 mt-1">
-                          You'll need to sign out and sign in with <strong>{invitationData.email}</strong>
+                          You&apos;ll need to sign out and sign in with <strong>{invitationData.email}</strong>
                         </p>
                       </div>
                     </div>
@@ -348,7 +348,7 @@ export default function InvitePage() {
                 <div className="mt-6 text-center">
                   <p className="text-xs text-gray-500">
                     By accepting this invitation, you agree to our terms of service.
-                    You'll be signed in with your Google account.
+                    You&apos;ll be signed in with your Google account.
                   </p>
                 </div>
               </div>

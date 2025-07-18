@@ -193,7 +193,7 @@ export default function AdminContent({ user }) {
             <div className="space-y-6">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-                <p className="text-gray-600">You don't have permission to access user management.</p>
+                <p className="text-gray-600">You don&apos;t have permission to access user management.</p>
               </div>
               
               <div className="bg-red-50 border border-red-200 rounded-md p-6">

@@ -237,7 +237,7 @@ export default function UserModal({ user, onClose, onSaved }) {
                   <option value="admin">Admin (SleepySquid only)</option>
                 </select>
                 <p className="mt-1 text-sm text-gray-500">
-                  Select the user's role to determine their permissions. Only SleepySquid emails can be admins.
+                  Select the user&apos;s role to determine their permissions. Only SleepySquid emails can be admins.
                 </p>
               </div>
             )}

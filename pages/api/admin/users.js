@@ -211,7 +211,7 @@ async function handleGetUsers(req, res) {
     };
 
     roleDistribution.forEach(({ _id, count }) => {
-      if (_id && roleStats.hasOwnProperty(_id)) {
+              if (_id && Object.prototype.hasOwnProperty.call(roleStats, _id)) {
         roleStats[_id] = count;
       }
     });
@@ -235,7 +235,7 @@ async function handleGetUsers(req, res) {
     };
 
     invitationStats.forEach(({ _id, count }) => {
-      if (_id && invitationRoleStats.hasOwnProperty(_id)) {
+              if (_id && Object.prototype.hasOwnProperty.call(invitationRoleStats, _id)) {
         invitationRoleStats[_id] = count;
       }
     });
