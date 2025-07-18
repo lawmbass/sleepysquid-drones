@@ -62,10 +62,11 @@ export default function UserModal({ user, onClose, onSaved }) {
       if (user) {
         // Update existing user
         const response = await fetch(`/api/admin/users/${user._id}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(formData),
         });
 
@@ -80,6 +81,7 @@ export default function UserModal({ user, onClose, onSaved }) {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(formData),
         });
 
