@@ -272,16 +272,10 @@ async function handleCreateUser(req, res) {
 
     await user.save();
 
-    // Get user role
-    const userRole = await userRoles.getUserRole(user.email);
-
     return res.status(201).json({
       success: true,
       data: {
-        user: {
-          ...user.toObject(),
-          role: userRole
-        }
+        user: user.toObject()
       },
       message: 'User created successfully'
     });
