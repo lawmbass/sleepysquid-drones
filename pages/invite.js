@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { FiUser, FiCheck, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
@@ -31,12 +31,6 @@ export default function InvitePage() {
   };
 
   useEffect(() => {
-    // If already signed in, redirect to dashboard
-    if (session?.user) {
-      router.push('/dashboard');
-      return;
-    }
-
     // Wait for router to be ready before checking query params
     if (!router.isReady) {
       return;
@@ -45,13 +39,13 @@ export default function InvitePage() {
     const { token } = router.query;
     
     if (token) {
-      // Fetch invitation data from database using token
+      // Fetch invitation data even if already logged in
       fetchInvitationData(token);
     } else {
       setError('Invalid invitation link. The invitation token is missing. Please use the invitation link from your email or contact an administrator to send you a new invitation.');
       setLoading(false);
     }
-  }, [router.isReady, router.query, session]);
+  }, [router.isReady, router.query]);
 
   const handleAcceptInvitation = async () => {
     setLoading(true);
@@ -68,6 +62,21 @@ export default function InvitePage() {
       setLoading(false);
     }
   };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await signOut({ redirect: false });
+      // After signing out, the component will re-render and show the invitation form
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setError('Failed to sign out. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const isInvitationForCurrentUser = session?.user?.email === invitationData?.email;
+  const isCurrentUserAlreadyLoggedIn = !!session?.user;
 
   const getRoleDescription = (role) => {
     const descriptions = {
@@ -189,13 +198,13 @@ export default function InvitePage() {
                   <FiCheck className="h-5 w-5 text-blue-600 mr-2" />
                   <div>
                     <p className="text-sm font-medium text-blue-900">
-                      You've been invited as a:
+                      Invitation for: <strong>{invitationData.email}</strong>
                     </p>
-                    <div className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(invitationData.role)}`}>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Role: <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(invitationData.role)}`}>
                         {invitationData.role.charAt(0).toUpperCase() + invitationData.role.slice(1)}
                       </span>
-                    </div>
+                    </p>
                     <p className="text-sm text-blue-700 mt-1">
                       {getRoleDescription(invitationData.role)}
                     </p>
@@ -204,53 +213,133 @@ export default function InvitePage() {
               </div>
             </div>
 
-            {/* Sign In Button */}
-            <div>
-              <button
-                onClick={handleAcceptInvitation}
-                disabled={loading}
-                className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Accept Invitation & Sign In
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+            {/* Different content based on login status */}
+            {isCurrentUserAlreadyLoggedIn ? (
+              <div className="space-y-4">
+                {/* Already logged in notice */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <FiUser className="h-5 w-5 text-yellow-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-900">
+                        You're already signed in as:
+                      </p>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        <strong>{session.user.email}</strong>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">
-                    Secure Google Authentication
-                  </span>
+
+                {isInvitationForCurrentUser ? (
+                  /* Invitation is for current user */
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="text-center">
+                      <FiCheck className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-green-900">
+                        This invitation is for your current account!
+                      </p>
+                      <p className="text-sm text-green-700 mt-1">
+                        You already have access to the system.
+                      </p>
+                      <Link 
+                        href="/dashboard"
+                        className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                      >
+                        Go to Dashboard
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  /* Invitation is for different user */
+                  <div>
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                      <div className="text-center">
+                        <FiAlertCircle className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-orange-900">
+                          This invitation is for a different email address
+                        </p>
+                        <p className="text-sm text-orange-700 mt-1">
+                          You'll need to sign out and sign in with <strong>{invitationData.email}</strong>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleSignOut}
+                        disabled={loading}
+                        className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                      >
+                        {loading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Signing out...
+                          </>
+                        ) : (
+                          'Sign out and accept invitation'
+                        )}
+                      </button>
+                      
+                      <Link 
+                        href="/dashboard"
+                        className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Keep current session
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Not logged in - show original invitation flow */
+              <div>
+                <button
+                  onClick={handleAcceptInvitation}
+                  disabled={loading}
+                  className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
+                    loading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      Accept Invitation & Sign In
+                    </>
+                  )}
+                </button>
+                
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white text-gray-500">
+                        Secure Google Authentication
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-500">
+                    By accepting this invitation, you agree to our terms of service.
+                    You'll be signed in with your Google account.
+                  </p>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
-                By accepting this invitation, you agree to our terms of service.
-                You'll be signed in with your Google account.
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>
