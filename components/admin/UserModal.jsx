@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FiX, FiSave, FiUser, FiMail, FiPhone, FiBuilding, FiMapPin, FiGlobe, FiFileText } from 'react-icons/fi';
+import { useSession } from 'next-auth/react';
+import { FiX, FiSave, FiUser, FiMail, FiPhone, FiBuilding, FiMapPin, FiGlobe, FiFileText, FiShield } from 'react-icons/fi';
 
 export default function UserModal({ user, onClose, onSaved }) {
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -31,6 +33,9 @@ export default function UserModal({ user, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
+  
+  // Check if current user is admin (only sleepysquid emails)
+  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   useEffect(() => {
     if (user) {
@@ -311,24 +316,45 @@ export default function UserModal({ user, onClose, onSaved }) {
                   </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role
-                  </label>
-                  <select
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    value={formData.role}
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                  >
-                    <option value="user">User</option>
-                    <option value="client">Client</option>
-                    <option value="pilot">Pilot</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Select the user's role to determine their permissions
-                  </p>
-                </div>
+                {isCurrentUserAdmin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <FiShield className="inline h-4 w-4 mr-1 text-purple-600" />
+                      Role (Admin Only)
+                    </label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      value={formData.role}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                    >
+                      <option value="user">User</option>
+                      <option value="client">Client</option>
+                      <option value="pilot">Pilot</option>
+                      <option value="admin">Admin (SleepySquid only)</option>
+                    </select>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Select the user's role to determine their permissions. Only SleepySquid emails can be admins.
+                    </p>
+                  </div>
+                )}
+                
+                {!isCurrentUserAdmin && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <FiShield className="h-5 w-5 text-yellow-400" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          Role Management Restricted
+                        </h3>
+                        <p className="mt-1 text-sm text-yellow-700">
+                          Only SleepySquid administrators can modify user roles.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

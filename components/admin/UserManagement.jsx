@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { FiUsers, FiPlus, FiRefreshCw } from 'react-icons/fi';
 import UsersList from './UsersList';
 import UserModal from './UserModal';
@@ -6,6 +7,7 @@ import UserFilters from './UserFilters';
 import UserStats from './UserStats';
 
 export default function UserManagement() {
+  const { data: session } = useSession();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
   const [pagination, setPagination] = useState({});
@@ -22,6 +24,9 @@ export default function UserManagement() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Check if current user is SleepySquid admin
+  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -164,13 +169,15 @@ export default function UserManagement() {
             <FiRefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={handleCreateUser}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <FiPlus className="mr-2 h-4 w-4" />
-            Add User
-          </button>
+          {isCurrentUserAdmin && (
+            <button
+              onClick={handleCreateUser}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <FiPlus className="mr-2 h-4 w-4" />
+              Add User
+            </button>
+          )}
         </div>
       </div>
 
@@ -185,6 +192,27 @@ export default function UserManagement() {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Access Notice */}
+      {!isCurrentUserAdmin && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">
+                Limited Access Mode
+              </h3>
+              <p className="mt-1 text-sm text-blue-700">
+                You have read-only access to the user management system. Only SleepySquid administrators can create, edit, or delete users and manage roles.
+              </p>
             </div>
           </div>
         </div>

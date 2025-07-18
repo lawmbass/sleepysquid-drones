@@ -39,6 +39,11 @@ export const adminConfig = {
   // Check if an email is authorized for admin access
   isAdmin: (email) => {
     if (!email) return false;
+    
+    // Only allow sleepysquid emails to be admins
+    const isSleepySquidEmail = email.toLowerCase().endsWith('@sleepysquid.com');
+    if (!isSleepySquidEmail) return false;
+    
     return getAllowedEmails().includes(email);
   },
   

@@ -217,12 +217,24 @@ async function handleCreateUser(req, res) {
       });
     }
 
-    // Prevent non-admins from creating admin users
+    // Get session for role validation
     const session = await getServerSession(req, res, authOptions);
-    if (userRole === 'admin' && !adminConfig.isAdmin(session.user.email)) {
+    
+    // Only allow role assignment by SleepySquid admins
+    if (role && role !== 'user') {
+      if (!adminConfig.isAdmin(session.user.email)) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          message: 'Only SleepySquid administrators can assign roles'
+        });
+      }
+    }
+    
+    // Prevent creating admin users for non-sleepysquid emails
+    if (userRole === 'admin' && !email.toLowerCase().endsWith('@sleepysquid.com')) {
       return res.status(403).json({
-        error: 'Insufficient permissions',
-        message: 'Only admins can create admin users'
+        error: 'Invalid admin assignment',
+        message: 'Only SleepySquid emails can be assigned admin roles'
       });
     }
 

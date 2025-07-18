@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiBuilding } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
 
@@ -12,8 +13,12 @@ export default function UsersList({
   loading,
   error 
 }) {
+  const { data: session } = useSession();
   const [deletingUser, setDeletingUser] = useState(null);
   const [updatingUser, setUpdatingUser] = useState(null);
+  
+  // Check if current user is SleepySquid admin
+  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
@@ -187,34 +192,62 @@ export default function UsersList({
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                      <RoleIcon className="h-3 w-3 mr-1" />
-                      {user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}
-                    </span>
+                    {isCurrentUserAdmin ? (
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                        <RoleIcon className="h-3 w-3 mr-1" />
+                        {user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <FiUser className="h-3 w-3 mr-1" />
+                        User
+                      </span>
+                    )}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleAccess(user)}
-                      disabled={updatingUser === user._id}
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    {isCurrentUserAdmin ? (
+                      <button
+                        onClick={() => handleToggleAccess(user)}
+                        disabled={updatingUser === user._id}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.hasAccess
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        } ${updatingUser === user._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        title="Toggle user access"
+                      >
+                        {user.hasAccess ? (
+                          <>
+                            <FiCheck className="h-3 w-3 mr-1" />
+                            Active
+                          </>
+                        ) : (
+                          <>
+                            <FiX className="h-3 w-3 mr-1" />
+                            Inactive
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.hasAccess
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      } ${updatingUser === user._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      {user.hasAccess ? (
-                        <>
-                          <FiCheck className="h-3 w-3 mr-1" />
-                          Active
-                        </>
-                      ) : (
-                        <>
-                          <FiX className="h-3 w-3 mr-1" />
-                          Inactive
-                        </>
-                      )}
-                    </button>
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.hasAccess ? (
+                          <>
+                            <FiCheck className="h-3 w-3 mr-1" />
+                            Active
+                          </>
+                        ) : (
+                          <>
+                            <FiX className="h-3 w-3 mr-1" />
+                            Inactive
+                          </>
+                        )}
+                      </span>
+                    )}
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -223,20 +256,30 @@ export default function UsersList({
                   
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => onEditUser(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <FiEdit2 className="h-4 w-4" />
-                      </button>
-                      {user.role !== 'admin' && (
-                        <button
-                          onClick={() => handleDeleteUser(user)}
-                          disabled={deletingUser === user._id}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                        >
-                          <FiTrash2 className="h-4 w-4" />
-                        </button>
+                      {isCurrentUserAdmin ? (
+                        <>
+                          <button
+                            onClick={() => onEditUser(user)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Edit user"
+                          >
+                            <FiEdit2 className="h-4 w-4" />
+                          </button>
+                          {user.role !== 'admin' && (
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              disabled={deletingUser === user._id}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                              title="Delete user"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-gray-400 text-sm">
+                          Admin Only
+                        </span>
                       )}
                     </div>
                   </td>
