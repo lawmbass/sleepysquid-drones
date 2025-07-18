@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 // Link removed as we're using router.push instead
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
 
@@ -130,10 +131,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
                 {user?.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="h-10 w-10 rounded-full" src={user.image} alt="" />
-                  </>
+                  <Image className="h-10 w-10 rounded-full" src={user.image} alt="" width={40} height={40} />
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                     <FiUser className="h-5 w-5 text-gray-600" />
@@ -188,10 +186,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             <div className="flex items-center w-full">
               <div className="flex-shrink-0">
                 {user?.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="h-8 w-8 rounded-full" src={user.image} alt="" />
-                  </>
+                  <Image className="h-8 w-8 rounded-full" src={user.image} alt="" width={32} height={32} />
                 ) : (
                   <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
                     <FiUser className="h-4 w-4 text-gray-600" />
