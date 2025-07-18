@@ -102,16 +102,16 @@ export default function UserModal({ user, onClose, onSaved }) {
 
   const modalContent = (
     <div 
-      className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[60] flex items-start justify-center p-4 overflow-y-auto"
       style={{ position: 'fixed', inset: '0px' }}
       onClick={onClose}
     >
       <div 
-        className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden my-8"
+        className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col my-4 sm:my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h3 className="text-lg font-medium text-gray-900">
             {user ? 'Edit User' : 'Invite New User'}
           </h3>
@@ -123,37 +123,38 @@ export default function UserModal({ user, onClose, onSaved }) {
           </button>
         </div>
 
-        {/* Invitation Notice for New Users */}
-        {!user && (
-          <div className="mx-6 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-blue-500">ℹ️</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  Invitation-Based User Creation
-                </h3>
-                <p className="mt-1 text-sm text-blue-700">
-                  Instead of creating users directly, this will send an invitation email. 
-                  The user will be created when they sign in with Google using the invitation link.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
-
         {/* Form */}
-        <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Invitation Notice for New Users */}
+            {!user && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <span className="text-blue-500">ℹ️</span>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-blue-800">
+                      Invitation-Based User Creation
+                    </h3>
+                    <p className="mt-1 text-sm text-blue-700">
+                      Instead of creating users directly, this will send an invitation email. 
+                      The user will be created when they sign in with Google using the invitation link.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
+
+            <form id="user-form" onSubmit={handleSubmit}>
+              <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -318,26 +319,28 @@ export default function UserModal({ user, onClose, onSaved }) {
                   <AccessHistory accessHistory={user.accessHistory} />
                 </div>
               )}
-            </div>
+              </div>
+            </form>
+          </div>
+        </div>
 
-            {/* Footer */}
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
-              </button>
-            </div>
-          </form>
+        {/* Footer - outside scrollable area */}
+        <div className="flex justify-end space-x-3 p-6 pt-4 border-t border-gray-200 bg-white flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="user-form"
+            disabled={loading}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
+          </button>
         </div>
       </div>
     </div>
