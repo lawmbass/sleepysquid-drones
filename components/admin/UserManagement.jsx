@@ -127,9 +127,14 @@ export default function UserManagement() {
     }
   };
 
-  const deleteUser = async (userId) => {
+  const deleteUser = async (userId, isPendingInvitation = false) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      // Use different endpoint for invitations vs users
+      const endpoint = isPendingInvitation 
+        ? `/api/admin/invitations/${userId}`
+        : `/api/admin/users/${userId}`;
+      
+      const response = await fetch(endpoint, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -141,8 +146,8 @@ export default function UserManagement() {
       fetchUsers();
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
-      setError('Failed to delete user. Please try again.');
+      console.error('Error deleting user/invitation:', error);
+      setError(`Failed to ${isPendingInvitation ? 'cancel invitation' : 'delete user'}. Please try again.`);
       return false;
     }
   };

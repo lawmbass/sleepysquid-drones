@@ -12,6 +12,24 @@ export default function InvitePage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const fetchInvitationData = async (token) => {
+    try {
+      const response = await fetch(`/api/admin/invitations/validate?token=${token}`);
+      
+      if (!response.ok) {
+        throw new Error('Invalid invitation');
+      }
+      
+      const data = await response.json();
+      setInvitationData(data.invitation);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching invitation:', error);
+      setError('Invalid or expired invitation link. Please contact an administrator for a new invitation.');
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // If already signed in, redirect to dashboard
     if (session?.user) {
@@ -22,21 +40,8 @@ export default function InvitePage() {
     const { token } = router.query;
     
     if (token) {
-      // In a real implementation, you'd validate the token against your database
-      // For now, we'll decode basic info from the token or use mock data
-      
-      // Mock invitation data (in production, fetch from database using token)
-      const mockInvitationData = {
-        name: 'Guest User',
-        email: 'guest@example.com',
-        role: 'client',
-        invitedBy: 'Admin',
-        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        token: token
-      };
-      
-      setInvitationData(mockInvitationData);
-      setLoading(false);
+      // Fetch invitation data from database using token
+      fetchInvitationData(token);
     } else {
       setError('Invalid invitation link. The invitation token is missing. Please use the invitation link from your email or contact an administrator to send you a new invitation.');
       setLoading(false);

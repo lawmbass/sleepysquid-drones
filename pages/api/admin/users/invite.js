@@ -4,6 +4,7 @@ import { adminConfig } from '@/libs/adminConfig';
 import connectMongo from '@/libs/mongoose';
 import { sendEmail } from '@/libs/mailgun';
 import config from '@/config';
+import Invitation from '@/models/Invitation';
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -94,11 +95,49 @@ async function handleSendInvitation(req, res, session) {
       });
     }
 
-    // Create invitation token (you might want to use a more secure token generation)
+    // Check if invitation already exists for this email
+    const existingInvitation = await Invitation.findOne({ 
+      email: email.toLowerCase(),
+      status: 'pending'
+    });
+    
+    if (existingInvitation) {
+      // Update existing invitation instead of creating new one
+      existingInvitation.name = name;
+      existingInvitation.company = company;
+      existingInvitation.phone = phone;
+      existingInvitation.role = assignedRole;
+      existingInvitation.hasAccess = hasAccess || false;
+      existingInvitation.invitedBy = session.user.email;
+      existingInvitation.invitedAt = new Date();
+      existingInvitation.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      
+      await existingInvitation.save();
+      
+      // Generate the invitation link
+      const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;
+      const invitationLink = `${baseUrl}/invite?token=${existingInvitation.token}`;
+
+      // Send invitation email
+      await sendInvitationEmail(email, name, invitationLink, assignedRole, session.user.name);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Invitation updated and resent successfully',
+        data: {
+          email,
+          name,
+          role: assignedRole,
+          status: 'pending'
+        }
+      });
+    }
+
+    // Create invitation token
     const invitationToken = generateInvitationToken();
     
-    // Store invitation data temporarily (you might want to use a dedicated invitations collection)
-    const invitationData = {
+    // Create and save invitation to database
+    const invitation = new Invitation({
       email: email.toLowerCase(),
       name,
       company,
@@ -106,18 +145,12 @@ async function handleSendInvitation(req, res, session) {
       role: assignedRole,
       hasAccess: hasAccess || false,
       invitedBy: session.user.email,
-      invitedAt: new Date(),
       token: invitationToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-    };
+    });
 
-    // In a real implementation, you'd:
-    // 1. Store this in a database (invitations collection)
-    // 2. Send an actual email with the invitation link
-    // 3. Handle the invitation acceptance in your auth flow
-
-    // For now, we'll simulate the invitation being sent
-    console.log('Invitation sent:', invitationData);
+    await invitation.save();
+    console.log('Invitation saved to database:', invitation._id);
 
     // Generate the invitation link
     const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;
@@ -132,7 +165,10 @@ async function handleSendInvitation(req, res, session) {
       data: {
         email,
         name,
-        role: assignedRole
+        role: assignedRole,
+        status: 'pending',
+        invitedAt: invitation.invitedAt,
+        expiresAt: invitation.expiresAt
       }
     });
 

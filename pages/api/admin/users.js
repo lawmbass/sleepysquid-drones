@@ -1,5 +1,6 @@
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
+import Invitation from "@/models/Invitation";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -126,18 +127,61 @@ async function handleGetUsers(req, res) {
       .skip(skip)
       .lean();
 
-    // Users already have roles from database - no need to compute them
-    const usersWithRoles = users;
+    // Get pending invitations
+    const invitationFilter = { status: 'pending' };
+    if (search) {
+      invitationFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { company: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const invitations = await Invitation.find(invitationFilter)
+      .sort(sort)
+      .lean();
+
+    // Mark invitations as such and add status
+    const formattedInvitations = invitations.map(invitation => ({
+      ...invitation,
+      _id: invitation._id,
+      name: invitation.name,
+      email: invitation.email,
+      company: invitation.company,
+      phone: invitation.phone,
+      role: invitation.role,
+      hasAccess: invitation.hasAccess,
+      createdAt: invitation.invitedAt,
+      status: 'pending',
+      isPendingInvitation: true,
+      invitedBy: invitation.invitedBy,
+      expiresAt: invitation.expiresAt
+    }));
+
+    // Combine users and invitations
+    let allItems = [...users, ...formattedInvitations];
 
     // Apply role filter after getting roles
-    let filteredUsers = usersWithRoles;
     if (role) {
-      filteredUsers = usersWithRoles.filter(user => user.role === role);
+      allItems = allItems.filter(item => item.role === role);
     }
 
-    // Get total count for pagination
+    // Sort combined results
+    allItems.sort((a, b) => {
+      if (sort === '-createdAt') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    // Apply pagination to combined results
+    const paginatedItems = allItems.slice(skip, skip + limitNum);
+
+    // Get total count for pagination (users + invitations)
     const totalCount = await User.countDocuments(filter);
-    const totalPages = Math.ceil(totalCount / limitNum);
+    const totalInvitations = await Invitation.countDocuments(invitationFilter);
+    const combinedCount = totalCount + totalInvitations;
+    const totalPages = Math.ceil(combinedCount / limitNum);
 
     // Get user statistics
     const stats = await User.aggregate([
@@ -172,22 +216,53 @@ async function handleGetUsers(req, res) {
       }
     });
 
+    // Get invitation statistics
+    const invitationStats = await Invitation.aggregate([
+      { $match: { status: 'pending' } },
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const invitationRoleStats = {
+      admin: 0,
+      client: 0,
+      pilot: 0,
+      user: 0
+    };
+
+    invitationStats.forEach(({ _id, count }) => {
+      if (_id && invitationRoleStats.hasOwnProperty(_id)) {
+        invitationRoleStats[_id] = count;
+      }
+    });
+
     const formattedStats = {
-      total: totalCount,
+      total: combinedCount,
+      users: totalCount,
+      pendingInvitations: totalInvitations,
       withAccess: stats.find(s => s._id === true)?.count || 0,
       withoutAccess: stats.find(s => s._id === false)?.count || 0,
-      roles: roleStats
+      roles: {
+        admin: roleStats.admin + invitationRoleStats.admin,
+        client: roleStats.client + invitationRoleStats.client,
+        pilot: roleStats.pilot + invitationRoleStats.pilot,
+        user: roleStats.user + invitationRoleStats.user
+      }
     };
 
     return res.status(200).json({
       success: true,
       data: {
-        users: filteredUsers,
+        users: paginatedItems,
         stats: formattedStats,
         pagination: {
           currentPage: pageNum,
           totalPages: totalPages,
-          totalCount: totalCount,
+          totalCount: combinedCount,
           limit: limitNum,
           hasNextPage: pageNum < totalPages,
           hasPrevPage: pageNum > 1

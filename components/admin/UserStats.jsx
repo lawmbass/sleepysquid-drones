@@ -1,4 +1,4 @@
-import { FiUsers, FiUserCheck, FiUserX, FiShield, FiUser, FiTruck, FiSettings } from 'react-icons/fi';
+import { FiUsers, FiUserCheck, FiUserX, FiShield, FiUser, FiTruck, FiSettings, FiMail } from 'react-icons/fi';
 
 export default function UserStats({ stats }) {
   if (!stats || Object.keys(stats).length === 0) {
@@ -18,7 +18,7 @@ export default function UserStats({ stats }) {
   const statCards = [
     {
       title: 'Total Users',
-      value: stats.total || 0,
+      value: stats.users || 0,
       icon: FiUsers,
       color: 'blue',
       bgColor: 'bg-blue-50',
@@ -33,13 +33,24 @@ export default function UserStats({ stats }) {
       iconColor: 'text-green-600'
     },
     {
+      title: 'Pending Invitations',
+      value: stats.pendingInvitations || 0,
+      icon: FiMail,
+      color: 'yellow',
+      bgColor: 'bg-yellow-50',
+      iconColor: 'text-yellow-600'
+    },
+    {
       title: 'Inactive Users',
       value: stats.withoutAccess || 0,
       icon: FiUserX,
       color: 'red',
       bgColor: 'bg-red-50',
       iconColor: 'text-red-600'
-    },
+    }
+  ];
+
+  const roleCards = [
     {
       title: 'Admins',
       value: stats.roles?.admin || 0,
@@ -47,10 +58,7 @@ export default function UserStats({ stats }) {
       color: 'purple',
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600'
-    }
-  ];
-
-  const roleCards = [
+    },
     {
       title: 'Clients',
       value: stats.roles?.client || 0,
@@ -63,9 +71,9 @@ export default function UserStats({ stats }) {
       title: 'Pilots',
       value: stats.roles?.pilot || 0,
       icon: FiTruck,
-      color: 'yellow',
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600'
+      color: 'orange',
+      bgColor: 'bg-orange-50',
+      iconColor: 'text-orange-600'
     },
     {
       title: 'Regular Users',
@@ -103,7 +111,7 @@ export default function UserStats({ stats }) {
       {/* Role Distribution */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Role Distribution</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {roleCards.map((stat) => (
             <div key={stat.title} className="relative">
               <div className={`${stat.bgColor} rounded-lg p-4`}>

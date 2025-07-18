@@ -28,7 +28,7 @@ export default function UsersList({
 
   const handleDeleteUser = async (user) => {
     setDeletingUser(user._id);
-    const success = await onDeleteUser(user._id);
+    const success = await onDeleteUser(user._id, user.isPendingInvitation);
     if (success) {
       setDeletingUser(null);
     }
@@ -156,21 +156,30 @@ export default function UsersList({
           <tbody className="bg-white divide-y divide-gray-200">
             {users.map((user) => {
               const RoleIcon = getRoleIcon(user.role);
+              const isPendingInvitation = user.isPendingInvitation;
+              
               return (
-                <tr key={user._id} className="hover:bg-gray-50">
+                <tr key={user._id} className={`hover:bg-gray-50 ${isPendingInvitation ? 'bg-yellow-50' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         {user.image ? (
                           <img className="h-10 w-10 rounded-full" src={user.image} alt={user.name} />
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                            <FiUser className="h-5 w-5 text-gray-500" />
+                          <div className={`h-10 w-10 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
+                            <FiUser className={`h-5 w-5 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
                           </div>
                         )}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm font-medium text-gray-900 flex items-center">
+                          {user.name}
+                          {isPendingInvitation && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              Pending Invitation
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500 flex items-center">
                           <FiMail className="h-3 w-3 mr-1" />
                           {user.email}
@@ -185,6 +194,11 @@ export default function UsersList({
                           <div className="text-sm text-gray-500 flex items-center">
                             <FiPhone className="h-3 w-3 mr-1" />
                             {user.phone}
+                          </div>
+                        )}
+                        {isPendingInvitation && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Invited by {user.invitedBy} • Expires {new Date(user.expiresAt).toLocaleDateString()}
                           </div>
                         )}
                       </div>
@@ -258,22 +272,44 @@ export default function UsersList({
                     <div className="flex items-center space-x-2">
                       {isCurrentUserAdmin ? (
                         <>
-                          <button
-                            onClick={() => onEditUser(user)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit user"
-                          >
-                            <FiEdit2 className="h-4 w-4" />
-                          </button>
-                          {user.role !== 'admin' && (
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              disabled={deletingUser === user._id}
-                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                              title="Delete user"
-                            >
-                              <FiTrash2 className="h-4 w-4" />
-                            </button>
+                          {isPendingInvitation ? (
+                            <>
+                              <button
+                                onClick={() => onEditUser(user)}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Resend invitation"
+                              >
+                                <FiMail className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user)}
+                                disabled={deletingUser === user._id}
+                                className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                                title="Cancel invitation"
+                              >
+                                <FiX className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => onEditUser(user)}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Edit user"
+                              >
+                                <FiEdit2 className="h-4 w-4" />
+                              </button>
+                              {user.role !== 'admin' && (
+                                <button
+                                  onClick={() => handleDeleteUser(user)}
+                                  disabled={deletingUser === user._id}
+                                  className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                                  title="Delete user"
+                                >
+                                  <FiTrash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </>
                           )}
                         </>
                       ) : (
