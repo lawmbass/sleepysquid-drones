@@ -212,12 +212,18 @@ export default function UserModal({ user, onClose, onSaved }) {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   checked={formData.hasAccess}
+                  disabled={user?.email === session?.user?.email}
                   onChange={(e) => handleInputChange('hasAccess', e.target.checked)}
                 />
-                <span className="ml-2 text-sm text-gray-700">
+                <span className={`ml-2 text-sm ${user?.email === session?.user?.email ? 'text-gray-500' : 'text-gray-700'}`}>
                   Grant access to the platform
+                  {user?.email === session?.user?.email && (
+                    <span className="block text-xs text-gray-500 mt-1">
+                      Cannot modify your own access status
+                    </span>
+                  )}
                 </span>
               </label>
             </div>

@@ -146,13 +146,13 @@ export default function UsersList({
             {isCurrentUserAdmin ? (
               <button
                 onClick={() => handleToggleAccess(user)}
-                disabled={updatingUser === user._id}
+                disabled={updatingUser === user._id || user.email === session?.user?.email}
                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                   user.hasAccess
                     ? 'bg-green-100 text-green-800 hover:bg-green-200'
                     : 'bg-red-100 text-red-800 hover:bg-red-200'
-                } ${updatingUser === user._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                title="Toggle user access"
+                } ${updatingUser === user._id || user.email === session?.user?.email ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                title={user.email === session?.user?.email ? "Cannot modify your own access status" : "Toggle user access"}
               >
                 {updatingUser === user._id ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
@@ -448,13 +448,13 @@ export default function UsersList({
                       {isCurrentUserAdmin ? (
                         <button
                           onClick={() => handleToggleAccess(user)}
-                          disabled={updatingUser === user._id}
+                          disabled={updatingUser === user._id || user.email === session?.user?.email}
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             user.hasAccess
                               ? 'bg-green-100 text-green-800 hover:bg-green-200'
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
-                          } ${updatingUser === user._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                          title="Toggle user access"
+                          } ${updatingUser === user._id || user.email === session?.user?.email ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          title={user.email === session?.user?.email ? "Cannot modify your own access status" : "Toggle user access"}
                         >
                           {user.hasAccess ? (
                             <>
