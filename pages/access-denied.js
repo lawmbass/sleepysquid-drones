@@ -2,7 +2,8 @@ import { useRouter } from 'next/router';
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
-import { FiAlertCircle, FiLogOut, FiHome, FiMail } from 'react-icons/fi';
+import { FiAlertCircle, FiLogOut, FiHome, FiMail, FiUser } from 'react-icons/fi';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 export default function AccessDenied() {
   const { data: session } = useSession();
@@ -88,17 +89,18 @@ export default function AccessDenied() {
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        {session.user.image ? (
-                          <img 
-                            className="h-8 w-8 rounded-full" 
-                            src={session.user.image} 
-                            alt={session.user.name}
-                          />
-                        ) : (
-                          <span className="text-blue-600 font-medium text-sm">
-                            {session.user.name?.charAt(0) || session.user.email?.charAt(0)}
-                          </span>
-                        )}
+                        <OptimizedImage 
+                          src={session.user.image} 
+                          alt={session.user.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-full"
+                          fallback={
+                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                              <FiUser className="h-4 w-4 text-blue-600" />
+                            </div>
+                          }
+                        />
                       </div>
                     </div>
                     <div className="ml-3 text-left">

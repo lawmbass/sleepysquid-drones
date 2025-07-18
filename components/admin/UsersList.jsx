@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react';
 import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
+import OptimizedImage from '../common/OptimizedImage';
 
 export default function UsersList({ 
   users, 
@@ -99,13 +100,18 @@ export default function UsersList({
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3 flex-1">
             <div className="flex-shrink-0">
-              {user.image ? (
-                <img className="h-12 w-12 rounded-full" src={user.image} alt={user.name} />
-              ) : (
-                <div className={`h-12 w-12 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
-                  <FiUser className={`h-6 w-6 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
-                </div>
-              )}
+              <OptimizedImage 
+                src={user.image} 
+                alt={user.name} 
+                width={48} 
+                height={48} 
+                className="h-12 w-12 rounded-full"
+                fallback={
+                  <div className={`h-12 w-12 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
+                    <FiUser className={`h-6 w-6 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
+                  </div>
+                }
+              />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
@@ -389,13 +395,18 @@ export default function UsersList({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          {user.image ? (
-                            <img className="h-10 w-10 rounded-full" src={user.image} alt={user.name} />
-                          ) : (
-                            <div className={`h-10 w-10 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
-                              <FiUser className={`h-5 w-5 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
-                            </div>
-                          )}
+                          <OptimizedImage 
+                            src={user.image} 
+                            alt={user.name} 
+                            width={40} 
+                            height={40} 
+                            className="h-10 w-10 rounded-full"
+                            fallback={
+                              <div className={`h-10 w-10 rounded-full ${isPendingInvitation ? 'bg-yellow-200' : 'bg-gray-200'} flex items-center justify-center`}>
+                                <FiUser className={`h-5 w-5 ${isPendingInvitation ? 'text-yellow-600' : 'text-gray-500'}`} />
+                              </div>
+                            }
+                          />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900 flex items-center">

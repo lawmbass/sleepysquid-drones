@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
+import OptimizedImage from '../common/OptimizedImage';
 
 // Icon mapping for dynamic navigation
 const iconMap = {
@@ -129,16 +130,18 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
-                {user?.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="h-10 w-10 rounded-full" src={user.image} alt="" />
-                  </>
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                    <FiUser className="h-5 w-5 text-gray-600" />
-                  </div>
-                )}
+                <OptimizedImage 
+                  src={user?.image} 
+                  alt={user?.name || ""} 
+                  width={40} 
+                  height={40} 
+                  className="h-10 w-10 rounded-full"
+                  fallback={
+                    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <FiUser className="h-5 w-5 text-gray-600" />
+                    </div>
+                  }
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
@@ -187,16 +190,18 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
             <div className="flex items-center w-full">
               <div className="flex-shrink-0">
-                {user?.image ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="h-8 w-8 rounded-full" src={user.image} alt="" />
-                  </>
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                    <FiUser className="h-4 w-4 text-gray-600" />
-                  </div>
-                )}
+                <OptimizedImage 
+                  src={user?.image} 
+                  alt={user?.name || ""} 
+                  width={32} 
+                  height={32} 
+                  className="h-8 w-8 rounded-full"
+                  fallback={
+                    <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                      <FiUser className="h-4 w-4 text-gray-600" />
+                    </div>
+                  }
+                />
               </div>
               <div className="ml-3 flex-1">
                 <p className="text-sm font-medium text-gray-700">{user?.name}</p>
