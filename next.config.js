@@ -2,27 +2,62 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
+      // Google OAuth images - multiple subdomains
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
       {
         protocol: 'https',
+        hostname: 'lh4.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh5.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh6.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh7.googleusercontent.com',
+      },
+      // Twitter/X images
+      {
+        protocol: 'https',
         hostname: 'pbs.twimg.com',
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: 'abs.twimg.com',
       },
       {
         protocol: 'https',
-        hostname: 'logos-world.net',
+        hostname: 'si0.twimg.com',
       },
-      // Additional OAuth provider domains
+      // GitHub avatars
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'avatars0.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars1.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars2.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars3.githubusercontent.com',
+      },
+      // Facebook images
       {
         protocol: 'https',
         hostname: 'platform-lookaside.fbsbx.com',
@@ -37,13 +72,9 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'abs.twimg.com',
+        hostname: 'scontent.fcdn.net',
       },
-      {
-        protocol: 'https',
-        hostname: 'si0.twimg.com',
-      },
-      // Microsoft/LinkedIn
+      // LinkedIn images
       {
         protocol: 'https',
         hostname: 'media.licdn.com',
@@ -56,15 +87,37 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'media-exp2.licdn.com',
       },
-      // Discord
+      // Discord images
       {
         protocol: 'https',
         hostname: 'cdn.discordapp.com',
       },
-      // Generic CDN patterns that might be used
+      // Microsoft/Azure AD images
       {
         protocol: 'https',
-        hostname: '*.googleusercontent.com',
+        hostname: 'graph.microsoft.com',
+      },
+      // Other common image hosts
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'logos-world.net',
+      },
+      // Generic patterns for common CDNs
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.fbcdn.net',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.twimg.com',
       },
     ],
     // Optimize external images better
@@ -76,6 +129,11 @@ const nextConfig = {
     // Loader optimization
     loader: 'default',
     path: '/_next/image',
+    // Allow unoptimized images as fallback
+    unoptimized: false,
+    // Dangerously allow SVG
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
 
   },
 };
