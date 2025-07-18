@@ -1,6 +1,17 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { FiX, FiSave, FiUser, FiMail, FiPhone, FiBuilding, FiMapPin, FiGlobe, FiFileText, FiShield } from 'react-icons/fi';
+import { 
+  FiX, 
+  FiSave, 
+  FiUser, 
+  FiMail, 
+  FiPhone, 
+  FiBuilding, 
+  FiMapPin, 
+  FiGlobe, 
+  FiFileText, 
+  FiShield 
+} from 'react-icons/fi';
 
 export default function UserModal({ user, onClose, onSaved }) {
   const { data: session } = useSession();
@@ -119,10 +130,19 @@ export default function UserModal({ user, onClose, onSaved }) {
   };
 
   const tabs = [
-    { id: 'basic', label: 'Basic Info', icon: FiUser },
-    { id: 'preferences', label: 'Preferences', icon: FiFileText },
-    { id: 'notifications', label: 'Notifications', icon: FiMail }
+    { id: 'basic', label: 'Basic Info', icon: 'FiUser' },
+    { id: 'preferences', label: 'Preferences', icon: 'FiFileText' },
+    { id: 'notifications', label: 'Notifications', icon: 'FiMail' }
   ];
+
+  const getTabIcon = (iconName) => {
+    const icons = {
+      FiUser,
+      FiFileText,
+      FiMail
+    };
+    return icons[iconName] || FiUser;
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
@@ -151,7 +171,7 @@ export default function UserModal({ user, onClose, onSaved }) {
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8 px-6">
             {tabs.map((tab) => {
-              const IconComponent = tab.icon;
+              const IconComponent = getTabIcon(tab.icon);
               return (
                 <button
                   key={tab.id}
@@ -540,18 +560,18 @@ export default function UserModal({ user, onClose, onSaved }) {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               {loading ? (
-                <>
+                <React.Fragment>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Saving...
-                </>
+                </React.Fragment>
               ) : (
-                <>
+                <React.Fragment>
                   <FiSave className="mr-2 h-4 w-4" />
                   {user ? 'Update User' : 'Create User'}
-                </>
+                </React.Fragment>
               )}
             </button>
           </div>
