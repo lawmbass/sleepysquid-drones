@@ -129,7 +129,7 @@ export default function AdminContent({ user }) {
               <p className="text-gray-600">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
             </div>
             
-            <BookingStats stats={stats} />
+            <BookingStats stats={stats} user={user} />
             
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
