@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { FiAlertTriangle, FiX } from 'react-icons/fi';
 
 export default function ConfirmationDialog({ 
@@ -37,9 +38,15 @@ export default function ConfirmationDialog({
 
   const currentStyle = typeStyles[type] || typeStyles.danger;
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 min-h-screen"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center">
@@ -79,4 +86,8 @@ export default function ConfirmationDialog({
       </div>
     </div>
   );
+
+  // Use portal to render modal outside of any container
+  if (typeof window === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 } 

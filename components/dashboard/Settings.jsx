@@ -152,7 +152,7 @@ export default function Settings({ user, onUpdate }) {
 
   const renderProfileSettings = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name
@@ -161,7 +161,7 @@ export default function Settings({ user, onUpdate }) {
             type="text"
             value={profileData.name}
             onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your full name"
           />
         </div>
@@ -174,7 +174,7 @@ export default function Settings({ user, onUpdate }) {
             type="email"
             value={profileData.email}
             onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your email"
           />
         </div>
@@ -187,7 +187,7 @@ export default function Settings({ user, onUpdate }) {
             type="tel"
             value={profileData.phone}
             onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your phone number"
           />
         </div>
@@ -200,7 +200,7 @@ export default function Settings({ user, onUpdate }) {
             type="text"
             value={profileData.company}
             onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your company name"
           />
         </div>
@@ -213,7 +213,7 @@ export default function Settings({ user, onUpdate }) {
             type="text"
             value={profileData.location}
             onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your location"
           />
         </div>
@@ -226,7 +226,7 @@ export default function Settings({ user, onUpdate }) {
             type="url"
             value={profileData.website}
             onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter your website URL"
           />
         </div>
@@ -240,18 +240,18 @@ export default function Settings({ user, onUpdate }) {
           value={profileData.bio}
           onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           placeholder="Tell us about yourself..."
         />
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4">
         <button
           onClick={() => handleSave('profile')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
-          <FiSave className="mr-2" />
+          <FiSave className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : 'Save Profile'}
         </button>
       </div>
@@ -260,7 +260,7 @@ export default function Settings({ user, onUpdate }) {
 
   const renderPreferences = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Theme
@@ -268,7 +268,7 @@ export default function Settings({ user, onUpdate }) {
           <select
             value={preferences.theme}
             onChange={(e) => setPreferences(prev => ({ ...prev, theme: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
@@ -283,7 +283,7 @@ export default function Settings({ user, onUpdate }) {
           <select
             value={preferences.language}
             onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="en">English</option>
             <option value="es">Spanish</option>
@@ -299,7 +299,7 @@ export default function Settings({ user, onUpdate }) {
           <select
             value={preferences.timezone}
             onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="UTC">UTC</option>
             <option value="America/New_York">Eastern Time</option>
@@ -316,7 +316,7 @@ export default function Settings({ user, onUpdate }) {
           <select
             value={preferences.dateFormat}
             onChange={(e) => setPreferences(prev => ({ ...prev, dateFormat: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="MM/DD/YYYY">MM/DD/YYYY</option>
             <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -331,7 +331,7 @@ export default function Settings({ user, onUpdate }) {
           <select
             value={preferences.currency}
             onChange={(e) => setPreferences(prev => ({ ...prev, currency: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (€)</option>
@@ -341,13 +341,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4">
         <button
           onClick={() => handleSave('preferences')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
-          <FiSave className="mr-2" />
+          <FiSave className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
@@ -358,18 +358,18 @@ export default function Settings({ user, onUpdate }) {
     <div className="space-y-6">
       <div className="space-y-4">
         {Object.entries(notifications).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <h4 className="font-medium text-gray-900">
+          <div key={key} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <div className="flex-1 pr-4">
+              <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </h4>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
                 {getNotificationDescription(key)}
               </p>
             </div>
             <button
               onClick={() => setNotifications(prev => ({ ...prev, [key]: !value }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                 value ? 'bg-blue-600' : 'bg-gray-200'
               }`}
             >
@@ -383,13 +383,13 @@ export default function Settings({ user, onUpdate }) {
         ))}
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4">
         <button
           onClick={() => handleSave('notifications')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
-          <FiSave className="mr-2" />
+          <FiSave className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : 'Save Notifications'}
         </button>
       </div>
@@ -408,7 +408,7 @@ export default function Settings({ user, onUpdate }) {
               type={showPassword ? "text" : "password"}
               value={security.currentPassword}
               onChange={(e) => setSecurity(prev => ({ ...prev, currentPassword: e.target.value }))}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               placeholder="Enter current password"
             />
             <button
@@ -429,7 +429,7 @@ export default function Settings({ user, onUpdate }) {
             type="password"
             value={security.newPassword}
             onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Enter new password"
           />
         </div>
@@ -442,21 +442,21 @@ export default function Settings({ user, onUpdate }) {
             type="password"
             value={security.confirmPassword}
             onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             placeholder="Confirm new password"
           />
         </div>
         
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div>
-            <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-            <p className="text-sm text-gray-500">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+          <div className="flex-1 pr-4">
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base">Two-Factor Authentication</h4>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Add an extra layer of security to your account
             </p>
           </div>
           <button
             onClick={() => setSecurity(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }))}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
               security.twoFactorEnabled ? 'bg-blue-600' : 'bg-gray-200'
             }`}
           >
@@ -469,13 +469,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4">
         <button
           onClick={() => handleSave('security')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
-          <FiSave className="mr-2" />
+          <FiSave className="mr-2 h-4 w-4" />
           {loading ? 'Saving...' : 'Update Security'}
         </button>
       </div>
@@ -497,14 +497,14 @@ export default function Settings({ user, onUpdate }) {
   if (initialLoading) {
     return (
       <div className="space-y-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Configure your account settings and preferences.</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm sm:text-base text-gray-600">Configure your account settings and preferences.</p>
         </div>
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Loading settings...</p>
+            <p className="mt-4 text-gray-500 text-sm">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -513,50 +513,52 @@ export default function Settings({ user, onUpdate }) {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Configure your account settings and preferences.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-sm sm:text-base text-gray-600">Configure your account settings and preferences.</p>
       </div>
 
       {/* Message Display */}
       {message.text && (
-        <div className={`p-4 rounded-md flex items-center ${
+        <div className={`p-3 sm:p-4 rounded-md flex items-center text-sm ${
           message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
         }`}>
           {message.type === 'success' ? (
-            <FiCheck className="mr-2" />
+            <FiCheck className="mr-2 h-4 w-4 flex-shrink-0" />
           ) : (
-            <FiX className="mr-2" />
+            <FiX className="mr-2 h-4 w-4 flex-shrink-0" />
           )}
-          {message.text}
+          <span>{message.text}</span>
         </div>
       )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="mr-2" />
-                {tab.name}
-              </button>
-            );
-          })}
+        <nav className="flex overflow-x-auto scrollbar-hide">
+          <div className="flex space-x-1 sm:space-x-4 md:space-x-8 min-w-full">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center py-2 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
         {activeTab === 'profile' && renderProfileSettings()}
         {activeTab === 'preferences' && renderPreferences()}
         {activeTab === 'notifications' && renderNotifications()}

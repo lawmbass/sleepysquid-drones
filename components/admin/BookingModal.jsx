@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
 
@@ -42,6 +43,20 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
       });
     }
   }, [booking]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -120,9 +135,10 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div 
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" 
+      className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[60] flex items-start justify-center p-2 sm:p-4 overflow-y-auto" 
+      style={{ position: 'fixed', inset: '0px' }}
       onClick={onClose}
     >
       <div 
@@ -425,4 +441,8 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
       />
     </div>
   );
+
+  // Use portal to render modal outside of dashboard container
+  if (typeof window === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 } 
