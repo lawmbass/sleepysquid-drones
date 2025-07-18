@@ -49,21 +49,36 @@ export default function UserModal({ user, onClose, onSaved }) {
     setError('');
 
     try {
-      const url = user ? `/api/admin/users/${user._id}` : '/api/admin/users';
-      const method = user ? 'PATCH' : 'POST';
+      // For existing users, update them
+      if (user) {
+        const response = await fetch(`/api/admin/users/${user._id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        });
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update user');
+        }
+      } else {
+        // For new users, send invitation instead of creating directly
+        const response = await fetch('/api/admin/users/invite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save user');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to send invitation');
+        }
       }
 
       onSaved();
@@ -81,7 +96,7 @@ export default function UserModal({ user, onClose, onSaved }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
-            {user ? 'Edit User' : 'Add New User'}
+            {user ? 'Edit User' : 'Invite New User'}
           </h3>
           <button
             onClick={onClose}
@@ -90,6 +105,26 @@ export default function UserModal({ user, onClose, onSaved }) {
             ×
           </button>
         </div>
+
+        {/* Invitation Notice for New Users */}
+        {!user && (
+          <div className="mx-6 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-blue-500">ℹ️</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">
+                  Invitation-Based User Creation
+                </h3>
+                <p className="mt-1 text-sm text-blue-700">
+                  Instead of creating users directly, this will send an invitation email. 
+                  The user will be created when they sign in with Google using the invitation link.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -240,7 +275,7 @@ export default function UserModal({ user, onClose, onSaved }) {
               disabled={loading}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Saving...' : (user ? 'Update User' : 'Create User')}
+              {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
             </button>
           </div>
         </form>
