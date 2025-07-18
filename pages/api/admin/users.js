@@ -217,9 +217,9 @@ async function handleCreateUser(req, res) {
     }
 
     // Validate role if provided
-    const userRole = role || 'user';
+    const assignedRole = role || 'user';
     const validRoles = ['user', 'client', 'pilot', 'admin'];
-    if (!validRoles.includes(userRole)) {
+    if (!validRoles.includes(assignedRole)) {
       return res.status(400).json({
         error: 'Invalid role',
         message: 'Role must be one of: user, client, pilot, admin'
@@ -240,7 +240,7 @@ async function handleCreateUser(req, res) {
     }
     
     // Prevent creating admin users for non-sleepysquid emails
-    if (userRole === 'admin' && !email.toLowerCase().endsWith('@sleepysquid.com')) {
+    if (assignedRole === 'admin' && !email.toLowerCase().endsWith('@sleepysquid.com')) {
       return res.status(403).json({
         error: 'Invalid admin assignment',
         message: 'Only SleepySquid emails can be assigned admin roles'
@@ -263,12 +263,12 @@ async function handleCreateUser(req, res) {
       company,
       phone,
       hasAccess: hasAccess || false,
-      role: userRole
+      role: assignedRole
     });
 
     // Set metadata for role tracking
     user._roleChangedBy = session.user.email;
-    user._roleChangeReason = `Initial role assignment: ${userRole}`;
+    user._roleChangeReason = `Initial role assignment: ${assignedRole}`;
 
     await user.save();
 
