@@ -18,6 +18,7 @@ export default function UsersList({
   const [deletingUser, setDeletingUser] = useState(null);
   const [updatingUser, setUpdatingUser] = useState(null);
   const [resendingInvitation, setResendingInvitation] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, user: null });
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
@@ -28,12 +29,22 @@ export default function UsersList({
     setUpdatingUser(null);
   };
 
-  const handleDeleteUser = async (user) => {
+  const handleDeleteUser = (user) => {
+    setConfirmDialog({ isOpen: true, user });
+  };
+
+  const handleConfirmDelete = async () => {
+    const user = confirmDialog.user;
+    const isPendingInvitation = user.isPendingInvitation;
+    
     setDeletingUser(user._id);
-    const success = await onDeleteUser(user._id, user.isPendingInvitation);
-    if (success) {
-      setDeletingUser(null);
-    }
+    await onDeleteUser(user._id, isPendingInvitation);
+    setDeletingUser(null);
+    setConfirmDialog({ isOpen: false, user: null });
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDialog({ isOpen: false, user: null });
   };
 
   const handleResendInvitation = async (user) => {
@@ -367,6 +378,22 @@ export default function UsersList({
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        title={confirmDialog.user?.isPendingInvitation ? 'Cancel Invitation' : 'Delete User'}
+        message={confirmDialog.user?.isPendingInvitation 
+          ? `Are you sure you want to cancel the invitation for ${confirmDialog.user?.name} (${confirmDialog.user?.email})?`
+          : `Are you sure you want to delete ${confirmDialog.user?.name} (${confirmDialog.user?.email})? This action cannot be undone.`
+        }
+        confirmText={confirmDialog.user?.isPendingInvitation ? 'Cancel Invitation' : 'Delete User'}
+        cancelText="Cancel"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        isLoading={deletingUser === confirmDialog.user?._id}
+      />
     </div>
   );
 }

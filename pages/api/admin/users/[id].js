@@ -1,10 +1,11 @@
 import connectMongo from "@/libs/mongoose";
+import mongoose from "mongoose";
 import User from "@/models/User";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
-import { userRoles } from "@/libs/userRoles";
+// import { userRoles } from "@/libs/userRoles";
 
 // Apply rate limiting middleware
 const rateLimitMiddleware = (req, res) => {
@@ -252,6 +253,30 @@ async function handleDeleteUser(req, res, id) {
       });
     }
 
+    // Clean up related NextAuth collections
+    try {
+      // Delete from accounts collection (OAuth provider accounts)
+      await mongoose.connection.collection('accounts').deleteMany({ 
+        userId: user._id 
+      });
+      
+      // Delete from sessions collection
+      await mongoose.connection.collection('sessions').deleteMany({ 
+        userId: user._id 
+      });
+      
+      // Delete from verification_tokens collection if any
+      await mongoose.connection.collection('verification_tokens').deleteMany({ 
+        identifier: user.email 
+      });
+
+      console.log(`Cleaned up NextAuth collections for user ${user.email}`);
+    } catch (cleanupError) {
+      console.error('Error cleaning up NextAuth collections:', cleanupError);
+      // Continue with user deletion even if cleanup fails
+    }
+
+    // Delete the user
     await User.findByIdAndDelete(id);
 
     return res.status(200).json({
