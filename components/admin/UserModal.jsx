@@ -11,6 +11,7 @@ export default function UserModal({ user, onClose, onSaved }) {
     location: '',
     website: '',
     hasAccess: false,
+    role: 'user',
     preferences: {
       theme: 'light',
       language: 'en',
