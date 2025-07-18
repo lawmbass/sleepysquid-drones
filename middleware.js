@@ -36,18 +36,25 @@ export async function middleware(request) {
     '/about',
     '/contact',
     '/api/auth',
-    '/access-denied'
+    '/access-denied',
+    '/invite',
+    '/api/admin/invitations/validate'  // Invitation validation should be public
   ];
 
   const { pathname } = request.nextUrl;
+
+  // Check if the current path is a public route first
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname.startsWith(route)
+  );
 
   // Check if the current path is a protected route
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname.startsWith(route)
   );
 
-  // If it's a protected route, check user access
-  if (isProtectedRoute) {
+  // If it's a protected route and not a public route, check user access
+  if (isProtectedRoute && !isPublicRoute) {
     try {
       // Get the JWT token from the request
       const token = await getToken({ 
