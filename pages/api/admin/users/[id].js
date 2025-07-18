@@ -93,16 +93,10 @@ async function handleGetUser(req, res, id) {
       });
     }
 
-    // Get user role
-    const userRole = await userRoles.getUserRole(user.email);
-
     return res.status(200).json({
       success: true,
       data: {
-        user: {
-          ...user,
-          role: userRole
-        }
+        user: user
       }
     });
 
@@ -137,7 +131,7 @@ async function handleUpdateUser(req, res, id) {
     // Update allowed fields
     const allowedFields = [
       'name', 'email', 'company', 'phone', 'bio', 'location', 'website',
-      'hasAccess', 'preferences', 'notifications', 'twoFactorEnabled'
+      'hasAccess', 'role', 'preferences', 'notifications', 'twoFactorEnabled'
     ];
 
     const updates = {};
@@ -165,20 +159,39 @@ async function handleUpdateUser(req, res, id) {
       }
     }
 
+    // Handle role changes with validation and tracking
+    if (updates.role && updates.role !== user.role) {
+      // Validate role
+      const validRoles = ['user', 'client', 'pilot', 'admin'];
+      if (!validRoles.includes(updates.role)) {
+        return res.status(400).json({
+          error: 'Invalid role',
+          message: 'Role must be one of: user, client, pilot, admin'
+        });
+      }
+
+      // Prevent non-admins from creating admin users
+      const session = await getServerSession(req, res, authOptions);
+      if (updates.role === 'admin' && !adminConfig.isAdmin(session.user.email)) {
+        return res.status(403).json({
+          error: 'Insufficient permissions',
+          message: 'Only admins can assign admin roles'
+        });
+      }
+
+      // Set metadata for role change tracking
+      user._roleChangedBy = session.user.email;
+      user._roleChangeReason = `Role changed from ${user.role} to ${updates.role} via admin panel`;
+    }
+
     // Update user
     Object.assign(user, updates);
     await user.save();
 
-    // Get user role
-    const userRole = await userRoles.getUserRole(user.email);
-
     return res.status(200).json({
       success: true,
       data: {
-        user: {
-          ...user.toObject(),
-          role: userRole
-        }
+        user: user.toObject()
       },
       message: 'User updated successfully'
     });

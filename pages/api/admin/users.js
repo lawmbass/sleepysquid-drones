@@ -117,16 +117,8 @@ async function handleGetUsers(req, res) {
       .skip(skip)
       .lean();
 
-    // Get user roles for each user
-    const usersWithRoles = await Promise.all(
-      users.map(async (user) => {
-        const userRole = await userRoles.getUserRole(user.email);
-        return {
-          ...user,
-          role: userRole
-        };
-      })
-    );
+    // Users already have roles from database - no need to compute them
+    const usersWithRoles = users;
 
     // Apply role filter after getting roles
     let filteredUsers = usersWithRoles;
@@ -148,8 +140,16 @@ async function handleGetUsers(req, res) {
       }
     ]);
 
-    // Get role distribution
-    const allUsers = await User.find({}, 'email').lean();
+    // Get role distribution from database
+    const roleDistribution = await User.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
     const roleStats = {
       admin: 0,
       client: 0,
@@ -157,10 +157,11 @@ async function handleGetUsers(req, res) {
       user: 0
     };
 
-    for (const user of allUsers) {
-      const userRole = await userRoles.getUserRole(user.email);
-      roleStats[userRole] = (roleStats[userRole] || 0) + 1;
-    }
+    roleDistribution.forEach(({ _id, count }) => {
+      if (_id && roleStats.hasOwnProperty(_id)) {
+        roleStats[_id] = count;
+      }
+    });
 
     const formattedStats = {
       total: totalCount,
@@ -196,13 +197,32 @@ async function handleGetUsers(req, res) {
 
 async function handleCreateUser(req, res) {
   try {
-    const { name, email, company, phone, hasAccess } = req.body;
+    const { name, email, company, phone, hasAccess, role } = req.body;
 
     // Validate required fields
     if (!name || !email) {
       return res.status(400).json({
         error: 'Validation error',
         message: 'Name and email are required'
+      });
+    }
+
+    // Validate role if provided
+    const userRole = role || 'user';
+    const validRoles = ['user', 'client', 'pilot', 'admin'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({
+        error: 'Invalid role',
+        message: 'Role must be one of: user, client, pilot, admin'
+      });
+    }
+
+    // Prevent non-admins from creating admin users
+    const session = await getServerSession(req, res, authOptions);
+    if (userRole === 'admin' && !adminConfig.isAdmin(session.user.email)) {
+      return res.status(403).json({
+        error: 'Insufficient permissions',
+        message: 'Only admins can create admin users'
       });
     }
 
@@ -221,8 +241,13 @@ async function handleCreateUser(req, res) {
       email: email.toLowerCase(),
       company,
       phone,
-      hasAccess: hasAccess || false
+      hasAccess: hasAccess || false,
+      role: userRole
     });
+
+    // Set metadata for role tracking
+    user._roleChangedBy = session.user.email;
+    user._roleChangeReason = `Initial role assignment: ${userRole}`;
 
     await user.save();
 
