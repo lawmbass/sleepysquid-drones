@@ -54,6 +54,15 @@ export default async function handler(req, res) {
       message: 'Admin access required. Insufficient permissions.'
     });
   }
+  
+  // Additional check: Only SleepySquid admins can access user management
+  const isSleepySquidAdmin = session.user.email.toLowerCase().endsWith('@sleepysquid.com');
+  if (!isSleepySquidAdmin) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'User management is restricted to SleepySquid administrators only.'
+    });
+  }
 
   try {
     // Connect to MongoDB

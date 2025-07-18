@@ -262,16 +262,24 @@ export const userRoles = {
   },
   
   // Get navigation items based on user role
-  getNavigationForRole: (role) => {
+  getNavigationForRole: (role, userEmail = '') => {
+    const isSleepySquidAdmin = userEmail.toLowerCase().endsWith('@sleepysquid.com');
+    
     switch (role) {
       case ROLES.ADMIN:
-        return [
+        const adminNav = [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
           { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
-          { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
+        
+        // Only show Users link for SleepySquid admins
+        if (isSleepySquidAdmin) {
+          adminNav.splice(3, 0, { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' });
+        }
+        
+        return adminNav;
       case ROLES.CLIENT:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
