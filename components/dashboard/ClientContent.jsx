@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiUpload, FiX } from 'react-icons/fi';
+import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiUpload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 export default function ClientContent({ user }) {
   const router = useRouter();
@@ -11,14 +11,17 @@ export default function ClientContent({ user }) {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJobDetail, setShowJobDetail] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Update active section based on URL query
   useEffect(() => {
     const section = router.query.section || 'dashboard';
     setActiveSection(section);
     
-    // Load jobs when switching to jobs section
-    if (section === 'jobs') {
+    // Load jobs for dashboard stats and jobs section
+    if (section === 'jobs' || section === 'dashboard') {
       fetchJobs();
     }
   }, [router.query.section]);
@@ -37,6 +40,70 @@ export default function ClientContent({ user }) {
       console.error('Error fetching jobs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Delete job
+  const handleDeleteJob = async () => {
+    if (!selectedJob) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/user/bookings', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: selectedJob._id }),
+      });
+
+      if (response.ok) {
+        setShowDeleteConfirm(false);
+        setShowJobDetail(false);
+        setSelectedJob(null);
+        fetchJobs(); // Refresh the jobs list
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to delete job');
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      alert('Failed to delete job. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Update job
+  const handleUpdateJob = async (formData) => {
+    if (!selectedJob) return;
+    
+    try {
+      const response = await fetch('/api/user/bookings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: selectedJob._id,
+          ...formData
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowEditModal(false);
+        setShowJobDetail(false);
+        setSelectedJob(null);
+        fetchJobs(); // Refresh the jobs list
+        return data;
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update job');
+      }
+    } catch (error) {
+      console.error('Error updating job:', error);
+      throw error;
     }
   };
 
@@ -257,6 +324,207 @@ export default function ClientContent({ user }) {
     );
   };
 
+  // Edit Job Modal
+  const EditJobModal = () => {
+    if (!selectedJob) return null;
+
+    const [formData, setFormData] = useState({
+      service: selectedJob.service || '',
+      package: selectedJob.package || '',
+      date: selectedJob.date ? new Date(selectedJob.date).toISOString().split('T')[0] : '',
+      location: selectedJob.location || '',
+      duration: selectedJob.duration || '',
+      details: selectedJob.details || '',
+      phone: selectedJob.phone || user?.phone || ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      
+      try {
+        await handleUpdateJob(formData);
+      } catch (error) {
+        alert(error.message || 'Failed to update job');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Edit Service Request</h3>
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <FiX className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Service Type</label>
+                <select
+                  value={formData.service}
+                  onChange={(e) => setFormData({...formData, service: e.target.value})}
+                  required
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a service</option>
+                  <option value="aerial-photography">Aerial Photography</option>
+                  <option value="drone-videography">Drone Videography</option>
+                  <option value="mapping-surveying">Mapping & Surveying</option>
+                  <option value="real-estate">Real Estate</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="event-coverage">Event Coverage</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Package</label>
+                <select
+                  value={formData.package}
+                  onChange={(e) => setFormData({...formData, package: e.target.value})}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a package</option>
+                  <option value="basic">Basic ($199)</option>
+                  <option value="standard">Standard ($399)</option>
+                  <option value="premium">Premium ($799)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Preferred Date</label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  required
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Duration</label>
+                <select
+                  value={formData.duration}
+                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                  required
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select duration</option>
+                  <option value="1-2 hours">1-2 hours</option>
+                  <option value="3-4 hours">3-4 hours</option>
+                  <option value="5-8 hours">5-8 hours</option>
+                  <option value="Full day">Full day</option>
+                  <option value="Multiple days">Multiple days</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Location</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                placeholder="Enter the location for the drone service"
+                required
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                placeholder="Your phone number"
+                required
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Additional Details</label>
+              <textarea
+                value={formData.details}
+                onChange={(e) => setFormData({...formData, details: e.target.value})}
+                rows={3}
+                placeholder="Describe your specific requirements..."
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 px-4 rounded-md"
+              >
+                {isSubmitting ? 'Updating...' : 'Update Job'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // Delete Confirmation Modal
+  const DeleteConfirmModal = () => {
+    if (!selectedJob) return null;
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-1/4 mx-auto p-5 border w-11/12 md:w-1/3 shadow-lg rounded-md bg-white">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <FiTrash2 className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Job</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this job? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteJob}
+                disabled={isDeleting}
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white py-2 px-4 rounded-md"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Job Detail Modal
   const JobDetailModal = () => {
     if (!selectedJob) return null;
@@ -277,12 +545,35 @@ export default function ClientContent({ user }) {
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setShowJobDetail(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <FiX className="h-6 w-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {selectedJob.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowJobDetail(false);
+                      setShowEditModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-500 p-2"
+                    title="Edit job"
+                  >
+                    <FiEdit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-red-600 hover:text-red-500 p-2"
+                    title="Delete job"
+                  >
+                    <FiTrash2 className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowJobDetail(false)}
+                className="text-gray-400 hover:text-gray-600 p-2"
+              >
+                <FiX className="h-6 w-6" />
+              </button>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -520,19 +811,27 @@ export default function ClientContent({ user }) {
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-lg font-medium text-gray-900">Recent Jobs</h2>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
-            >
-              <FiPlus className="h-4 w-4 mr-2" />
-              Create New Job
-            </button>
+            {jobs.length > 0 && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
+              >
+                <FiPlus className="h-4 w-4 mr-2" />
+                Create New Job
+              </button>
+            )}
           </div>
           <div className="p-6">
             {jobs.length === 0 ? (
               <div className="text-center py-12">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
-                <p className="text-gray-500">You haven&apos;t created any service requests yet.</p>
+                <p className="text-gray-500 mb-4">You haven&apos;t created any service requests yet.</p>
+                <button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+                >
+                  Create Your First Job
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -657,16 +956,42 @@ export default function ClientContent({ user }) {
                         {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedJob(job);
-                            setShowJobDetail(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-500 flex items-center"
-                        >
-                          <FiEye className="h-4 w-4 mr-1" />
-                          View
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedJob(job);
+                              setShowJobDetail(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-500 flex items-center"
+                          >
+                            <FiEye className="h-4 w-4 mr-1" />
+                            View
+                          </button>
+                          {job.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedJob(job);
+                                  setShowEditModal(true);
+                                }}
+                                className="text-gray-600 hover:text-gray-500"
+                                title="Edit job"
+                              >
+                                <FiEdit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedJob(job);
+                                  setShowDeleteConfirm(true);
+                                }}
+                                className="text-red-600 hover:text-red-500"
+                                title="Delete job"
+                              >
+                                <FiTrash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -748,6 +1073,8 @@ export default function ClientContent({ user }) {
       {renderContent()}
       {showCreateModal && <CreateJobModal />}
       {showJobDetail && <JobDetailModal />}
+      {showEditModal && <EditJobModal />}
+      {showDeleteConfirm && <DeleteConfirmModal />}
     </div>
   );
 }
