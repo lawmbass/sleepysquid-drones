@@ -77,12 +77,13 @@ async function handleSendInvitation(req, res, session) {
       });
     }
 
-    // Only allow role assignment by SleepySquid admins
-    if (role) {
+    // Only allow non-client role assignment by SleepySquid admins
+    // Since 'client' is the default role, allow it for everyone
+    if (role && role !== 'client') {
       if (!adminConfig.isAdmin(session.user.email)) {
         return res.status(403).json({
           error: 'Insufficient permissions',
-          message: 'Only SleepySquid administrators can assign roles'
+          message: 'Only SleepySquid administrators can assign pilot and admin roles'
         });
       }
     }

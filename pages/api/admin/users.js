@@ -248,7 +248,8 @@ async function handleGetUsers(req, res) {
       withoutAccess: stats.find(s => s._id === false)?.count || 0,
       roles: {
         admin: roleStats.admin + invitationRoleStats.admin,
-        client: roleStats.client + invitationRoleStats.client,
+        // Include legacy 'user' roles in client count since they should be migrated to client
+        client: roleStats.client + invitationRoleStats.client + roleStats.user + invitationRoleStats.user,
         pilot: roleStats.pilot + invitationRoleStats.pilot
       }
     };
@@ -303,12 +304,13 @@ async function handleCreateUser(req, res) {
     // Get session for role validation
     const session = await getServerSession(req, res, authOptions);
     
-    // Only allow role assignment by SleepySquid admins
-    if (role) {
+    // Only allow non-client role assignment by SleepySquid admins
+    // Since 'client' is the default role, allow it for everyone
+    if (role && role !== 'client') {
       if (!adminConfig.isAdmin(session.user.email)) {
         return res.status(403).json({
           error: 'Insufficient permissions',
-          message: 'Only SleepySquid administrators can assign roles'
+          message: 'Only SleepySquid administrators can assign pilot and admin roles'
         });
       }
     }
