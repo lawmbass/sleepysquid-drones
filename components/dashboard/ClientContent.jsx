@@ -532,13 +532,7 @@ export default function ClientContent({ user }) {
             {jobs.length === 0 ? (
               <div className="text-center py-12">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
-                <p className="text-gray-500 mb-4">You haven&apos;t created any service requests yet.</p>
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-                >
-                  Create Your First Job
-                </button>
+                <p className="text-gray-500">You haven&apos;t created any service requests yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -610,13 +604,7 @@ export default function ClientContent({ user }) {
           <div className="text-center py-12">
             <FiFileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
-            <p className="text-gray-500 mb-4">Create your first service request to get started.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-            >
-              Create Your First Job
-            </button>
+            <p className="text-gray-500">Create your first service request to get started.</p>
           </div>
         </div>
       ) : (
