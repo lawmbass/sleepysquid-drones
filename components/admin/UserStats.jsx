@@ -1,4 +1,4 @@
-import { FiUsers, FiUserCheck, FiUserX, FiShield, FiUser, FiTruck, FiSettings, FiMail } from 'react-icons/fi';
+import { FiUsers, FiUserCheck, FiUserX, FiShield, FiUser, FiTruck, FiMail } from 'react-icons/fi';
 
 export default function UserStats({ stats }) {
   if (!stats || Object.keys(stats).length === 0) {

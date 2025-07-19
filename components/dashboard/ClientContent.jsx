@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiUpload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 export default function ClientContent({ user }) {
   const router = useRouter();
@@ -14,6 +14,16 @@ export default function ClientContent({ user }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    service: '',
+    package: '',
+    date: '',
+    location: '',
+    duration: '',
+    details: '',
+    phone: ''
+  });
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
   // Update active section based on URL query
   useEffect(() => {
@@ -25,6 +35,21 @@ export default function ClientContent({ user }) {
       fetchJobs();
     }
   }, [router.query.section]);
+
+  // Populate edit form when a job is selected for editing
+  useEffect(() => {
+    if (selectedJob && showEditModal) {
+      setEditFormData({
+        service: selectedJob.service || '',
+        package: selectedJob.package || '',
+        date: selectedJob.date ? new Date(selectedJob.date).toISOString().split('T')[0] : '',
+        location: selectedJob.location || '',
+        duration: selectedJob.duration || '',
+        details: selectedJob.details || '',
+        phone: selectedJob.phone || user?.phone || ''
+      });
+    }
+  }, [selectedJob, showEditModal, user?.phone]);
 
   // Fetch user's jobs
   const fetchJobs = async () => {
@@ -75,9 +100,10 @@ export default function ClientContent({ user }) {
   };
 
   // Update job
-  const handleUpdateJob = async (formData) => {
+  const handleUpdateJob = async () => {
     if (!selectedJob) return;
     
+    setIsEditSubmitting(true);
     try {
       const response = await fetch('/api/user/bookings', {
         method: 'PUT',
@@ -86,24 +112,33 @@ export default function ClientContent({ user }) {
         },
         body: JSON.stringify({
           id: selectedJob._id,
-          ...formData
+          ...editFormData
         }),
       });
 
       if (response.ok) {
-        const data = await response.json();
         setShowEditModal(false);
         setShowJobDetail(false);
         setSelectedJob(null);
+        setEditFormData({
+          service: '',
+          package: '',
+          date: '',
+          location: '',
+          duration: '',
+          details: '',
+          phone: ''
+        });
         fetchJobs(); // Refresh the jobs list
-        return data;
       } else {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update job');
+        alert(error.message || 'Failed to update job');
       }
     } catch (error) {
       console.error('Error updating job:', error);
-      throw error;
+      alert('Failed to update job. Please try again.');
+    } finally {
+      setIsEditSubmitting(false);
     }
   };
 
@@ -328,28 +363,9 @@ export default function ClientContent({ user }) {
   const EditJobModal = () => {
     if (!selectedJob) return null;
 
-    const [formData, setFormData] = useState({
-      service: selectedJob.service || '',
-      package: selectedJob.package || '',
-      date: selectedJob.date ? new Date(selectedJob.date).toISOString().split('T')[0] : '',
-      location: selectedJob.location || '',
-      duration: selectedJob.duration || '',
-      details: selectedJob.details || '',
-      phone: selectedJob.phone || user?.phone || ''
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
       e.preventDefault();
-      setIsSubmitting(true);
-      
-      try {
-        await handleUpdateJob(formData);
-      } catch (error) {
-        alert(error.message || 'Failed to update job');
-      } finally {
-        setIsSubmitting(false);
-      }
+      handleUpdateJob();
     };
 
     return (
@@ -370,8 +386,8 @@ export default function ClientContent({ user }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
-                  value={formData.service}
-                  onChange={(e) => setFormData({...formData, service: e.target.value})}
+                  value={editFormData.service}
+                  onChange={(e) => setEditFormData({...editFormData, service: e.target.value})}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -389,8 +405,8 @@ export default function ClientContent({ user }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Package</label>
                 <select
-                  value={formData.package}
-                  onChange={(e) => setFormData({...formData, package: e.target.value})}
+                  value={editFormData.package}
+                  onChange={(e) => setEditFormData({...editFormData, package: e.target.value})}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
@@ -406,8 +422,8 @@ export default function ClientContent({ user }) {
                 <label className="block text-sm font-medium text-gray-700">Preferred Date</label>
                 <input
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  value={editFormData.date}
+                  onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
                   min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -417,8 +433,8 @@ export default function ClientContent({ user }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Duration</label>
                 <select
-                  value={formData.duration}
-                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                  value={editFormData.duration}
+                  onChange={(e) => setEditFormData({...editFormData, duration: e.target.value})}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -436,8 +452,8 @@ export default function ClientContent({ user }) {
               <label className="block text-sm font-medium text-gray-700">Location</label>
               <input
                 type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                value={editFormData.location}
+                onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
                 placeholder="Enter the location for the drone service"
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -448,8 +464,8 @@ export default function ClientContent({ user }) {
               <label className="block text-sm font-medium text-gray-700">Phone Number</label>
               <input
                 type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
                 placeholder="Your phone number"
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -459,8 +475,8 @@ export default function ClientContent({ user }) {
             <div>
               <label className="block text-sm font-medium text-gray-700">Additional Details</label>
               <textarea
-                value={formData.details}
-                onChange={(e) => setFormData({...formData, details: e.target.value})}
+                value={editFormData.details}
+                onChange={(e) => setEditFormData({...editFormData, details: e.target.value})}
                 rows={3}
                 placeholder="Describe your specific requirements..."
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -477,10 +493,10 @@ export default function ClientContent({ user }) {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isEditSubmitting}
                 className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 px-4 rounded-md"
               >
-                {isSubmitting ? 'Updating...' : 'Update Job'}
+                {isEditSubmitting ? 'Updating...' : 'Update Job'}
               </button>
             </div>
           </form>
