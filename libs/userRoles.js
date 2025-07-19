@@ -4,7 +4,6 @@ import { adminConfig } from './adminConfig';
 const ROLES = {
   ADMIN: 'admin',
   CLIENT: 'client',
-  USER: 'user',
   PILOT: 'pilot'
 };
 
@@ -22,7 +21,7 @@ const PERMISSIONS = {
   VIEW_ASSETS: 'view_assets',
   DOWNLOAD_ASSETS: 'download_assets',
   
-  // User permissions
+  // Basic permissions (now included in client role)
   VIEW_PROFILE: 'view_profile',
   EDIT_PROFILE: 'edit_profile',
   
@@ -63,10 +62,6 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_FLIGHT_DATA,
     PERMISSIONS.VIEW_PROFILE,
     PERMISSIONS.EDIT_PROFILE
-  ],
-  [ROLES.USER]: [
-    PERMISSIONS.VIEW_PROFILE,
-    PERMISSIONS.EDIT_PROFILE
   ]
 };
 
@@ -100,16 +95,16 @@ const getUserRoleFromDatabase = async (email) => {
     // Dynamic import to avoid circular dependency
     const { default: User } = await import('../models/User.js');
     const user = await User.findOne({ email: email.toLowerCase() }).lean();
-    return user?.role || ROLES.USER;
+    return user?.role || ROLES.CLIENT; // Default to client instead of user
   } catch (error) {
     console.error('Error fetching user role from database:', error);
-    return ROLES.USER;
+    return ROLES.CLIENT; // Default to client instead of user
   }
 };
 
 // Get user role from environment variables (legacy)
 const getUserRoleFromEnvironment = async (email) => {
-  let role = ROLES.USER; // Default role
+  let role = ROLES.CLIENT; // Default role changed from USER to CLIENT
   
   // Check if user is admin
   if (adminConfig.isAdmin(email)) {
@@ -130,7 +125,7 @@ const getUserRoleFromEnvironment = async (email) => {
 export const userRoles = {
   // Get user role based on email
   getUserRole: async (email) => {
-    if (!email) return ROLES.USER;
+    if (!email) return ROLES.CLIENT; // Default to client instead of user
     
     // Normalize email
     const normalizedEmail = email.toLowerCase();
@@ -285,14 +280,6 @@ export const userRoles = {
         }
         
         return adminNav;
-      case ROLES.CLIENT:
-        return [
-          { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
-          { name: 'My Jobs', href: '/dashboard?section=jobs', icon: 'FiFileText' },
-          { name: 'Create Job', href: '/dashboard?section=create', icon: 'FiPlus' },
-          { name: 'Assets', href: '/dashboard?section=assets', icon: 'FiFolder' },
-          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
-        ];
       case ROLES.PILOT:
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
@@ -301,9 +288,14 @@ export const userRoles = {
           { name: 'Flight Data', href: '/dashboard?section=flights', icon: 'FiActivity' },
           { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
+      case ROLES.CLIENT:
       default:
+        // Default to client navigation for all other cases
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
+          { name: 'My Jobs', href: '/dashboard?section=jobs', icon: 'FiFileText' },
+          { name: 'Create Job', href: '/dashboard?section=create', icon: 'FiPlus' },
+          { name: 'Assets', href: '/dashboard?section=assets', icon: 'FiFolder' },
           { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
     }

@@ -97,7 +97,7 @@ export const authOptions = {
           if (recentInvitation) {
             // For users with recently accepted invitations, get role directly from database
             console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
-            session.user.role = user?.role || 'user';
+            session.user.role = user?.role || 'client';
             session.user.hasAccess = user?.hasAccess || false;
             // Clear cache to ensure future requests get fresh data
             userRoles.clearCache();
@@ -117,7 +117,7 @@ export const authOptions = {
         } catch (error) {
           console.error('Error checking user status:', error);
           session.user.isAdmin = false; // Fail safe
-          session.user.role = 'user'; // Default role
+          session.user.role = 'client'; // Default role
           session.user.permissions = [];
         }
       }

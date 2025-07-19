@@ -56,7 +56,7 @@ export default function Dashboard() {
   }
 
   // Get user role
-  const userRole = session.user.role || 'user';
+  const userRole = session.user.role || 'client';
 
   // Render appropriate dashboard content based on role
   const renderDashboardContent = () => {

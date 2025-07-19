@@ -22,8 +22,8 @@ const invitationSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'client', 'pilot', 'admin'],
-    default: 'user'
+    enum: ['client', 'pilot', 'admin'],
+    default: 'client'
   },
   hasAccess: {
     type: Boolean,

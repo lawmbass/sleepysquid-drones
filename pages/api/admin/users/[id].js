@@ -172,11 +172,11 @@ async function handleUpdateUser(req, res, id, session) {
     // Handle role changes with validation and tracking
     if (updates.role && updates.role !== user.role) {
       // Validate role
-      const validRoles = ['user', 'client', 'pilot', 'admin'];
+      const validRoles = ['client', 'pilot', 'admin'];
       if (!validRoles.includes(updates.role)) {
         return res.status(400).json({
           error: 'Invalid role',
-          message: 'Role must be one of: user, client, pilot, admin'
+          message: 'Role must be one of: client, pilot, admin'
         });
       }
 

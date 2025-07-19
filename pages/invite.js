@@ -95,20 +95,18 @@ export default function InvitePage() {
     const descriptions = {
       'admin': 'Administrator with full system access',
       'pilot': 'Pilot with mission management capabilities',
-      'client': 'Client with booking and project management access',
-      'user': 'User with basic platform access'
+      'client': 'Client with booking and project management access'
     };
-    return descriptions[role] || 'Platform user';
+    return descriptions[role] || 'Client with booking and project management access';
   };
 
   const getRoleColor = (role) => {
     const colors = {
       'admin': 'bg-red-100 text-red-800',
       'pilot': 'bg-blue-100 text-blue-800',
-      'client': 'bg-green-100 text-green-800',
-      'user': 'bg-gray-100 text-gray-800'
+      'client': 'bg-green-100 text-green-800'
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return colors[role] || 'bg-green-100 text-green-800';
   };
 
   if (status === 'loading' || loading) {

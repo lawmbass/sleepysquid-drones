@@ -14,7 +14,7 @@ export default function UserModal({ user, onClose, onSaved }) {
     location: '',
     website: '',
     hasAccess: false,
-    role: 'user'
+    role: 'client'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +41,7 @@ export default function UserModal({ user, onClose, onSaved }) {
         location: user.location || '',
         website: user.website || '',
         hasAccess: user.hasAccess || false,
-        role: user.role || 'user'
+        role: user.role || 'client'
       });
     }
   }, [user]);
@@ -284,7 +284,6 @@ export default function UserModal({ user, onClose, onSaved }) {
                     value={formData.role}
                     onChange={(e) => handleInputChange('role', e.target.value)}
                   >
-                    <option value="user">User</option>
                     <option value="client">Client</option>
                     <option value="pilot">Pilot</option>
                     <option value="admin">Admin (SleepySquid only)</option>
