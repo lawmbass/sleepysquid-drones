@@ -294,8 +294,6 @@ export const userRoles = {
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'My Jobs', href: '/dashboard?section=jobs', icon: 'FiFileText' },
-          { name: 'Create Job', href: '/dashboard?section=create', icon: 'FiPlus' },
-          { name: 'Assets', href: '/dashboard?section=assets', icon: 'FiFolder' },
           { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
         ];
     }
