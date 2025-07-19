@@ -35,7 +35,11 @@ export default async function handler(req, res) {
       // Build filter object for user's bookings only
       const filter = { 
         email: session.user.email.toLowerCase(),
-        source: 'customer' // Only show customer bookings, not automated missions
+        $or: [
+          { source: 'customer' }, // Explicit customer bookings
+          { source: { $exists: false } }, // Legacy bookings without source field
+          { source: null } // Bookings with null source
+        ]
       };
       
       if (status) filter.status = status;
@@ -119,7 +123,11 @@ export default async function handler(req, res) {
       const job = await Booking.findOne({
         _id: id,
         email: session.user.email.toLowerCase(),
-        source: 'customer'
+        $or: [
+          { source: 'customer' }, // Explicit customer bookings
+          { source: { $exists: false } }, // Legacy bookings without source field
+          { source: null } // Bookings with null source
+        ]
       });
 
       if (!job) {
@@ -229,7 +237,11 @@ export default async function handler(req, res) {
       const job = await Booking.findOne({
         _id: id,
         email: session.user.email.toLowerCase(),
-        source: 'customer'
+        $or: [
+          { source: 'customer' }, // Explicit customer bookings
+          { source: { $exists: false } }, // Legacy bookings without source field
+          { source: null } // Bookings with null source
+        ]
       });
 
       if (!job) {

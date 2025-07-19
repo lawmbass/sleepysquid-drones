@@ -233,6 +233,7 @@ export default async function handler(req, res) {
 
     // Create new booking with sanitized data
     const newBooking = new Booking({
+      source: 'customer', // Mark as customer booking for dashboard visibility
       service: sanitizedData.service,
       package: sanitizedData.package,
       date: bookingDate,
