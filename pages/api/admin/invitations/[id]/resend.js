@@ -93,14 +93,13 @@ export default async function handler(req, res) {
 async function sendInvitationEmail(email, name, invitationLink, role, inviterName) {
   const subject = `You're invited to join SleepySquid Drones`;
   
-  const roleDescriptions = {
+    const roleDescriptions = {
     'admin': 'Administrator with full system access',
-    'pilot': 'Pilot with mission management capabilities',
-    'client': 'Client with booking and project management access',
-    'user': 'User with basic platform access'
+    'pilot': 'Pilot with mission management capabilities', 
+    'client': 'Client with booking and project management access'
   };
   
-  const roleDescription = roleDescriptions[role] || 'Platform user';
+  const roleDescription = roleDescriptions[role] || 'Client with booking and project management access';
   
   const html = `
     <!DOCTYPE html>

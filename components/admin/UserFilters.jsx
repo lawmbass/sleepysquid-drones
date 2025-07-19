@@ -85,7 +85,6 @@ export default function UserFilters({ filters, onFilterChange }) {
                 <option value="admin">Admin</option>
                 <option value="client">Client</option>
                 <option value="pilot">Pilot</option>
-                <option value="user">User</option>
               </select>
             </div>
 

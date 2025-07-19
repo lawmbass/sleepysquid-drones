@@ -74,14 +74,6 @@ export default function UserStats({ stats }) {
       color: 'orange',
       bgColor: 'bg-orange-50',
       iconColor: 'text-orange-600'
-    },
-    {
-      title: 'Regular Users',
-      value: stats.roles?.user || 0,
-      icon: FiSettings,
-      color: 'gray',
-      bgColor: 'bg-gray-50',
-      iconColor: 'text-gray-600'
     }
   ];
 

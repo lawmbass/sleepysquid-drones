@@ -20,8 +20,8 @@ const userSchema = mongoose.Schema(
     // Role-based access control
     role: {
       type: String,
-      enum: ['admin', 'client', 'pilot', 'user'],
-      default: 'user',
+      enum: ['admin', 'client', 'pilot'],
+      default: 'client',
     },
     // Used in the Stripe webhook to identify the user in Stripe and later create Customer Portal or prefill user credit card details
     customerId: {
@@ -134,7 +134,7 @@ const userSchema = mongoose.Schema(
     roleHistory: [{
       role: {
         type: String,
-        enum: ['admin', 'client', 'pilot', 'user'],
+        enum: ['admin', 'client', 'pilot'],
         required: true,
       },
       changedBy: {

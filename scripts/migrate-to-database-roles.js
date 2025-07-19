@@ -62,7 +62,7 @@ const migrateRoles = async () => {
 
   for (const user of users) {
     try {
-      let newRole = 'user'; // Default role
+      let newRole = 'client'; // Default role changed from 'user' to 'client'
       
       // Determine role based on email
       if (adminEmails.includes(user.email)) {
