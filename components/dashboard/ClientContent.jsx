@@ -71,8 +71,14 @@ export default function ClientContent({ user, onUpdate }) {
   // Validate selected date
   const validateDate = (selectedDate) => {
     if (!selectedDate) return false;
+    
+    // Parse the datetime string (datetime-local format: YYYY-MM-DDTHH:mm)
     const selected = new Date(selectedDate);
+    
+    // Create minimum date/time - 2 days from now
+    // Use the exact current time for datetime comparisons
     const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    
     return selected >= minimum;
   };
 

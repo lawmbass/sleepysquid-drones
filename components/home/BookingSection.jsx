@@ -260,15 +260,23 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   function getMinDate() {
     const date = new Date();
     date.setDate(date.getDate() + 2);
+    // Return in YYYY-MM-DD format for HTML date input
     return date.toISOString().split('T')[0];
   }
 
   // Validate if selected date meets minimum requirement
   const isValidDate = (dateString) => {
     if (!dateString) return false;
-    const selectedDate = new Date(dateString);
+    
+    // Parse the date string as a local date (YYYY-MM-DD format)
+    // This creates a date at midnight local time, consistent with how the HTML input works
+    const selectedDate = new Date(dateString + 'T00:00:00');
+    
+    // Create minimum date at midnight local time for consistent comparison
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 2);
+    minDate.setHours(0, 0, 0, 0); // Set to midnight local time
+    
     return selectedDate >= minDate;
   };
 
