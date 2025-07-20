@@ -82,10 +82,24 @@ export default function ClientContent({ user, onUpdate }) {
     }
   }, [user?.phone, createFormData.phone]);
 
-  // Prevent body scroll when package info dialog is open
+  // Prevent body scroll when package info dialog is open and handle escape key
   useEffect(() => {
     if (showPackageInfo) {
       document.body.style.overflow = 'hidden';
+      
+      // Handle escape key
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          setShowPackageInfo(false);
+        }
+      };
+      
+      document.addEventListener('keydown', handleEscape);
+      
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.removeEventListener('keydown', handleEscape);
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -516,8 +530,14 @@ export default function ClientContent({ user, onUpdate }) {
           
           {/* Package Info Dialog */}
           {showPackageInfo && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
-              <div className="bg-white rounded-lg shadow-xl max-w-md sm:max-w-lg lg:max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div 
+              className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden"
+              onClick={() => setShowPackageInfo(false)}
+            >
+              <div 
+                className="bg-white rounded-lg shadow-xl max-w-md sm:max-w-lg lg:max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center justify-between p-4 border-b">
                   <h3 className="text-lg font-semibold text-gray-900">Package Information</h3>
                   <button
@@ -527,10 +547,10 @@ export default function ClientContent({ user, onUpdate }) {
                     <FiX className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="p-4 space-y-4">
+                <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
                   {createFormData.service && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                      <p className="text-sm text-blue-800">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4 mb-4">
+                      <p className="text-sm lg:text-base text-blue-800">
                         <strong>Available for {createFormData.service.split('-').map(word => 
                           word.charAt(0).toUpperCase() + word.slice(1)
                         ).join(' ')}:</strong>
@@ -538,64 +558,66 @@ export default function ClientContent({ user, onUpdate }) {
                     </div>
                   )}
                   
-                  {getAvailablePackages(createFormData.service).find(pkg => pkg.value === 'basic') ? (
-                                         <div className="border rounded-lg p-4 bg-green-50">
-                       <h4 className="font-semibold text-green-800 mb-2">Basic Package - $199</h4>
-                       <ul className="text-sm text-green-700 space-y-1">
-                         <li>• <strong>1 hour</strong> of flight time</li>
-                         <li>• 10-15 high-resolution photos</li>
-                         <li>• Basic editing included</li>
-                         <li>• Digital delivery within 3-5 days</li>
-                         <li>• Perfect for small properties or simple shots</li>
-                       </ul>
-                     </div>
-                  ) : createFormData.service && (
-                    <div className="border rounded-lg p-4 bg-gray-100 opacity-60">
-                      <h4 className="font-semibold text-gray-600 mb-2">Basic Package - $199 (Not Available)</h4>
-                      <p className="text-sm text-gray-500 mb-2">
-                        Not available for {createFormData.service.split('-').map(word => 
-                          word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join(' ')} services due to complexity requirements.
-                      </p>
-                      <ul className="text-sm text-gray-500 space-y-1">
-                        <li>• Up to 1 hour of flight time</li>
-                        <li>• 10-15 high-resolution photos</li>
-                        <li>• Basic editing included</li>
-                        <li>• Digital delivery within 3-5 days</li>
+                  <div className="grid gap-4 lg:gap-6">
+                    {getAvailablePackages(createFormData.service).find(pkg => pkg.value === 'basic') ? (
+                      <div className="border rounded-lg p-4 lg:p-5 bg-green-50">
+                        <h4 className="font-semibold text-green-800 mb-2 lg:mb-3 text-lg">Basic Package - $199</h4>
+                        <ul className="text-sm lg:text-base text-green-700 space-y-1 lg:space-y-2">
+                          <li>• <strong>1 hour</strong> of flight time</li>
+                          <li>• 10-15 high-resolution photos</li>
+                          <li>• Basic editing included</li>
+                          <li>• Digital delivery within 3-5 days</li>
+                          <li>• Perfect for small properties or simple shots</li>
+                        </ul>
+                      </div>
+                    ) : createFormData.service && (
+                      <div className="border rounded-lg p-4 lg:p-5 bg-gray-100 opacity-60">
+                        <h4 className="font-semibold text-gray-600 mb-2 lg:mb-3 text-lg">Basic Package - $199 (Not Available)</h4>
+                        <p className="text-sm lg:text-base text-gray-500 mb-2 lg:mb-3">
+                          Not available for {createFormData.service.split('-').map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(' ')} services due to complexity requirements.
+                        </p>
+                        <ul className="text-sm lg:text-base text-gray-500 space-y-1 lg:space-y-2">
+                          <li>• Up to 1 hour of flight time</li>
+                          <li>• 10-15 high-resolution photos</li>
+                          <li>• Basic editing included</li>
+                          <li>• Digital delivery within 3-5 days</li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <div className="border rounded-lg p-4 lg:p-5 bg-blue-50">
+                      <h4 className="font-semibold text-blue-800 mb-2 lg:mb-3 text-lg">Standard Package - $399</h4>
+                      <ul className="text-sm lg:text-base text-blue-700 space-y-1 lg:space-y-2">
+                        <li>• <strong>2 hours</strong> of flight time</li>
+                        <li>• 25-30 high-resolution photos</li>
+                        <li>• 2-3 minutes of edited video</li>
+                        <li>• Professional editing and color correction</li>
+                        <li>• Digital delivery within 2-3 days</li>
+                        <li>• Ideal for real estate and events</li>
                       </ul>
                     </div>
-                  )}
-                  
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <h4 className="font-semibold text-blue-800 mb-2">Standard Package - $399</h4>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                      <li>• <strong>2 hours</strong> of flight time</li>
-                      <li>• 25-30 high-resolution photos</li>
-                      <li>• 2-3 minutes of edited video</li>
-                      <li>• Professional editing and color correction</li>
-                      <li>• Digital delivery within 2-3 days</li>
-                      <li>• Ideal for real estate and events</li>
-                    </ul>
+                    
+                    <div className="border rounded-lg p-4 lg:p-5 bg-purple-50">
+                      <h4 className="font-semibold text-purple-800 mb-2 lg:mb-3 text-lg">Premium Package - $799</h4>
+                      <ul className="text-sm lg:text-base text-purple-700 space-y-1 lg:space-y-2">
+                        <li>• <strong>4 hours</strong> of flight time</li>
+                        <li>• 50+ high-resolution photos</li>
+                        <li>• 5-10 minutes of cinematic video</li>
+                        <li>• Advanced editing with music and transitions</li>
+                        <li>• Same-day or next-day delivery</li>
+                        <li>• Multiple angles and creative shots</li>
+                        <li>• Perfect for commercial projects</li>
+                      </ul>
+                    </div>
                   </div>
                   
-                  <div className="border rounded-lg p-4 bg-purple-50">
-                    <h4 className="font-semibold text-purple-800 mb-2">Premium Package - $799</h4>
-                    <ul className="text-sm text-purple-700 space-y-1">
-                      <li>• <strong>4 hours</strong> of flight time</li>
-                      <li>• 50+ high-resolution photos</li>
-                      <li>• 5-10 minutes of cinematic video</li>
-                      <li>• Advanced editing with music and transitions</li>
-                      <li>• Same-day or next-day delivery</li>
-                      <li>• Multiple angles and creative shots</li>
-                      <li>• Perfect for commercial projects</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                    <p className="text-xs text-gray-600">
+                  <div className="bg-gray-50 rounded-lg p-3 lg:p-4 space-y-2">
+                    <p className="text-xs lg:text-sm text-gray-600">
                       <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
                     </p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs lg:text-sm text-gray-600">
                       <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
                     </p>
                   </div>
