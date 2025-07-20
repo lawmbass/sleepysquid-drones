@@ -56,15 +56,31 @@ const migrateToNestedStructure = async () => {
     for (const user of usersNeedingMigration) {
       const updateData = {};
       const unsetData = {};
-      const isOAuthUser = oauthUsers.some(id => id.toString() === user._id.toString());
+      
+      // Check if this user has OAuth accounts - more robust detection
+      const userOAuthAccount = await mongoose.connection.collection('accounts').findOne({
+        userId: user._id
+      });
+      const isOAuthUser = !!userOAuthAccount;
+      
+      // Debug logging for first few users
+      if (migratedCount < 5) {
+        console.log(`User ${user.email}: OAuth=${isOAuthUser}, Account=${!!userOAuthAccount}`);
+      }
 
       // Migrate emailVerified -> emailVerification.verified
       if (user.emailVerified !== undefined) {
         updateData['emailVerification.verified'] = user.emailVerified;
         unsetData.emailVerified = 1;
+        if (migratedCount < 5) {
+          console.log(`  Migrating old emailVerified: ${user.emailVerified}`);
+        }
       } else if (user.emailVerification?.verified === undefined) {
         // User doesn't have emailVerification.verified field yet
         updateData['emailVerification.verified'] = isOAuthUser;
+        if (migratedCount < 5) {
+          console.log(`  Setting new emailVerification.verified: ${isOAuthUser}`);
+        }
       }
 
       // Migrate emailVerificationToken -> emailVerification.token
