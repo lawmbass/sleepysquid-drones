@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   FiUser, 
   FiSettings, 
@@ -81,35 +81,36 @@ export default function Settings({ user, onUpdate }) {
     { id: 'security', name: 'Security', icon: FiShield }
   ];
 
+  // Load settings data function
+  const loadSettings = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/settings');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update state with loaded data
+        setProfileData(data.profile);
+        setPreferences(data.preferences);
+        setNotifications(data.notifications);
+        setSecurity(prev => ({ 
+          ...prev, 
+          twoFactorEnabled: data.security.twoFactorEnabled,
+          hasPassword: data.security.hasPassword,
+          isOAuthUser: data.security.isOAuthUser
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      setMessage({ type: 'error', text: 'Failed to load settings' });
+    } finally {
+      setInitialLoading(false);
+    }
+  }, []);
+
   // Load settings data on component mount
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/api/user/settings');
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Update state with loaded data
-          setProfileData(data.profile);
-          setPreferences(data.preferences);
-          setNotifications(data.notifications);
-          setSecurity(prev => ({ 
-            ...prev, 
-            twoFactorEnabled: data.security.twoFactorEnabled,
-            hasPassword: data.security.hasPassword,
-            isOAuthUser: data.security.isOAuthUser
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-        setMessage({ type: 'error', text: 'Failed to load settings' });
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-
     loadSettings();
-  }, []);
+  }, [loadSettings]);
 
   const handleSendVerification = async () => {
     setEmailActions(prev => ({ ...prev, sendingVerification: true }));

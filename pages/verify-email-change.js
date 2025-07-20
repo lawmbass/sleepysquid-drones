@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
 
@@ -9,13 +9,7 @@ export default function VerifyEmailChange() {
   const [message, setMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
 
-  useEffect(() => {
-    if (token) {
-      verifyEmailChange(token);
-    }
-  }, [token]);
-
-  const verifyEmailChange = async (verificationToken) => {
+  const verifyEmailChange = useCallback(async (verificationToken) => {
     try {
       const response = await fetch('/api/user/email/verify-change', {
         method: 'POST',
@@ -43,7 +37,13 @@ export default function VerifyEmailChange() {
       setStatus('error');
       setMessage('An error occurred while verifying your email change');
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (token) {
+      verifyEmailChange(token);
+    }
+  }, [token, verifyEmailChange]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
