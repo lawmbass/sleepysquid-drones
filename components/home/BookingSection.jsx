@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 
@@ -15,11 +15,7 @@ const services = [
   { id: 'custom', name: 'Custom Project' }
 ];
 
-const packages = [
-  { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
-  { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
-  { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
-];
+
 
 const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect }) => {
   const [step, setStep] = useState(1);
@@ -28,7 +24,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     package: '',
     date: '',
     location: '',
-    duration: '',
     details: '',
     name: '',
     email: '',
@@ -39,6 +34,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [showPackageInfo, setShowPackageInfo] = useState(false);
   
   // Create refs
   const dateInputRef = useRef(null);
@@ -50,9 +46,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     threshold: 0.1,
   });
 
-  // Set isClient to true when component mounts in the browser
+  // Set and update minimum datetime
   useEffect(() => {
-    setMinDate(getMinDate());
+    const updateMinDate = () => {
+      setMinDate(getMinDateTime());
+    };
+    
+    // Set initial minDate
+    updateMinDate();
+    
+    // Update minDate every minute to keep it current
+    const interval = setInterval(updateMinDate, 60000); // 60 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Handle pre-selected service and package
@@ -76,9 +82,36 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   }, [selectedPackage, onPackageSelect]);
 
+  // Helper function to get available packages for a service type
+  const getAvailablePackages = (serviceType) => {
+    const allPackages = [
+      { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
+      { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
+      { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
+    ];
+
+    // Services that require at least Standard package (no Basic)
+    const standardMinServices = ['drone-videography', 'mapping-surveying', 'inspection', 'event-coverage', 'custom'];
+    
+    if (standardMinServices.includes(serviceType)) {
+      return allPackages.filter(pkg => pkg.id !== 'basic');
+    }
+    
+    return allPackages;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Handle service change with package reset logic
+    if (name === 'service') {
+      const availablePackages = getAvailablePackages(value);
+      // Reset package if current selection is not available for new service
+      const newPackage = availablePackages.find(pkg => pkg.id === formData.package) ? formData.package : '';
+      setFormData(prev => ({ ...prev, [name]: value, package: newPackage }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     // Special validation for date field
     if (name === 'date' && value) {
@@ -100,12 +133,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     if (currentStep === 1) {
       if (!formData.service) newErrors.service = 'Please select a service';
       if (!formData.date) {
-        newErrors.date = 'Please select a date';
+        newErrors.date = 'Please select a date and time';
       } else if (!isValidDate(formData.date)) {
         newErrors.date = 'Please select a date that is at least 2 days from today';
       }
       if (!formData.location) newErrors.location = 'Please enter a location';
-      if (!formData.duration) newErrors.duration = 'Please select a duration';
     }
     
     if (currentStep === 2) {
@@ -131,7 +163,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Helper function to check if Step 1 is ready for next step
   const isStep1ReadyForNext = () => {
-    return formData.service && formData.date && formData.location && formData.duration;
+    return formData.service && formData.date && formData.location;
   };
 
   // Helper function to check if form is ready for submission
@@ -256,28 +288,24 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   };
 
-  // Calculate minimum date (2 days from today)
-  function getMinDate() {
-    const date = new Date();
-    date.setDate(date.getDate() + 2);
-    // Return in YYYY-MM-DD format for HTML date input
-    return date.toISOString().split('T')[0];
+  // Calculate minimum datetime (2 days from today)
+  function getMinDateTime() {
+    const minDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    return minDate.toISOString().slice(0, 16);
   }
 
-  // Validate if selected date meets minimum requirement
-  const isValidDate = (dateString) => {
-    if (!dateString) return false;
+  // Validate if selected datetime meets minimum requirement (uses the same minDate as HTML validation for consistency)
+  const isValidDate = (selectedDateTime) => {
+    if (!selectedDateTime) return false;
     
-    // Parse the date string as a local date (YYYY-MM-DD format)
-    // This creates a date at midnight local time, consistent with how the HTML input works
-    const selectedDate = new Date(dateString + 'T00:00:00');
+    // Parse the datetime string (datetime-local format: YYYY-MM-DDTHH:mm)
+    const selected = new Date(selectedDateTime);
     
-    // Create minimum date at midnight local time for consistent comparison
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 2);
-    minDate.setHours(0, 0, 0, 0); // Set to midnight local time
+    // Use the same minDate that's used for HTML validation to ensure consistency
+    if (!minDate) return false; // If minDate isn't set yet, consider invalid
+    const minimum = new Date(minDate);
     
-    return selectedDate >= minDate;
+    return selected >= minimum;
   };
 
   // Format date for display
@@ -293,8 +321,16 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Function to handle clicking on the date field container
   const handleDateFieldClick = () => {
-    if (dateInputRef.current) {
-      dateInputRef.current.showPicker();
+    if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
+      try {
+        dateInputRef.current.showPicker();
+      } catch (error) {
+        // Fallback: focus the input if showPicker fails
+        dateInputRef.current.focus();
+      }
+    } else if (dateInputRef.current) {
+      // Fallback for browsers that don't support showPicker
+      dateInputRef.current.focus();
     }
   };
 
@@ -389,12 +425,22 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="package">
-                    <div className="flex items-center">
-                      <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Select Package (Optional)
-                    </div>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-gray-700 dark:text-gray-300 font-medium" htmlFor="package">
+                      <div className="flex items-center">
+                        <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
+                        Select Package (Optional)
+                      </div>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPackageInfo(true)}
+                      className="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                      title="Package information"
+                    >
+                      <FiInfo className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="relative">
                     <select
                       id="package"
@@ -404,7 +450,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none"
                     >
                       <option value="">No package selected (custom pricing)</option>
-                      {packages.map((pkg) => (
+                      {getAvailablePackages(formData.service).map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
                           {pkg.name}
                         </option>
@@ -418,7 +464,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </div>
                   {formData.package && (
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                      {packages.find(pkg => pkg.id === formData.package)?.description}
+                      {getAvailablePackages(formData.service).find(pkg => pkg.id === formData.package)?.description}
                     </p>
                   )}
                 </div>
@@ -427,7 +473,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="date">
                     <div className="flex items-center">
                       <FiCalendar className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Preferred Date*
+                      Preferred Date & Time*
                     </div>
                   </label>
                   <div 
@@ -435,7 +481,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     onClick={handleDateFieldClick}
                   >
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="date"
                       name="date"
                       ref={dateInputRef}
@@ -446,7 +492,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     />
                   </div>
                   {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Bookings must be scheduled at least 2 days in advance.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please select your preferred date and time (must be at least 2 days in advance).</p>
                 </div>
 
                 <div className="mb-6">
@@ -474,36 +520,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
                 </div>
 
-                <div className="mb-6">
-                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="duration">
-                    <div className="flex items-center">
-                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Duration*
-                    </div>
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="duration"
-                      name="duration"
-                      value={formData.duration}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
-                    >
-                      <option value="">Select duration</option>
-                      <option value="1-2 hours">1-2 Hours</option>
-                      <option value="3-4 hours">3-4 Hours</option>
-                      <option value="5-8 hours">5-8 Hours</option>
-                      <option value="Full day">Full Day</option>
-                      <option value="Multiple days">Multiple Days</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.duration && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.duration}</p>}
-                </div>
+
 
                 <div className="mb-6">
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="details">
@@ -723,11 +740,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   {formData.package && (
-                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {getAvailablePackages(formData.service).find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
-                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration}</p>
                   {bookingResult?.estimatedPrice && (
                     <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Estimated Price:</span> ${bookingResult.estimatedPrice}</p>
                   )}
@@ -741,7 +757,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       package: '',
                       date: '',
                       location: '',
-                      duration: '',
                       details: '',
                       name: '',
                       email: '',
@@ -765,6 +780,96 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           </div>
         </motion.div>
       </div>
+
+      {/* Package Info Dialog */}
+      {showPackageInfo && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Package Information</h3>
+              <button
+                onClick={() => setShowPackageInfo(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {formData.service && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Available for {formData.service.split('-').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ')}:</strong>
+                  </p>
+                </div>
+              )}
+              
+              {getAvailablePackages(formData.service).find(pkg => pkg.id === 'basic') ? (
+                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Basic Package - $199</h4>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                    <li>• <strong>1 hour</strong> of flight time</li>
+                    <li>• 10-15 high-resolution photos</li>
+                    <li>• Basic editing included</li>
+                    <li>• Digital delivery within 3-5 days</li>
+                    <li>• Perfect for small properties or simple shots</li>
+                  </ul>
+                </div>
+              ) : formData.service && (
+                <div className="border rounded-lg p-4 bg-gray-100 dark:bg-gray-800 opacity-60 border-gray-300 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Basic Package - $199 (Not Available)</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    Not available for {formData.service.split('-').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ')} services due to complexity requirements.
+                  </p>
+                  <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                    <li>• Up to 1 hour of flight time</li>
+                    <li>• 10-15 high-resolution photos</li>
+                    <li>• Basic editing included</li>
+                    <li>• Digital delivery within 3-5 days</li>
+                  </ul>
+                </div>
+              )}
+              
+              <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Standard Package - $399</h4>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                  <li>• <strong>2 hours</strong> of flight time</li>
+                  <li>• 25-30 high-resolution photos</li>
+                  <li>• 2-3 minutes of edited video</li>
+                  <li>• Professional editing and color correction</li>
+                  <li>• Digital delivery within 2-3 days</li>
+                  <li>• Ideal for real estate and events</li>
+                </ul>
+              </div>
+              
+              <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+                <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Premium Package - $799</h4>
+                <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                  <li>• <strong>4 hours</strong> of flight time</li>
+                  <li>• 50+ high-resolution photos</li>
+                  <li>• 5-10 minutes of cinematic video</li>
+                  <li>• Advanced editing with music and transitions</li>
+                  <li>• Same-day or next-day delivery</li>
+                  <li>• Multiple angles and creative shots</li>
+                  <li>• Perfect for commercial projects</li>
+                </ul>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
