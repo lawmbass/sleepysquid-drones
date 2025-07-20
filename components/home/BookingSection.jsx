@@ -244,10 +244,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   };
 
-  // Calculate minimum date (1 week from today)
+  // Calculate minimum date (2 days from today)
   function getMinDate() {
     const date = new Date();
-    date.setDate(date.getDate() + 7);
+    date.setDate(date.getDate() + 2);
     return date.toISOString().split('T')[0];
   }
 
@@ -417,7 +417,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     />
                   </div>
                   {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that&apos;s at least 7 days from today.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that&apos;s at least 2 days from today.</p>
                 </div>
 
                 <div className="mb-6">
