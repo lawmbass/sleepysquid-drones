@@ -38,6 +38,8 @@ export async function middleware(request) {
     '/api/auth',
     '/access-denied',
     '/invite',
+    '/verify-email',
+    '/verify-email-change',
     '/api/admin/invitations/validate'  // Invitation validation should be public
   ];
 

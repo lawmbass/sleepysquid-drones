@@ -156,7 +156,7 @@ export const authOptions = {
     async createUser(message) {
       console.log('User created:', message.user.email);
       
-      // Process invitation immediately after user creation
+      // Process invitation and email verification immediately after user creation
       try {
         const connectMongo = (await import('./mongoose')).default;
         const User = (await import('../models/User')).default;
@@ -164,19 +164,26 @@ export const authOptions = {
         
         await connectMongo();
         
-        // Check if there's a pending invitation for this email
-        const invitation = await Invitation.findOne({ 
-          email: message.user.email.toLowerCase(),
-          status: 'pending'
-        });
+        // Find the user that was just created by NextAuth
+        const newUser = await User.findOne({ email: message.user.email.toLowerCase() });
         
-        if (invitation) {
-          console.log(`Processing invitation for new user ${message.user.email}`);
+        if (newUser) {
+          // Mark OAuth users as email verified (Google, etc. have already verified the email)
+          // NextAuth only creates users through OAuth providers in this setup
+          newUser.emailVerification = {
+            verified: true
+          };
+          console.log(`Marked OAuth user ${message.user.email} as email verified`);
           
-          // Find the user that was just created by NextAuth
-          const newUser = await User.findOne({ email: message.user.email.toLowerCase() });
+          // Check if there's a pending invitation for this email
+          const invitation = await Invitation.findOne({ 
+            email: message.user.email.toLowerCase(),
+            status: 'pending'
+          });
           
-          if (newUser) {
+          if (invitation) {
+            console.log(`Processing invitation for new user ${message.user.email}`);
+            
             // Update user with invitation data
             newUser.role = invitation.role;
             newUser.hasAccess = invitation.hasAccess;
@@ -195,9 +202,6 @@ export const authOptions = {
               reason: 'Initial role assignment from invitation'
             });
             
-            await newUser.save();
-            console.log(`Updated new user ${message.user.email} with role ${invitation.role}`);
-            
             // Mark invitation as accepted
             invitation.status = 'accepted';
             invitation.acceptedAt = new Date();
@@ -205,9 +209,12 @@ export const authOptions = {
             
             console.log(`Invitation accepted for new user ${message.user.email}`);
           }
+          
+          await newUser.save();
+          console.log(`Updated new user ${message.user.email} - emailVerification.verified: true, role: ${newUser.role}`);
         }
       } catch (error) {
-        console.error('Error processing invitation in createUser event:', error);
+        console.error('Error processing new user in createUser event:', error);
       }
     },
     async linkAccount(message) {

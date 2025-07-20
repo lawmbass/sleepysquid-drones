@@ -19,10 +19,18 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database with all settings
-    const user = await User.findOne({ email: session.user.email });
+    // Explicitly select email verification fields since they're marked with select: false
+    const user = await User.findOne({ email: session.user.email })
+      .select('+emailVerification +pendingEmailChange');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Check if user has OAuth accounts (is an OAuth-only user)
+    const mongoose = (await import('mongoose')).default;
+    const oauthAccounts = await mongoose.connection.collection('accounts').findOne({
+      userId: user._id
+    });
 
     // Return user settings data
     res.status(200).json({
@@ -33,7 +41,9 @@ export default async function handler(req, res) {
         company: user.company || '',
         bio: user.bio || '',
         location: user.location || '',
-        website: user.website || ''
+        website: user.website || '',
+        emailVerified: user.emailVerification?.verified || false,
+        pendingEmail: user.pendingEmailChange?.email || null
       },
       preferences: {
         theme: user.preferences?.theme || 'light',
@@ -52,7 +62,8 @@ export default async function handler(req, res) {
       },
       security: {
         twoFactorEnabled: user.twoFactorEnabled || false,
-        hasPassword: !!user.password
+        hasPassword: !!user.password,
+        isOAuthUser: !!oauthAccounts && !user.password // OAuth user if they have OAuth accounts and no password
       }
     });
 

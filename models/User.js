@@ -14,6 +14,39 @@ const userSchema = mongoose.Schema(
       lowercase: true,
       private: true,
     },
+    // Current email verification
+    emailVerification: {
+      verified: {
+        type: Boolean,
+        default: false,
+      },
+      token: {
+        type: String,
+        select: false, // Don't include in queries by default
+      },
+      expires: {
+        type: Date,
+        select: false, // Don't include in queries by default
+      }
+    },
+    
+    // Pending email change
+    pendingEmailChange: {
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        select: false, // Don't include in queries by default
+      },
+      token: {
+        type: String,
+        select: false, // Don't include in queries by default
+      },
+      expires: {
+        type: Date,
+        select: false, // Don't include in queries by default
+      }
+    },
     image: {
       type: String,
     },
