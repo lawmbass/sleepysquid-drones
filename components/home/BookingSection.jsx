@@ -80,6 +80,14 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
+    // Special validation for date field
+    if (name === 'date' && value) {
+      if (!isValidDate(value)) {
+        setErrors(prev => ({ ...prev, [name]: 'Please select a date that is at least 2 days from today' }));
+        return;
+      }
+    }
+    
     // Clear error when field is updated
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -91,7 +99,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     
     if (currentStep === 1) {
       if (!formData.service) newErrors.service = 'Please select a service';
-      if (!formData.date) newErrors.date = 'Please select a date';
+      if (!formData.date) {
+        newErrors.date = 'Please select a date';
+      } else if (!isValidDate(formData.date)) {
+        newErrors.date = 'Please select a date that is at least 2 days from today';
+      }
       if (!formData.location) newErrors.location = 'Please enter a location';
       if (!formData.duration) newErrors.duration = 'Please select a duration';
     }
@@ -248,8 +260,25 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   function getMinDate() {
     const date = new Date();
     date.setDate(date.getDate() + 2);
+    // Return in YYYY-MM-DD format for HTML date input
     return date.toISOString().split('T')[0];
   }
+
+  // Validate if selected date meets minimum requirement
+  const isValidDate = (dateString) => {
+    if (!dateString) return false;
+    
+    // Parse the date string as a local date (YYYY-MM-DD format)
+    // This creates a date at midnight local time, consistent with how the HTML input works
+    const selectedDate = new Date(dateString + 'T00:00:00');
+    
+    // Create minimum date at midnight local time for consistent comparison
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 2);
+    minDate.setHours(0, 0, 0, 0); // Set to midnight local time
+    
+    return selectedDate >= minDate;
+  };
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -417,7 +446,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     />
                   </div>
                   {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please choose a date that&apos;s at least 2 days from today.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Bookings must be scheduled at least 2 days in advance.</p>
                 </div>
 
                 <div className="mb-6">
