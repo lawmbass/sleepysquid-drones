@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2, FiInfo } from 'react-icons/fi';
 import Settings from './Settings';
@@ -36,6 +36,10 @@ export default function ClientContent({ user, onUpdate }) {
     phone: ''
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+  // Create refs for date inputs
+  const createDateInputRef = useRef(null);
+  const editDateInputRef = useRef(null);
 
   // Update active section based on URL query
   useEffect(() => {
@@ -80,6 +84,19 @@ export default function ClientContent({ user, onUpdate }) {
     const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     
     return selected >= minimum;
+  };
+
+  // Handle clicking on date field containers to trigger date picker
+  const handleCreateDateFieldClick = () => {
+    if (createDateInputRef.current) {
+      createDateInputRef.current.showPicker();
+    }
+  };
+
+  const handleEditDateFieldClick = () => {
+    if (editDateInputRef.current) {
+      editDateInputRef.current.showPicker();
+    }
   };
 
   // Populate edit form when a job is selected for editing
@@ -365,25 +382,31 @@ export default function ClientContent({ user, onUpdate }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
-              <input
-                type="datetime-local"
-                value={createFormData.date}
-                onChange={(e) => {
-                  const newDate = e.target.value;
-                  setCreateFormData({...createFormData, date: newDate});
-                  // Validate and show error if needed
-                  if (newDate && !validateDate(newDate)) {
-                    setCreateDateError('Please select a date that is at least 2 days from today.');
-                  } else {
-                    setCreateDateError('');
-                  }
-                }}
-                min={getMinDateTime()}
-                required
-                className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                  createDateError ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
+              <div 
+                className="relative cursor-pointer"
+                onClick={handleCreateDateFieldClick}
+              >
+                <input
+                  type="datetime-local"
+                  ref={createDateInputRef}
+                  value={createFormData.date}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setCreateFormData({...createFormData, date: newDate});
+                    // Validate and show error if needed
+                    if (newDate && !validateDate(newDate)) {
+                      setCreateDateError('Please select a date that is at least 2 days from today.');
+                    } else {
+                      setCreateDateError('');
+                    }
+                  }}
+                  min={getMinDateTime()}
+                  required
+                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    createDateError ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+              </div>
               {createDateError && (
                 <p className="mt-1 text-xs text-red-500">{createDateError}</p>
               )}
@@ -607,25 +630,31 @@ export default function ClientContent({ user, onUpdate }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
-              <input
-                type="datetime-local"
-                value={editFormData.date}
-                onChange={(e) => {
-                  const newDate = e.target.value;
-                  setEditFormData({...editFormData, date: newDate});
-                  // Validate and show error if needed
-                  if (newDate && !validateDate(newDate)) {
-                    setEditDateError('Please select a date that is at least 2 days from today.');
-                  } else {
-                    setEditDateError('');
-                  }
-                }}
-                min={getMinDateTime()}
-                required
-                className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                  editDateError ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
+              <div 
+                className="relative cursor-pointer"
+                onClick={handleEditDateFieldClick}
+              >
+                <input
+                  type="datetime-local"
+                  ref={editDateInputRef}
+                  value={editFormData.date}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setEditFormData({...editFormData, date: newDate});
+                    // Validate and show error if needed
+                    if (newDate && !validateDate(newDate)) {
+                      setEditDateError('Please select a date that is at least 2 days from today.');
+                    } else {
+                      setEditDateError('');
+                    }
+                  }}
+                  min={getMinDateTime()}
+                  required
+                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    editDateError ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+              </div>
               {editDateError && (
                 <p className="mt-1 text-xs text-red-500">{editDateError}</p>
               )}
