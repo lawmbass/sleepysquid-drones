@@ -59,7 +59,9 @@ export default function Settings({ user, onUpdate }) {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    twoFactorEnabled: false
+    twoFactorEnabled: false,
+    hasPassword: false,
+    isOAuthUser: false
   });
 
   // Email verification states
@@ -93,7 +95,9 @@ export default function Settings({ user, onUpdate }) {
           setNotifications(data.notifications);
           setSecurity(prev => ({ 
             ...prev, 
-            twoFactorEnabled: data.security.twoFactorEnabled 
+            twoFactorEnabled: data.security.twoFactorEnabled,
+            hasPassword: data.security.hasPassword,
+            isOAuthUser: data.security.isOAuthUser
           }));
         }
       } catch (error) {
@@ -198,6 +202,12 @@ export default function Settings({ user, onUpdate }) {
           dataToSave = notifications;
           break;
         case 'security':
+          if (security.isOAuthUser) {
+            // OAuth users don't have security settings to update
+            setMessage({ type: 'info', text: 'Security settings are managed by your OAuth provider' });
+            setLoading(false);
+            return;
+          }
           if (security.newPassword !== security.confirmPassword) {
             setMessage({ type: 'error', text: 'Passwords do not match' });
             setLoading(false);
@@ -578,87 +588,142 @@ export default function Settings({ user, onUpdate }) {
 
   const renderSecurity = () => (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Current Password
-          </label>
-          <div className="relative">
+      {security.isOAuthUser ? (
+        // OAuth users (Google sign-in) - simplified security settings
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900">Google Account Security</h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  You signed in with Google. Your account security is managed by Google, including two-factor authentication and password management.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Security Features</h4>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-center">
+                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                Email verification handled by Google
+              </li>
+              <li className="flex items-center">
+                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                Password security managed by Google
+              </li>
+              <li className="flex items-center">
+                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                Two-factor authentication available through Google
+              </li>
+            </ul>
+            <div className="mt-3">
+              <a
+                href="https://myaccount.google.com/security"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                Manage Google Account Security
+                <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Regular users with password - full security settings
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Current Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={security.currentPassword}
+                onChange={(e) => setSecurity(prev => ({ ...prev, currentPassword: e.target.value }))}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="Enter current password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showPassword ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New Password
+            </label>
             <input
-              type={showPassword ? "text" : "password"}
-              value={security.currentPassword}
-              onChange={(e) => setSecurity(prev => ({ ...prev, currentPassword: e.target.value }))}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              placeholder="Enter current password"
+              type="password"
+              value={security.newPassword}
+              onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder="Enter new password"
             />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              value={security.confirmPassword}
+              onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder="Confirm new password"
+            />
+          </div>
+          
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+            <div className="flex-1 pr-4">
+              <h4 className="font-medium text-gray-900 text-sm sm:text-base">Two-Factor Authentication</h4>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Add an extra layer of security to your account
+              </p>
+            </div>
             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={() => setSecurity(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                security.twoFactorEnabled ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
             >
-              {showPassword ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  security.twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </button>
           </div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            New Password
-          </label>
-          <input
-            type="password"
-            value={security.newPassword}
-            onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            placeholder="Enter new password"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Confirm New Password
-          </label>
-          <input
-            type="password"
-            value={security.confirmPassword}
-            onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            placeholder="Confirm new password"
-          />
-        </div>
-        
-        <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
-          <div className="flex-1 pr-4">
-            <h4 className="font-medium text-gray-900 text-sm sm:text-base">Two-Factor Authentication</h4>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Add an extra layer of security to your account
-            </p>
-          </div>
+      )}
+      
+      {!security.isOAuthUser && (
+        <div className="flex justify-end pt-4">
           <button
-            onClick={() => setSecurity(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }))}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-              security.twoFactorEnabled ? 'bg-blue-600' : 'bg-gray-200'
-            }`}
+            onClick={() => handleSave('security')}
+            disabled={loading}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
           >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                security.twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            <FiSave className="mr-2 h-4 w-4" />
+            {loading ? 'Saving...' : 'Update Security'}
           </button>
         </div>
-      </div>
-      
-      <div className="flex justify-end pt-4">
-        <button
-          onClick={() => handleSave('security')}
-          disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
-        >
-          <FiSave className="mr-2 h-4 w-4" />
-          {loading ? 'Saving...' : 'Update Security'}
-        </button>
-      </div>
+      )}
     </div>
   );
 

@@ -65,6 +65,7 @@ Enhanced the Settings component (`components/dashboard/Settings.jsx`) with:
 - Email field is now read-only (changes must go through verification)
 - Color-coded status indicators (green for verified, amber for unverified)
 - Informational panels for pending changes and verification status
+- Simplified security settings for OAuth users (password/2FA managed by provider)
 
 ### 5. Email Templates
 
@@ -117,6 +118,8 @@ The implementation uses the existing Mailgun configuration from `config.js`. Ens
 2. Email is automatically marked as verified (Google has already verified it)
 3. User sees "Verified" ✅ status in settings immediately
 4. No verification email needed
+5. Security settings show simplified view (managed by Google)
+6. Password and 2FA settings not shown (handled by Google)
 
 ### Manual User Email Verification
 1. User signs up via other methods and receives verification email
@@ -171,7 +174,10 @@ To test the implementation:
 1. Sign up using Google OAuth
 2. Check that email immediately shows as "Verified" ✅ in settings
 3. Confirm no verification email is sent
-4. Test email change workflow still works for OAuth users
+4. Check Security tab shows simplified OAuth user interface
+5. Confirm password and 2FA fields are not shown
+6. Verify "Manage Google Account Security" link works
+7. Test email change workflow still works for OAuth users
 
 ### Manual User Testing:
 1. Create a new user account via other methods (if available)
