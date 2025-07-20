@@ -36,10 +36,16 @@ export default function ClientContent({ user, onUpdate }) {
     phone: ''
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [minDate, setMinDate] = useState('');
 
   // Create refs for date inputs
   const createDateInputRef = useRef(null);
   const editDateInputRef = useRef(null);
+
+  // Set minimum datetime when component mounts
+  useEffect(() => {
+    setMinDate(getMinDateTime());
+  }, []);
 
   // Update active section based on URL query
   useEffect(() => {
@@ -400,7 +406,7 @@ export default function ClientContent({ user, onUpdate }) {
                       setCreateDateError('');
                     }
                   }}
-                  min={getMinDateTime()}
+                  min={minDate}
                   required
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                     createDateError ? 'border-red-500' : 'border-gray-300'
@@ -648,7 +654,7 @@ export default function ClientContent({ user, onUpdate }) {
                       setEditDateError('');
                     }
                   }}
-                  min={getMinDateTime()}
+                  min={minDate}
                   required
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                     editDateError ? 'border-red-500' : 'border-gray-300'

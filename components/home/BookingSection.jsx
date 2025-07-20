@@ -691,7 +691,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
-                  <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Duration:</span> {formData.duration}</p>
                   {bookingResult?.estimatedPrice && (
                     <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Estimated Price:</span> ${bookingResult.estimatedPrice}</p>
                   )}
@@ -705,7 +704,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       package: '',
                       date: '',
                       location: '',
-                      duration: '',
                       details: '',
                       name: '',
                       email: '',
