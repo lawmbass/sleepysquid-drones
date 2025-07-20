@@ -80,6 +80,7 @@ Professional HTML email templates for:
 - **Email uniqueness validation** prevents duplicate email addresses
 - **Middleware protection** for verification endpoints
 - **Current email confirmation** required before allowing changes
+- **OAuth user auto-verification** - Users who sign up via Google OAuth are automatically marked as verified
 
 ## Installation & Setup
 
@@ -92,7 +93,8 @@ npm run migrate:email-verification
 ```
 
 This script will:
-- Add `emailVerified: false` to all existing users
+- Add `emailVerified: true` to existing OAuth users (Google sign-in users)
+- Add `emailVerified: false` to regular users who signed up via other methods
 - Provide statistics on verification status
 
 ### 2. Environment Variables
@@ -110,8 +112,14 @@ The implementation uses the existing Mailgun configuration from `config.js`. Ens
 
 ## User Experience Flow
 
-### New User Email Verification
-1. User signs up and receives verification email
+### OAuth User Sign-up (Google)
+1. User signs up via Google OAuth
+2. Email is automatically marked as verified (Google has already verified it)
+3. User sees "Verified" ✅ status in settings immediately
+4. No verification email needed
+
+### Manual User Email Verification
+1. User signs up via other methods and receives verification email
 2. User clicks verification link in email
 3. Verification page processes token and marks email as verified
 4. User is redirected to dashboard
@@ -158,13 +166,24 @@ Potential improvements that could be added:
 ## Testing
 
 To test the implementation:
-1. Create a new user account
+
+### OAuth User Testing:
+1. Sign up using Google OAuth
+2. Check that email immediately shows as "Verified" ✅ in settings
+3. Confirm no verification email is sent
+4. Test email change workflow still works for OAuth users
+
+### Manual User Testing:
+1. Create a new user account via other methods (if available)
 2. Check that email shows as "Unverified" in settings
 3. Click "Send Verification" and check email
 4. Verify email using the link
 5. Confirm status changes to "Verified"
-6. Test email change workflow with a different email address
-7. Verify the new email and confirm the change takes effect
+
+### Email Change Testing:
+1. Test email change workflow with a different email address
+2. Verify the new email and confirm the change takes effect
+3. Confirm new email shows as verified after successful change
 
 ## Support
 

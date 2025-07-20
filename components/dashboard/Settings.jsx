@@ -124,7 +124,15 @@ export default function Settings({ user, onUpdate }) {
       if (response.ok) {
         setMessage({ type: 'success', text: data.message });
       } else {
-        setMessage({ type: 'error', text: data.message || 'Failed to send verification email' });
+        if (data.isVerified) {
+          // Email is already verified, refresh the settings
+          setMessage({ type: 'success', text: 'Email is already verified!' });
+          setTimeout(() => {
+            loadSettings();
+          }, 1000);
+        } else {
+          setMessage({ type: 'error', text: data.message || 'Failed to send verification email' });
+        }
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to send verification email' });

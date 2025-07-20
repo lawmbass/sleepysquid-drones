@@ -30,9 +30,31 @@ const migrateEmailVerification = async () => {
   try {
     console.log('🔄 Starting email verification migration...');
 
-    // Update all existing users to have emailVerified: false if not already set
-    const result = await User.updateMany(
-      { emailVerified: { $exists: false } },
+    // Get all users with OAuth accounts (Google, etc.)
+    const oauthUsers = await mongoose.connection.collection('accounts').distinct('userId');
+    console.log(`Found ${oauthUsers.length} users with OAuth accounts`);
+
+    // Mark OAuth users as verified (they signed up through Google/OAuth)
+    const oauthResult = await User.updateMany(
+      { 
+        _id: { $in: oauthUsers },
+        emailVerified: { $exists: false }
+      },
+      { 
+        $set: { 
+          emailVerified: true
+        }
+      }
+    );
+
+    console.log(`✅ Marked ${oauthResult.modifiedCount} OAuth users as email verified`);
+
+    // Update remaining users to have emailVerified: false if not already set
+    const regularUsersResult = await User.updateMany(
+      { 
+        _id: { $nin: oauthUsers },
+        emailVerified: { $exists: false }
+      },
       { 
         $set: { 
           emailVerified: false
@@ -40,7 +62,7 @@ const migrateEmailVerification = async () => {
       }
     );
 
-    console.log(`✅ Migration completed: ${result.modifiedCount} users updated`);
+    console.log(`✅ Marked ${regularUsersResult.modifiedCount} regular users as email unverified`);
 
     // Show some stats
     const totalUsers = await User.countDocuments();
@@ -49,8 +71,9 @@ const migrateEmailVerification = async () => {
 
     console.log('\n📊 Email Verification Stats:');
     console.log(`Total users: ${totalUsers}`);
-    console.log(`Verified users: ${verifiedUsers}`);
+    console.log(`Verified users: ${verifiedUsers} (includes OAuth users)`);
     console.log(`Unverified users: ${unverifiedUsers}`);
+    console.log(`OAuth users automatically verified: ${oauthResult.modifiedCount}`);
 
   } catch (error) {
     console.error('❌ Migration error:', error);

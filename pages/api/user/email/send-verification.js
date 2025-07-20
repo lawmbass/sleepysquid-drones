@@ -29,7 +29,10 @@ export default async function handler(req, res) {
 
     // Check if email is already verified
     if (user.emailVerified) {
-      return res.status(400).json({ message: 'Email is already verified' });
+      return res.status(400).json({ 
+        message: 'Email is already verified',
+        isVerified: true
+      });
     }
 
     // Generate verification token
