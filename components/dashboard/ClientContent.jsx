@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
+import Settings from './Settings';
 
 export default function ClientContent({ user }) {
   const router = useRouter();
@@ -1033,37 +1034,13 @@ export default function ClientContent({ user }) {
       case 'jobs':
         return <JobsList />;
 
+      case 'settings':
+        return <Settings user={user} />;
+      
       case 'profile':
-        return (
-          <div className="space-y-6">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-              <p className="text-gray-600">Manage your account information and preferences.</p>
-            </div>
-            
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Account Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Name</label>
-                      <p className="mt-1 text-sm text-gray-900">{user.name}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
-                      <p className="mt-1 text-sm text-gray-900">{user.email}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Role</label>
-                      <p className="mt-1 text-sm text-gray-900 capitalize">{user.role}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        // Backward compatibility: redirect profile to settings
+        router.push('/dashboard?section=settings');
+        return <Settings user={user} />;
 
       default:
         return (
