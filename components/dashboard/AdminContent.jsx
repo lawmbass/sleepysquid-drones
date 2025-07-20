@@ -9,7 +9,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import AccessStatusBanner from './AccessStatusBanner';
 // Note: AdminSettings is now an inline component within this file
 
-export default function AdminContent({ user }) {
+export default function AdminContent({ user, onUpdate }) {
   // Check if user is SleepySquid admin
   const isSleepySquidAdmin = user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
   const router = useRouter();
@@ -195,7 +195,7 @@ export default function AdminContent({ user }) {
         return <Analytics />;
       
       case 'settings':
-        return <Settings user={user} />;
+        return <Settings user={user} onUpdate={onUpdate} />;
       
       case 'users':
         if (!isSleepySquidAdmin) {

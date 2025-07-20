@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
 import Settings from './Settings';
 
-export default function ClientContent({ user }) {
+export default function ClientContent({ user, onUpdate }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [jobs, setJobs] = useState([]);
@@ -29,13 +29,20 @@ export default function ClientContent({ user }) {
   // Update active section based on URL query
   useEffect(() => {
     const section = router.query.section || 'dashboard';
+    
+    // Handle backward compatibility: redirect profile to settings
+    if (section === 'profile') {
+      router.replace('/dashboard?section=settings');
+      return;
+    }
+    
     setActiveSection(section);
     
     // Load jobs for dashboard stats and jobs section
     if (section === 'jobs' || section === 'dashboard') {
       fetchJobs();
     }
-  }, [router.query.section]);
+  }, [router.query.section, router]);
 
   // Populate edit form when a job is selected for editing
   useEffect(() => {
@@ -1035,12 +1042,9 @@ export default function ClientContent({ user }) {
         return <JobsList />;
 
       case 'settings':
-        return <Settings user={user} />;
+        return <Settings user={user} onUpdate={onUpdate} />;
       
-      case 'profile':
-        // Backward compatibility: redirect profile to settings
-        router.push('/dashboard?section=settings');
-        return <Settings user={user} />;
+
 
       default:
         return (

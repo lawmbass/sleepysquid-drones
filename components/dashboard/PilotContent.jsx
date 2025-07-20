@@ -3,15 +3,22 @@ import { useRouter } from 'next/router';
 import { FiMap, FiUpload, FiActivity, FiCheckCircle } from 'react-icons/fi';
 import Settings from './Settings';
 
-export default function PilotContent({ user }) {
+export default function PilotContent({ user, onUpdate }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
 
   // Update active section based on URL query
   useEffect(() => {
     const section = router.query.section || 'dashboard';
+    
+    // Handle backward compatibility: redirect profile to settings
+    if (section === 'profile') {
+      router.replace('/dashboard?section=settings');
+      return;
+    }
+    
     setActiveSection(section);
-  }, [router.query.section]);
+  }, [router.query.section, router]);
 
   // Mobile compact dashboard component
   const MobileCompactDashboard = () => (
@@ -202,12 +209,7 @@ export default function PilotContent({ user }) {
         );
 
       case 'settings':
-        return <Settings user={user} />;
-      
-      case 'profile':
-        // Backward compatibility: redirect profile to settings
-        router.push('/dashboard?section=settings');
-        return <Settings user={user} />;
+        return <Settings user={user} onUpdate={onUpdate} />;
 
       default:
         return (
