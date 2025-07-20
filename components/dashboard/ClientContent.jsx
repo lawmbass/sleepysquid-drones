@@ -25,6 +25,8 @@ export default function ClientContent({ user, onUpdate }) {
     phone: user?.phone || ''
   });
   const [isCreateSubmitting, setIsCreateSubmitting] = useState(false);
+  const [createDateError, setCreateDateError] = useState('');
+  const [editDateError, setEditDateError] = useState('');
   const [editFormData, setEditFormData] = useState({
     service: '',
     package: '',
@@ -60,6 +62,20 @@ export default function ClientContent({ user, onUpdate }) {
     }
   }, [user?.phone, createFormData.phone]);
 
+  // Utility function to get minimum date for datetime-local inputs
+  const getMinDateTime = () => {
+    const minDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    return minDate.toISOString().slice(0, 16);
+  };
+
+  // Validate selected date
+  const validateDate = (selectedDate) => {
+    if (!selectedDate) return false;
+    const selected = new Date(selectedDate);
+    const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    return selected >= minimum;
+  };
+
   // Populate edit form when a job is selected for editing
   useEffect(() => {
     if (selectedJob && showEditModal) {
@@ -71,6 +87,7 @@ export default function ClientContent({ user, onUpdate }) {
         details: selectedJob.details || '',
         phone: selectedJob.phone || user?.phone || ''
       });
+      setEditDateError(''); // Clear date error when opening edit modal
     }
   }, [selectedJob, showEditModal, user?.phone]);
 
@@ -125,6 +142,13 @@ export default function ClientContent({ user, onUpdate }) {
   // Update job
   const handleUpdateJob = async () => {
     if (!selectedJob) return;
+    
+    // Validate date before submission
+    if (!validateDate(editFormData.date)) {
+      setEditDateError('Please select a date that is at least 2 days from today.');
+      return;
+    }
+    setEditDateError(''); // Clear any existing error
     
     setIsEditSubmitting(true);
     try {
@@ -219,6 +243,7 @@ export default function ClientContent({ user, onUpdate }) {
       details: '',
       phone: user?.phone || ''
     });
+    setCreateDateError(''); // Clear date error
   };
 
   // Create New Job Modal
@@ -226,6 +251,14 @@ export default function ClientContent({ user, onUpdate }) {
 
     const handleSubmit = async (e) => {
       e.preventDefault();
+      
+      // Validate date before submission
+      if (!validateDate(createFormData.date)) {
+        setCreateDateError('Please select a date that is at least 2 days from today.');
+        return;
+      }
+      setCreateDateError(''); // Clear any existing error
+      
       setIsCreateSubmitting(true);
       
       try {
@@ -329,11 +362,25 @@ export default function ClientContent({ user, onUpdate }) {
               <input
                 type="datetime-local"
                 value={createFormData.date}
-                onChange={(e) => setCreateFormData({...createFormData, date: e.target.value})}
-                min={new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  setCreateFormData({...createFormData, date: newDate});
+                  // Validate and show error if needed
+                  if (newDate && !validateDate(newDate)) {
+                    setCreateDateError('Please select a date that is at least 2 days from today.');
+                  } else {
+                    setCreateDateError('');
+                  }
+                }}
+                min={getMinDateTime()}
                 required
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                  createDateError ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {createDateError && (
+                <p className="mt-1 text-xs text-red-500">{createDateError}</p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
                 Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
@@ -557,11 +604,25 @@ export default function ClientContent({ user, onUpdate }) {
               <input
                 type="datetime-local"
                 value={editFormData.date}
-                onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
-                min={new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  setEditFormData({...editFormData, date: newDate});
+                  // Validate and show error if needed
+                  if (newDate && !validateDate(newDate)) {
+                    setEditDateError('Please select a date that is at least 2 days from today.');
+                  } else {
+                    setEditDateError('');
+                  }
+                }}
+                min={getMinDateTime()}
                 required
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                  editDateError ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {editDateError && (
+                <p className="mt-1 text-xs text-red-500">{editDateError}</p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
                 Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
