@@ -28,7 +28,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     package: '',
     date: '',
     location: '',
-    duration: '',
     details: '',
     name: '',
     email: '',
@@ -50,9 +49,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     threshold: 0.1,
   });
 
-  // Set isClient to true when component mounts in the browser
+  // Set minimum datetime when component mounts
   useEffect(() => {
-    setMinDate(getMinDate());
+    setMinDate(getMinDateTime());
   }, []);
 
   // Handle pre-selected service and package
@@ -100,12 +99,11 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     if (currentStep === 1) {
       if (!formData.service) newErrors.service = 'Please select a service';
       if (!formData.date) {
-        newErrors.date = 'Please select a date';
+        newErrors.date = 'Please select a date and time';
       } else if (!isValidDate(formData.date)) {
         newErrors.date = 'Please select a date that is at least 2 days from today';
       }
       if (!formData.location) newErrors.location = 'Please enter a location';
-      if (!formData.duration) newErrors.duration = 'Please select a duration';
     }
     
     if (currentStep === 2) {
@@ -131,7 +129,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Helper function to check if Step 1 is ready for next step
   const isStep1ReadyForNext = () => {
-    return formData.service && formData.date && formData.location && formData.duration;
+    return formData.service && formData.date && formData.location;
   };
 
   // Helper function to check if form is ready for submission
@@ -256,28 +254,23 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   };
 
-  // Calculate minimum date (2 days from today)
-  function getMinDate() {
-    const date = new Date();
-    date.setDate(date.getDate() + 2);
-    // Return in YYYY-MM-DD format for HTML date input
-    return date.toISOString().split('T')[0];
+  // Calculate minimum datetime (2 days from today)
+  function getMinDateTime() {
+    const minDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    return minDate.toISOString().slice(0, 16);
   }
 
-  // Validate if selected date meets minimum requirement
-  const isValidDate = (dateString) => {
-    if (!dateString) return false;
+  // Validate if selected datetime meets minimum requirement
+  const isValidDate = (selectedDateTime) => {
+    if (!selectedDateTime) return false;
     
-    // Parse the date string as a local date (YYYY-MM-DD format)
-    // This creates a date at midnight local time, consistent with how the HTML input works
-    const selectedDate = new Date(dateString + 'T00:00:00');
+    // Parse the datetime string (datetime-local format: YYYY-MM-DDTHH:mm)
+    const selected = new Date(selectedDateTime);
     
-    // Create minimum date at midnight local time for consistent comparison
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 2);
-    minDate.setHours(0, 0, 0, 0); // Set to midnight local time
+    // Create minimum date/time - 2 days from now
+    const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     
-    return selectedDate >= minDate;
+    return selected >= minimum;
   };
 
   // Format date for display
@@ -427,7 +420,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="date">
                     <div className="flex items-center">
                       <FiCalendar className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Preferred Date*
+                      Preferred Date & Time*
                     </div>
                   </label>
                   <div 
@@ -435,7 +428,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     onClick={handleDateFieldClick}
                   >
                     <input
-                      type="date"
+                      type="datetime-local"
                       id="date"
                       name="date"
                       ref={dateInputRef}
@@ -446,7 +439,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     />
                   </div>
                   {errors.date && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.date}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Bookings must be scheduled at least 2 days in advance.</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Please select your preferred date and time (must be at least 2 days in advance).</p>
                 </div>
 
                 <div className="mb-6">
@@ -474,36 +467,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
                 </div>
 
-                <div className="mb-6">
-                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="duration">
-                    <div className="flex items-center">
-                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Duration*
-                    </div>
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="duration"
-                      name="duration"
-                      value={formData.duration}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
-                    >
-                      <option value="">Select duration</option>
-                      <option value="1-2 hours">1-2 Hours</option>
-                      <option value="3-4 hours">3-4 Hours</option>
-                      <option value="5-8 hours">5-8 Hours</option>
-                      <option value="Full day">Full Day</option>
-                      <option value="Multiple days">Multiple Days</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.duration && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.duration}</p>}
-                </div>
+
 
                 <div className="mb-6">
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="details">
