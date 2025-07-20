@@ -307,7 +307,7 @@ export default function Settings({ user, onUpdate }) {
             
             {/* Verification Actions */}
             {!profileData.emailVerified && (
-              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 bg-amber-50 border border-amber-200 rounded-md">
                 <div className="flex items-center space-x-2">
                   <FiMail className="h-4 w-4 text-amber-600" />
                   <span className="text-sm text-amber-700">Email not verified</span>
@@ -315,7 +315,7 @@ export default function Settings({ user, onUpdate }) {
                 <button
                   onClick={handleSendVerification}
                   disabled={emailActions.sendingVerification}
-                  className="px-3 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {emailActions.sendingVerification ? 'Sending...' : 'Send Verification'}
                 </button>
@@ -351,27 +351,29 @@ export default function Settings({ user, onUpdate }) {
                 <label className="block text-xs font-medium text-gray-700">
                   New Email Address
                 </label>
-                <div className="flex space-x-2">
+                <div className="space-y-2 sm:space-y-0 sm:flex sm:space-x-2">
                   <input
                     type="email"
                     value={emailChangeData.newEmail}
                     onChange={(e) => setEmailChangeData(prev => ({ ...prev, newEmail: e.target.value }))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Enter new email address"
                   />
-                  <button
-                    onClick={handleEmailChange}
-                    disabled={emailActions.changingEmail || !emailChangeData.newEmail}
-                    className="px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {emailActions.changingEmail ? 'Sending...' : 'Change'}
-                  </button>
-                  <button
-                    onClick={() => setEmailChangeData({ newEmail: '', isChanging: false })}
-                    className="px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex space-x-2 sm:space-x-0 sm:space-x-2">
+                    <button
+                      onClick={handleEmailChange}
+                      disabled={emailActions.changingEmail || !emailChangeData.newEmail}
+                      className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {emailActions.changingEmail ? 'Sending...' : 'Change'}
+                    </button>
+                    <button
+                      onClick={() => setEmailChangeData({ newEmail: '', isChanging: false })}
+                      className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-500">
                   A verification email will be sent to your new email address.
