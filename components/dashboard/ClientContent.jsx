@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2, FiInfo } from 'react-icons/fi';
 import Settings from './Settings';
 
 export default function ClientContent({ user, onUpdate }) {
@@ -14,13 +14,13 @@ export default function ClientContent({ user, onUpdate }) {
   const [showJobDetail, setShowJobDetail] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPackageInfo, setShowPackageInfo] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     service: '',
     package: '',
     date: '',
     location: '',
-    duration: '',
     details: '',
     phone: ''
   });
@@ -50,9 +50,8 @@ export default function ClientContent({ user, onUpdate }) {
       setEditFormData({
         service: selectedJob.service || '',
         package: selectedJob.package || '',
-        date: selectedJob.date ? new Date(selectedJob.date).toISOString().split('T')[0] : '',
+        date: selectedJob.date ? new Date(selectedJob.date).toISOString().slice(0, 16) : '',
         location: selectedJob.location || '',
-        duration: selectedJob.duration || '',
         details: selectedJob.details || '',
         phone: selectedJob.phone || user?.phone || ''
       });
@@ -175,6 +174,24 @@ export default function ClientContent({ user, onUpdate }) {
     ).join(' ');
   };
 
+  // Helper function to get available packages for a service type
+  const getAvailablePackages = (serviceType) => {
+    const packages = [
+      { value: 'basic', label: 'Basic ($199)', minService: ['aerial-photography', 'real-estate'] },
+      { value: 'standard', label: 'Standard ($399)', minService: ['all'] },
+      { value: 'premium', label: 'Premium ($799)', minService: ['all'] }
+    ];
+
+    // Services that require at least Standard package (no Basic)
+    const standardMinServices = ['drone-videography', 'mapping-surveying', 'inspection', 'event-coverage', 'custom'];
+    
+    if (standardMinServices.includes(serviceType)) {
+      return packages.filter(pkg => pkg.value !== 'basic');
+    }
+    
+    return packages;
+  };
+
   // Create New Job Modal
   const CreateJobModal = () => {
     const [formData, setFormData] = useState({
@@ -182,7 +199,6 @@ export default function ClientContent({ user, onUpdate }) {
       package: '',
       date: '',
       location: '',
-      duration: '',
       details: '',
       phone: user?.phone || ''
     });
@@ -213,7 +229,6 @@ export default function ClientContent({ user, onUpdate }) {
             package: '',
             date: '',
             location: '',
-            duration: '',
             details: '',
             phone: user?.phone || ''
           });
@@ -249,7 +264,13 @@ export default function ClientContent({ user, onUpdate }) {
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
                   value={formData.service}
-                  onChange={(e) => setFormData({...formData, service: e.target.value})}
+                  onChange={(e) => {
+                    const newService = e.target.value;
+                    const availablePackages = getAvailablePackages(newService);
+                    // Reset package if current selection is not available for new service
+                    const newPackage = availablePackages.find(pkg => pkg.value === formData.package) ? formData.package : '';
+                    setFormData({...formData, service: newService, package: newPackage});
+                  }}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -265,49 +286,45 @@ export default function ClientContent({ user, onUpdate }) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700">Package</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Package</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPackageInfo(true)}
+                    className="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    title="Package information"
+                  >
+                    <FiInfo className="w-4 h-4" />
+                  </button>
+                </div>
                 <select
                   value={formData.package}
                   onChange={(e) => setFormData({...formData, package: e.target.value})}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
-                  <option value="basic">Basic ($199)</option>
-                  <option value="standard">Standard ($399)</option>
-                  <option value="premium">Premium ($799)</option>
+                  {getAvailablePackages(formData.service).map(pkg => (
+                    <option key={pkg.value} value={pkg.value}>
+                      {pkg.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Preferred Date</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Duration</label>
-                <select
-                  value={formData.duration}
-                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select duration</option>
-                  <option value="1-2 hours">1-2 hours</option>
-                  <option value="3-4 hours">3-4 hours</option>
-                  <option value="5-8 hours">5-8 hours</option>
-                  <option value="Full day">Full day</option>
-                  <option value="Multiple days">Multiple days</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
+              <input
+                type="datetime-local"
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                required
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Please select your preferred date and time. We&apos;ll confirm availability and may suggest alternative times if needed.
+              </p>
             </div>
 
             <div>
@@ -362,6 +379,96 @@ export default function ClientContent({ user, onUpdate }) {
               </button>
             </div>
           </form>
+          
+          {/* Package Info Dialog */}
+          {showPackageInfo && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-60 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">Package Information</h3>
+                  <button
+                    onClick={() => setShowPackageInfo(false)}
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                  >
+                    <FiX className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-4 space-y-4">
+                  {formData.service && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>Available for {formData.service.split('-').map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(' ')}:</strong>
+                      </p>
+                    </div>
+                  )}
+                  
+                  {getAvailablePackages(formData.service).find(pkg => pkg.value === 'basic') ? (
+                                         <div className="border rounded-lg p-4 bg-green-50">
+                       <h4 className="font-semibold text-green-800 mb-2">Basic Package - $199</h4>
+                       <ul className="text-sm text-green-700 space-y-1">
+                         <li>• <strong>1 hour</strong> of flight time</li>
+                         <li>• 10-15 high-resolution photos</li>
+                         <li>• Basic editing included</li>
+                         <li>• Digital delivery within 3-5 days</li>
+                         <li>• Perfect for small properties or simple shots</li>
+                       </ul>
+                     </div>
+                  ) : formData.service && (
+                    <div className="border rounded-lg p-4 bg-gray-100 opacity-60">
+                      <h4 className="font-semibold text-gray-600 mb-2">Basic Package - $199 (Not Available)</h4>
+                      <p className="text-sm text-gray-500 mb-2">
+                        Not available for {formData.service.split('-').map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(' ')} services due to complexity requirements.
+                      </p>
+                      <ul className="text-sm text-gray-500 space-y-1">
+                        <li>• Up to 1 hour of flight time</li>
+                        <li>• 10-15 high-resolution photos</li>
+                        <li>• Basic editing included</li>
+                        <li>• Digital delivery within 3-5 days</li>
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <div className="border rounded-lg p-4 bg-blue-50">
+                    <h4 className="font-semibold text-blue-800 mb-2">Standard Package - $399</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• <strong>2 hours</strong> of flight time</li>
+                      <li>• 25-30 high-resolution photos</li>
+                      <li>• 2-3 minutes of edited video</li>
+                      <li>• Professional editing and color correction</li>
+                      <li>• Digital delivery within 2-3 days</li>
+                      <li>• Ideal for real estate and events</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 bg-purple-50">
+                    <h4 className="font-semibold text-purple-800 mb-2">Premium Package - $799</h4>
+                    <ul className="text-sm text-purple-700 space-y-1">
+                      <li>• <strong>4 hours</strong> of flight time</li>
+                      <li>• 50+ high-resolution photos</li>
+                      <li>• 5-10 minutes of cinematic video</li>
+                      <li>• Advanced editing with music and transitions</li>
+                      <li>• Same-day or next-day delivery</li>
+                      <li>• Multiple angles and creative shots</li>
+                      <li>• Perfect for commercial projects</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <p className="text-xs text-gray-600">
+                      <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -395,7 +502,13 @@ export default function ClientContent({ user, onUpdate }) {
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
                   value={editFormData.service}
-                  onChange={(e) => setEditFormData({...editFormData, service: e.target.value})}
+                  onChange={(e) => {
+                    const newService = e.target.value;
+                    const availablePackages = getAvailablePackages(newService);
+                    // Reset package if current selection is not available for new service
+                    const newPackage = availablePackages.find(pkg => pkg.value === editFormData.package) ? editFormData.package : '';
+                    setEditFormData({...editFormData, service: newService, package: newPackage});
+                  }}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -418,42 +531,28 @@ export default function ClientContent({ user, onUpdate }) {
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
-                  <option value="basic">Basic ($199)</option>
-                  <option value="standard">Standard ($399)</option>
-                  <option value="premium">Premium ($799)</option>
+                  {getAvailablePackages(editFormData.service).map(pkg => (
+                    <option key={pkg.value} value={pkg.value}>
+                      {pkg.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Preferred Date</label>
-                <input
-                  type="date"
-                  value={editFormData.date}
-                  onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
-                  min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Duration</label>
-                <select
-                  value={editFormData.duration}
-                  onChange={(e) => setEditFormData({...editFormData, duration: e.target.value})}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select duration</option>
-                  <option value="1-2 hours">1-2 hours</option>
-                  <option value="3-4 hours">3-4 hours</option>
-                  <option value="5-8 hours">5-8 hours</option>
-                  <option value="Full day">Full day</option>
-                  <option value="Multiple days">Multiple days</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
+              <input
+                type="datetime-local"
+                value={editFormData.date}
+                onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
+                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                required
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Please select your preferred date and time. We&apos;ll confirm availability and may suggest alternative times if needed.
+              </p>
             </div>
 
             <div>
@@ -615,18 +714,13 @@ export default function ClientContent({ user, onUpdate }) {
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <label className="block text-sm font-medium text-gray-700">Date & Time</label>
                 <div className="flex items-center mt-1">
                   <FiCalendar className="h-4 w-4 text-gray-400 mr-2" />
                   <p className="text-sm text-gray-900">
-                    {new Date(selectedJob.date).toLocaleDateString()}
+                    {new Date(selectedJob.date).toLocaleString()}
                   </p>
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Duration</label>
-                <p className="mt-1 text-sm text-gray-900">{selectedJob.duration}</p>
               </div>
             </div>
             
