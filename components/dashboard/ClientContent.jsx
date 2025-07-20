@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2, FiInfo } from 'react-icons/fi';
 import Settings from './Settings';
 
 export default function ClientContent({ user, onUpdate }) {
@@ -14,6 +14,7 @@ export default function ClientContent({ user, onUpdate }) {
   const [showJobDetail, setShowJobDetail] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPackageInfo, setShowPackageInfo] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     service: '',
@@ -265,7 +266,17 @@ export default function ClientContent({ user, onUpdate }) {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700">Package</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Package</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPackageInfo(true)}
+                    className="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    title="Package information"
+                  >
+                    <FiInfo className="w-4 h-4" />
+                  </button>
+                </div>
                 <select
                   value={formData.package}
                   onChange={(e) => setFormData({...formData, package: e.target.value})}
