@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 
@@ -15,11 +15,7 @@ const services = [
   { id: 'custom', name: 'Custom Project' }
 ];
 
-const packages = [
-  { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
-  { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
-  { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
-];
+
 
 const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect }) => {
   const [step, setStep] = useState(1);
@@ -38,6 +34,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [showPackageInfo, setShowPackageInfo] = useState(false);
   
   // Create refs
   const dateInputRef = useRef(null);
@@ -409,12 +406,22 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="package">
-                    <div className="flex items-center">
-                      <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
-                      Select Package (Optional)
-                    </div>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-gray-700 dark:text-gray-300 font-medium" htmlFor="package">
+                      <div className="flex items-center">
+                        <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
+                        Select Package (Optional)
+                      </div>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPackageInfo(true)}
+                      className="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                      title="Package information"
+                    >
+                      <FiInfo className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="relative">
                     <select
                       id="package"
@@ -438,7 +445,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </div>
                   {formData.package && (
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                      {packages.find(pkg => pkg.id === formData.package)?.description}
+                      {getAvailablePackages(formData.service).find(pkg => pkg.id === formData.package)?.description}
                     </p>
                   )}
                 </div>
@@ -714,7 +721,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   {formData.package && (
-                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {packages.find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {getAvailablePackages(formData.service).find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>
@@ -754,6 +761,96 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           </div>
         </motion.div>
       </div>
+
+      {/* Package Info Dialog */}
+      {showPackageInfo && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Package Information</h3>
+              <button
+                onClick={() => setShowPackageInfo(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {formData.service && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Available for {formData.service.split('-').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ')}:</strong>
+                  </p>
+                </div>
+              )}
+              
+              {getAvailablePackages(formData.service).find(pkg => pkg.id === 'basic') ? (
+                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Basic Package - $199</h4>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                    <li>• <strong>1 hour</strong> of flight time</li>
+                    <li>• 10-15 high-resolution photos</li>
+                    <li>• Basic editing included</li>
+                    <li>• Digital delivery within 3-5 days</li>
+                    <li>• Perfect for small properties or simple shots</li>
+                  </ul>
+                </div>
+              ) : formData.service && (
+                <div className="border rounded-lg p-4 bg-gray-100 dark:bg-gray-800 opacity-60 border-gray-300 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2">Basic Package - $199 (Not Available)</h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    Not available for {formData.service.split('-').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ')} services due to complexity requirements.
+                  </p>
+                  <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                    <li>• Up to 1 hour of flight time</li>
+                    <li>• 10-15 high-resolution photos</li>
+                    <li>• Basic editing included</li>
+                    <li>• Digital delivery within 3-5 days</li>
+                  </ul>
+                </div>
+              )}
+              
+              <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Standard Package - $399</h4>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                  <li>• <strong>2 hours</strong> of flight time</li>
+                  <li>• 25-30 high-resolution photos</li>
+                  <li>• 2-3 minutes of edited video</li>
+                  <li>• Professional editing and color correction</li>
+                  <li>• Digital delivery within 2-3 days</li>
+                  <li>• Ideal for real estate and events</li>
+                </ul>
+              </div>
+              
+              <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+                <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Premium Package - $799</h4>
+                <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                  <li>• <strong>4 hours</strong> of flight time</li>
+                  <li>• 50+ high-resolution photos</li>
+                  <li>• 5-10 minutes of cinematic video</li>
+                  <li>• Advanced editing with music and transitions</li>
+                  <li>• Same-day or next-day delivery</li>
+                  <li>• Multiple angles and creative shots</li>
+                  <li>• Perfect for commercial projects</li>
+                </ul>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
