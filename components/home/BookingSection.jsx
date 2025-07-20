@@ -46,9 +46,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     threshold: 0.1,
   });
 
-  // Set minimum datetime when component mounts
+  // Set and update minimum datetime
   useEffect(() => {
-    setMinDate(getMinDateTime());
+    const updateMinDate = () => {
+      setMinDate(getMinDateTime());
+    };
+    
+    // Set initial minDate
+    updateMinDate();
+    
+    // Update minDate every minute to keep it current
+    const interval = setInterval(updateMinDate, 60000); // 60 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Handle pre-selected service and package
@@ -284,15 +294,16 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     return minDate.toISOString().slice(0, 16);
   }
 
-  // Validate if selected datetime meets minimum requirement
+  // Validate if selected datetime meets minimum requirement (uses the same minDate as HTML validation for consistency)
   const isValidDate = (selectedDateTime) => {
     if (!selectedDateTime) return false;
     
     // Parse the datetime string (datetime-local format: YYYY-MM-DDTHH:mm)
     const selected = new Date(selectedDateTime);
     
-    // Create minimum date/time - 2 days from now
-    const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    // Use the same minDate that's used for HTML validation to ensure consistency
+    if (!minDate) return false; // If minDate isn't set yet, consider invalid
+    const minimum = new Date(minDate);
     
     return selected >= minimum;
   };
@@ -310,8 +321,16 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Function to handle clicking on the date field container
   const handleDateFieldClick = () => {
-    if (dateInputRef.current) {
-      dateInputRef.current.showPicker();
+    if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
+      try {
+        dateInputRef.current.showPicker();
+      } catch (error) {
+        // Fallback: focus the input if showPicker fails
+        dateInputRef.current.focus();
+      }
+    } else if (dateInputRef.current) {
+      // Fallback for browsers that don't support showPicker
+      dateInputRef.current.focus();
     }
   };
 

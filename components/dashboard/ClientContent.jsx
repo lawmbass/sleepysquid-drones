@@ -42,9 +42,19 @@ export default function ClientContent({ user, onUpdate }) {
   const createDateInputRef = useRef(null);
   const editDateInputRef = useRef(null);
 
-  // Set minimum datetime when component mounts
+  // Set and update minimum datetime
   useEffect(() => {
-    setMinDate(getMinDateTime());
+    const updateMinDate = () => {
+      setMinDate(getMinDateTime());
+    };
+    
+    // Set initial minDate
+    updateMinDate();
+    
+    // Update minDate every minute to keep it current
+    const interval = setInterval(updateMinDate, 60000); // 60 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Update active section based on URL query
@@ -78,30 +88,46 @@ export default function ClientContent({ user, onUpdate }) {
     return minDate.toISOString().slice(0, 16);
   };
 
-  // Validate selected date
+  // Validate selected date (uses the same minDate as HTML validation for consistency)
   const validateDate = (selectedDate) => {
     if (!selectedDate) return false;
     
     // Parse the datetime string (datetime-local format: YYYY-MM-DDTHH:mm)
     const selected = new Date(selectedDate);
     
-    // Create minimum date/time - 2 days from now
-    // Use the exact current time for datetime comparisons
-    const minimum = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    // Use the same minDate that's used for HTML validation to ensure consistency
+    if (!minDate) return false; // If minDate isn't set yet, consider invalid
+    const minimum = new Date(minDate);
     
     return selected >= minimum;
   };
 
   // Handle clicking on date field containers to trigger date picker
   const handleCreateDateFieldClick = () => {
-    if (createDateInputRef.current) {
-      createDateInputRef.current.showPicker();
+    if (createDateInputRef.current && typeof createDateInputRef.current.showPicker === 'function') {
+      try {
+        createDateInputRef.current.showPicker();
+      } catch (error) {
+        // Fallback: focus the input if showPicker fails
+        createDateInputRef.current.focus();
+      }
+    } else if (createDateInputRef.current) {
+      // Fallback for browsers that don't support showPicker
+      createDateInputRef.current.focus();
     }
   };
 
   const handleEditDateFieldClick = () => {
-    if (editDateInputRef.current) {
-      editDateInputRef.current.showPicker();
+    if (editDateInputRef.current && typeof editDateInputRef.current.showPicker === 'function') {
+      try {
+        editDateInputRef.current.showPicker();
+      } catch (error) {
+        // Fallback: focus the input if showPicker fails
+        editDateInputRef.current.focus();
+      }
+    } else if (editDateInputRef.current) {
+      // Fallback for browsers that don't support showPicker
+      editDateInputRef.current.focus();
     }
   };
 
