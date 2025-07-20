@@ -15,6 +15,9 @@ module.exports = {
           xl: '5rem',
         },
       },
+      borderWidth: {
+        '3': '3px',
+      },
     },
   },
   plugins: [],
