@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const user = await User.findOne({
       'pendingEmailChange.token': token,
       'pendingEmailChange.expires': { $gt: new Date() }
-    }).select('+pendingEmailChange');
+    }).select('+pendingEmailChange.email +pendingEmailChange.token +pendingEmailChange.expires');
 
     if (!user) {
       return res.status(400).json({ 

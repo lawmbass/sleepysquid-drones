@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     // Get user from database
     // Select pendingEmailChange to check if there's already a pending change
     const user = await User.findOne({ email: session.user.email })
-      .select('+pendingEmailChange');
+      .select('+pendingEmailChange.email +pendingEmailChange.token +pendingEmailChange.expires');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
