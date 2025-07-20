@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "migrate:email-verification": "node scripts/migrate-email-verification.js",
-    "test:url-construction": "node scripts/test-url-construction.js"
+    "test:url-construction": "node scripts/test-url-construction.js",
+    "validate:build": "node scripts/validate-build.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
