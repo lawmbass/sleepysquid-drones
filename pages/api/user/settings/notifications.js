@@ -29,6 +29,8 @@ export default async function handler(req, res) {
       emailNotifications,
       pushNotifications,
       bookingUpdates,
+      bookingConfirmations,
+      statusUpdates,
       marketingEmails,
       weeklyReports,
       securityAlerts
@@ -43,6 +45,8 @@ export default async function handler(req, res) {
             emailNotifications: emailNotifications !== undefined ? emailNotifications : user.notifications?.emailNotifications || true,
             pushNotifications: pushNotifications !== undefined ? pushNotifications : user.notifications?.pushNotifications || true,
             bookingUpdates: bookingUpdates !== undefined ? bookingUpdates : user.notifications?.bookingUpdates || true,
+            bookingConfirmations: bookingConfirmations !== undefined ? bookingConfirmations : user.notifications?.bookingConfirmations || true,
+            statusUpdates: statusUpdates !== undefined ? statusUpdates : user.notifications?.statusUpdates || true,
             marketingEmails: marketingEmails !== undefined ? marketingEmails : user.notifications?.marketingEmails || false,
             weeklyReports: weeklyReports !== undefined ? weeklyReports : user.notifications?.weeklyReports || true,
             securityAlerts: securityAlerts !== undefined ? securityAlerts : user.notifications?.securityAlerts || true

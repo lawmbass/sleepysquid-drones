@@ -104,6 +104,14 @@ const userSchema = mongoose.Schema(
         type: Boolean,
         default: true,
       },
+      bookingConfirmations: {
+        type: Boolean,
+        default: true,
+      },
+      statusUpdates: {
+        type: Boolean,
+        default: true,
+      },
       marketingEmails: {
         type: Boolean,
         default: false,

@@ -1,6 +1,9 @@
 import connectMongo from "@/libs/mongoose";
 import Booking from "@/models/Booking";
+import User from "@/models/User";
 import { bookingRateLimit } from "@/libs/rateLimit";
+import { sendBookingConfirmationEmail, shouldSendEmailNotification } from "@/libs/emailService";
+import config from "@/config";
 
 // Apply rate limiting middleware
 const rateLimitMiddleware = (req, res) => {
@@ -252,10 +255,42 @@ export default async function handler(req, res) {
     // Save to database
     const savedBooking = await newBooking.save();
 
+    // Check if user has an account
+    const existingUser = await User.findOne({ email: sanitizedData.email.toLowerCase() });
+    const hasAccount = !!existingUser;
+
+    // Send confirmation email based on user preferences
+    let emailSent = false;
+    try {
+      if (hasAccount) {
+        // For authenticated users, check their notification preferences
+        const shouldSend = await shouldSendEmailNotification(sanitizedData.email, 'bookingConfirmations');
+        if (shouldSend) {
+          await sendBookingConfirmationEmail(savedBooking, { 
+            hasAccount: true,
+            loginUrl: `https://${process.env.VERCEL_URL || config.domainName}/dashboard`
+          });
+          emailSent = true;
+        }
+      } else {
+        // For non-authenticated users, always send confirmation with account creation prompt
+        await sendBookingConfirmationEmail(savedBooking, { 
+          hasAccount: false,
+          loginUrl: `https://${process.env.VERCEL_URL || config.domainName}/login`
+        });
+        emailSent = true;
+      }
+    } catch (emailError) {
+      console.error('Failed to send booking confirmation email:', emailError);
+      // Don't fail the booking if email fails
+    }
+
     // Return success response (limited data for security)
     res.status(201).json({
       success: true,
-      message: 'Booking submitted successfully! We will contact you soon to confirm the details.',
+      message: emailSent 
+        ? 'Booking submitted successfully! We will contact you soon to confirm the details. A confirmation email has been sent.'
+        : 'Booking submitted successfully! We will contact you soon to confirm the details.',
       booking: {
         id: savedBooking._id,
         service: savedBooking.service,
@@ -263,7 +298,9 @@ export default async function handler(req, res) {
         location: savedBooking.location,
         status: savedBooking.status,
         estimatedPrice: savedBooking.estimatedPrice,
-      }
+      },
+      hasAccount,
+      emailSent
     });
 
   } catch (error) {
