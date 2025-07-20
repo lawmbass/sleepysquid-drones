@@ -19,7 +19,9 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database with all settings
-    const user = await User.findOne({ email: session.user.email });
+    // Explicitly select pendingEmail field since it's marked with select: false in the model
+    const user = await User.findOne({ email: session.user.email })
+      .select('+pendingEmail');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

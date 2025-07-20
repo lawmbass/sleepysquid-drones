@@ -35,9 +35,18 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database
-    const user = await User.findOne({ email: session.user.email });
+    // Select pendingEmail to check if there's already a pending change
+    const user = await User.findOne({ email: session.user.email })
+      .select('+pendingEmail +pendingEmailExpires');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if there's already a pending email change that hasn't expired
+    if (user.pendingEmail && user.pendingEmailExpires && user.pendingEmailExpires > new Date()) {
+      return res.status(400).json({ 
+        message: `You already have a pending email change to ${user.pendingEmail}. Please verify that email or wait for it to expire before requesting a new change.` 
+      });
     }
 
     // Check if new email is the same as current email
