@@ -28,32 +28,43 @@ const User = mongoose.model('User', userSchema);
 
 const migrateToNestedStructure = async () => {
   try {
-    console.log('🔄 Starting migration to nested email verification structure...');
+    console.log('🔄 Starting email verification migration...');
 
-    // Find users with old flat structure
-    const usersWithOldStructure = await User.find({
+    // Get all users with OAuth accounts (Google, etc.)
+    const oauthUsers = await mongoose.connection.collection('accounts').distinct('userId');
+    console.log(`Found ${oauthUsers.length} users with OAuth accounts`);
+
+    // Find users that need migration (either old structure or no email verification fields)
+    const usersNeedingMigration = await User.find({
       $or: [
+        // Users with old flat structure
         { emailVerified: { $exists: true } },
         { emailVerificationToken: { $exists: true } },
         { emailVerificationExpires: { $exists: true } },
         { pendingEmail: { $exists: true } },
         { pendingEmailToken: { $exists: true } },
-        { pendingEmailExpires: { $exists: true } }
+        { pendingEmailExpires: { $exists: true } },
+        // Users without any email verification structure
+        { 'emailVerification.verified': { $exists: false } }
       ]
     });
 
-    console.log(`Found ${usersWithOldStructure.length} users with old structure`);
+    console.log(`Found ${usersNeedingMigration.length} users needing migration`);
 
     let migratedCount = 0;
 
-    for (const user of usersWithOldStructure) {
+    for (const user of usersNeedingMigration) {
       const updateData = {};
       const unsetData = {};
+      const isOAuthUser = oauthUsers.some(id => id.toString() === user._id.toString());
 
       // Migrate emailVerified -> emailVerification.verified
       if (user.emailVerified !== undefined) {
         updateData['emailVerification.verified'] = user.emailVerified;
         unsetData.emailVerified = 1;
+      } else if (user.emailVerification?.verified === undefined) {
+        // User doesn't have emailVerification.verified field yet
+        updateData['emailVerification.verified'] = isOAuthUser;
       }
 
       // Migrate emailVerificationToken -> emailVerification.token
@@ -97,7 +108,7 @@ const migrateToNestedStructure = async () => {
         migratedCount++;
 
         if (migratedCount % 10 === 0) {
-          console.log(`Migrated ${migratedCount}/${usersWithOldStructure.length} users...`);
+          console.log(`Migrated ${migratedCount}/${usersNeedingMigration.length} users...`);
         }
       }
     }

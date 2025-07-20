@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate:email-verification": "node scripts/migrate-email-verification.js",
-    "migrate:nested-email-structure": "node scripts/migrate-to-nested-email-verification.js"
+    "migrate:email-verification": "node scripts/migrate-to-nested-email-verification.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
