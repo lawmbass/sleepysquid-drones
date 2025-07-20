@@ -5,6 +5,7 @@ import User from "@/models/User";
 import { sendEmail } from "@/libs/mailgun";
 import config from "@/config";
 import crypto from "crypto";
+import { buildVerificationUrl, isValidUrl } from "@/libs/urlUtils";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -61,8 +62,18 @@ export default async function handler(req, res) {
       pendingEmailExpires: verificationExpires
     });
 
-    // Create verification link
-    const verificationLink = `${process.env.NEXTAUTH_URL}/verify-email-change?token=${verificationToken}`;
+    // Create verification link with proper validation
+    const verificationLink = buildVerificationUrl('/verify-email-change', { token: verificationToken });
+    
+    // Validate the constructed URL
+    if (!isValidUrl(verificationLink)) {
+      throw new Error('Failed to construct valid verification URL');
+    }
+    
+    // Log the verification link in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📧 Email change verification link generated:', verificationLink);
+    }
 
     // Send verification email to new email address
     await sendEmailChangeVerification(newEmail, user.name, verificationLink, user.email);
@@ -73,6 +84,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Email change error:', error);
+    
+    // Provide specific error messages for URL construction issues
+    if (error.message.includes('verification URL')) {
+      return res.status(500).json({ 
+        message: 'Email change verification is temporarily unavailable. Please contact support.',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'URL configuration error'
+      });
+    }
+    
     res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined

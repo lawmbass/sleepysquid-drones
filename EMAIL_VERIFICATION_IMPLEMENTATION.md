@@ -82,6 +82,7 @@ Professional HTML email templates for:
 - **Middleware protection** for verification endpoints
 - **Current email confirmation** required before allowing changes
 - **OAuth user auto-verification** - Users who sign up via Google OAuth are automatically marked as verified
+- **Robust URL validation** - Prevents malformed verification links with multiple fallback sources
 
 ## Installation & Setup
 
@@ -107,7 +108,16 @@ NEXTAUTH_URL=your_application_url
 MAILGUN_API_KEY=your_mailgun_api_key
 ```
 
-### 3. Email Configuration
+**Important**: The `NEXTAUTH_URL` variable is critical for email verification links. See `URL_VALIDATION_BUG_FIX.md` for details on URL construction and fallback options.
+
+### 3. Test URL Construction
+
+Validate your environment setup:
+```bash
+npm run test:url-construction
+```
+
+### 4. Email Configuration
 
 The implementation uses the existing Mailgun configuration from `config.js`. Ensure your Mailgun settings are properly configured.
 
