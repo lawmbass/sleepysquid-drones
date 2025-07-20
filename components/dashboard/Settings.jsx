@@ -43,6 +43,8 @@ export default function Settings({ user, onUpdate }) {
     emailNotifications: true,
     pushNotifications: true,
     bookingUpdates: true,
+    bookingConfirmations: true,
+    statusUpdates: true,
     marketingEmails: false,
     weeklyReports: true,
     securityAlerts: true
@@ -487,6 +489,8 @@ export default function Settings({ user, onUpdate }) {
       emailNotifications: 'Receive email notifications for important updates',
       pushNotifications: 'Get push notifications on your device',
       bookingUpdates: 'Get notified about booking status changes',
+      bookingConfirmations: 'Receive confirmation emails when you submit new bookings',
+      statusUpdates: 'Get notified when your booking status changes',
       marketingEmails: 'Receive promotional emails and offers',
       weeklyReports: 'Get weekly summary reports',
       securityAlerts: 'Receive alerts about account security'

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
+import Link from 'next/link';
 
 const services = [
   { id: 'aerial-photography', name: 'Aerial Photography' },
@@ -648,7 +649,44 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Booking Submitted!</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
                   Thank you for booking with SleepySquid Drones. We&apos;ll review your request and contact you within 24 hours to confirm the details.
+                  {bookingResult?.emailSent && (
+                    <span className="block mt-2 text-green-600 dark:text-green-400">
+                      ✅ A confirmation email has been sent to {formData.email}
+                    </span>
+                  )}
                 </p>
+
+                {/* Account creation prompt for users without accounts */}
+                {bookingResult?.hasAccount === false && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6 text-left">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-6 w-6 text-blue-500 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                          Manage Your Bookings
+                        </h4>
+                        <p className="text-blue-800 dark:text-blue-200 mb-4">
+                          Create an account to easily manage your bookings, view status updates, and track your service history.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Link
+                            href="/login"
+                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
+                          >
+                            Create Account & Manage Bookings
+                          </Link>
+                          <span className="text-sm text-blue-700 dark:text-blue-300 self-center">
+                            Booking ID: <span className="font-mono font-semibold">{bookingResult?.id}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-gray-100 dark:bg-gray-600 rounded-lg p-6 text-left mb-6">
                   <h4 className="font-bold mb-3 text-gray-900 dark:text-white">Booking Summary:</h4>
                   {bookingResult && (
