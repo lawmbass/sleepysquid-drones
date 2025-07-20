@@ -16,6 +16,15 @@ export default function ClientContent({ user, onUpdate }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPackageInfo, setShowPackageInfo] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [createFormData, setCreateFormData] = useState({
+    service: '',
+    package: '',
+    date: '',
+    location: '',
+    details: '',
+    phone: user?.phone || ''
+  });
+  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     service: '',
     package: '',
@@ -43,6 +52,13 @@ export default function ClientContent({ user, onUpdate }) {
       fetchJobs();
     }
   }, [router.query.section, router]);
+
+  // Update create form phone when user changes
+  useEffect(() => {
+    if (user?.phone && !createFormData.phone) {
+      setCreateFormData(prev => ({ ...prev, phone: user.phone }));
+    }
+  }, [user?.phone, createFormData.phone]);
 
   // Populate edit form when a job is selected for editing
   useEffect(() => {
@@ -192,9 +208,10 @@ export default function ClientContent({ user, onUpdate }) {
     return packages;
   };
 
-  // Create New Job Modal
-  const CreateJobModal = () => {
-    const [formData, setFormData] = useState({
+  // Handle closing create modal
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateFormData({
       service: '',
       package: '',
       date: '',
@@ -202,11 +219,14 @@ export default function ClientContent({ user, onUpdate }) {
       details: '',
       phone: user?.phone || ''
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  };
+
+  // Create New Job Modal
+  const CreateJobModal = () => {
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      setIsSubmitting(true);
+      setIsCreateSubmitting(true);
       
       try {
         const response = await fetch('/api/bookings', {
@@ -215,7 +235,7 @@ export default function ClientContent({ user, onUpdate }) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            ...formData,
+            ...createFormData,
             name: user.name,
             email: user.email,
             recaptchaToken: 'session-authenticated' // Since user is logged in
@@ -223,15 +243,7 @@ export default function ClientContent({ user, onUpdate }) {
         });
 
         if (response.ok) {
-          setShowCreateModal(false);
-          setFormData({
-            service: '',
-            package: '',
-            date: '',
-            location: '',
-            details: '',
-            phone: user?.phone || ''
-          });
+          handleCloseCreateModal();
           fetchJobs(); // Refresh jobs list
         } else {
           const error = await response.json();
@@ -241,7 +253,7 @@ export default function ClientContent({ user, onUpdate }) {
         console.error('Error creating job:', error);
         alert('Failed to create job. Please try again.');
       } finally {
-        setIsSubmitting(false);
+        setIsCreateSubmitting(false);
       }
     };
 
@@ -251,7 +263,7 @@ export default function ClientContent({ user, onUpdate }) {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Create New Service Request</h3>
             <button
-              onClick={() => setShowCreateModal(false)}
+              onClick={handleCloseCreateModal}
               className="text-gray-400 hover:text-gray-600"
             >
               <FiX className="h-6 w-6" />
@@ -263,13 +275,13 @@ export default function ClientContent({ user, onUpdate }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
-                  value={formData.service}
+                  value={createFormData.service}
                   onChange={(e) => {
                     const newService = e.target.value;
                     const availablePackages = getAvailablePackages(newService);
                     // Reset package if current selection is not available for new service
-                    const newPackage = availablePackages.find(pkg => pkg.value === formData.package) ? formData.package : '';
-                    setFormData({...formData, service: newService, package: newPackage});
+                    const newPackage = availablePackages.find(pkg => pkg.value === createFormData.package) ? createFormData.package : '';
+                    setCreateFormData({...createFormData, service: newService, package: newPackage});
                   }}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -298,12 +310,12 @@ export default function ClientContent({ user, onUpdate }) {
                   </button>
                 </div>
                 <select
-                  value={formData.package}
-                  onChange={(e) => setFormData({...formData, package: e.target.value})}
+                  value={createFormData.package}
+                  onChange={(e) => setCreateFormData({...createFormData, package: e.target.value})}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
-                  {getAvailablePackages(formData.service).map(pkg => (
+                  {getAvailablePackages(createFormData.service).map(pkg => (
                     <option key={pkg.value} value={pkg.value}>
                       {pkg.label}
                     </option>
@@ -316,8 +328,8 @@ export default function ClientContent({ user, onUpdate }) {
               <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
               <input
                 type="datetime-local"
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                value={createFormData.date}
+                onChange={(e) => setCreateFormData({...createFormData, date: e.target.value})}
                 min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -331,8 +343,8 @@ export default function ClientContent({ user, onUpdate }) {
               <label className="block text-sm font-medium text-gray-700">Location</label>
               <input
                 type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                value={createFormData.location}
+                onChange={(e) => setCreateFormData({...createFormData, location: e.target.value})}
                 placeholder="Enter the location for the drone service"
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -343,8 +355,8 @@ export default function ClientContent({ user, onUpdate }) {
               <label className="block text-sm font-medium text-gray-700">Phone Number</label>
               <input
                 type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                value={createFormData.phone}
+                onChange={(e) => setCreateFormData({...createFormData, phone: e.target.value})}
                 placeholder="Your phone number"
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -354,8 +366,8 @@ export default function ClientContent({ user, onUpdate }) {
             <div>
               <label className="block text-sm font-medium text-gray-700">Additional Details</label>
               <textarea
-                value={formData.details}
-                onChange={(e) => setFormData({...formData, details: e.target.value})}
+                value={createFormData.details}
+                onChange={(e) => setCreateFormData({...createFormData, details: e.target.value})}
                 rows={3}
                 placeholder="Describe your specific requirements..."
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -365,17 +377,17 @@ export default function ClientContent({ user, onUpdate }) {
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCloseCreateModal}
                 className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isCreateSubmitting}
                 className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white py-2 px-4 rounded-md"
               >
-                {isSubmitting ? 'Creating...' : 'Create Job'}
+                {isCreateSubmitting ? 'Creating...' : 'Create Job'}
               </button>
             </div>
           </form>
@@ -394,17 +406,17 @@ export default function ClientContent({ user, onUpdate }) {
                   </button>
                 </div>
                 <div className="p-4 space-y-4">
-                  {formData.service && (
+                  {createFormData.service && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <p className="text-sm text-blue-800">
-                        <strong>Available for {formData.service.split('-').map(word => 
+                        <strong>Available for {createFormData.service.split('-').map(word => 
                           word.charAt(0).toUpperCase() + word.slice(1)
                         ).join(' ')}:</strong>
                       </p>
                     </div>
                   )}
                   
-                  {getAvailablePackages(formData.service).find(pkg => pkg.value === 'basic') ? (
+                  {getAvailablePackages(createFormData.service).find(pkg => pkg.value === 'basic') ? (
                                          <div className="border rounded-lg p-4 bg-green-50">
                        <h4 className="font-semibold text-green-800 mb-2">Basic Package - $199</h4>
                        <ul className="text-sm text-green-700 space-y-1">
@@ -415,11 +427,11 @@ export default function ClientContent({ user, onUpdate }) {
                          <li>• Perfect for small properties or simple shots</li>
                        </ul>
                      </div>
-                  ) : formData.service && (
+                  ) : createFormData.service && (
                     <div className="border rounded-lg p-4 bg-gray-100 opacity-60">
                       <h4 className="font-semibold text-gray-600 mb-2">Basic Package - $199 (Not Available)</h4>
                       <p className="text-sm text-gray-500 mb-2">
-                        Not available for {formData.service.split('-').map(word => 
+                        Not available for {createFormData.service.split('-').map(word => 
                           word.charAt(0).toUpperCase() + word.slice(1)
                         ).join(' ')} services due to complexity requirements.
                       </p>
