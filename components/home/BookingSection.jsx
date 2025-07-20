@@ -75,9 +75,36 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   }, [selectedPackage, onPackageSelect]);
 
+  // Helper function to get available packages for a service type
+  const getAvailablePackages = (serviceType) => {
+    const allPackages = [
+      { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
+      { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
+      { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
+    ];
+
+    // Services that require at least Standard package (no Basic)
+    const standardMinServices = ['drone-videography', 'mapping-surveying', 'inspection', 'event-coverage', 'custom'];
+    
+    if (standardMinServices.includes(serviceType)) {
+      return allPackages.filter(pkg => pkg.id !== 'basic');
+    }
+    
+    return allPackages;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Handle service change with package reset logic
+    if (name === 'service') {
+      const availablePackages = getAvailablePackages(value);
+      // Reset package if current selection is not available for new service
+      const newPackage = availablePackages.find(pkg => pkg.id === formData.package) ? formData.package : '';
+      setFormData(prev => ({ ...prev, [name]: value, package: newPackage }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     // Special validation for date field
     if (name === 'date' && value) {
@@ -397,7 +424,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none"
                     >
                       <option value="">No package selected (custom pricing)</option>
-                      {packages.map((pkg) => (
+                      {getAvailablePackages(formData.service).map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
                           {pkg.name}
                         </option>
