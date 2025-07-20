@@ -286,7 +286,7 @@ export const userRoles = {
           { name: 'Missions', href: '/dashboard?section=missions', icon: 'FiMap' },
           { name: 'Upload Assets', href: '/dashboard?section=upload', icon: 'FiUpload' },
           { name: 'Flight Data', href: '/dashboard?section=flights', icon: 'FiActivity' },
-          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
+          { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
       case ROLES.CLIENT:
       default:
@@ -294,7 +294,7 @@ export const userRoles = {
         return [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'My Jobs', href: '/dashboard?section=jobs', icon: 'FiFileText' },
-          { name: 'Profile', href: '/dashboard?section=profile', icon: 'FiUser' }
+          { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
     }
   }

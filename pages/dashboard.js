@@ -10,7 +10,7 @@ import DefaultContent from '@/components/dashboard/DefaultContent';
 // Removed adminConfig import as it's no longer needed
 
 export default function Dashboard() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
@@ -58,17 +58,30 @@ export default function Dashboard() {
   // Get user role
   const userRole = session.user.role || 'client';
 
+  // Handle user data updates
+  const handleUserUpdate = async (updatedUser) => {
+    try {
+      // Update the session with new user data
+      await update({
+        ...session,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error('Failed to update session:', error);
+    }
+  };
+
   // Render appropriate dashboard content based on role
   const renderDashboardContent = () => {
     switch (userRole) {
       case 'admin':
-        return <AdminContent user={session.user} />;
+        return <AdminContent user={session.user} onUpdate={handleUserUpdate} />;
       case 'client':
-        return <ClientContent user={session.user} />;
+        return <ClientContent user={session.user} onUpdate={handleUserUpdate} />;
       case 'pilot':
-        return <PilotContent user={session.user} />;
+        return <PilotContent user={session.user} onUpdate={handleUserUpdate} />;
       default:
-        return <DefaultContent user={session.user} />;
+        return <DefaultContent user={session.user} onUpdate={handleUserUpdate} />;
     }
   };
 
