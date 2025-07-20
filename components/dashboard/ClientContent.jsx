@@ -330,12 +330,12 @@ export default function ClientContent({ user, onUpdate }) {
                 type="datetime-local"
                 value={createFormData.date}
                 onChange={(e) => setCreateFormData({...createFormData, date: e.target.value})}
-                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                min={new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Please select your preferred date and time. We&apos;ll confirm availability and may suggest alternative times if needed.
+                Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
             </div>
 
@@ -558,12 +558,12 @@ export default function ClientContent({ user, onUpdate }) {
                 type="datetime-local"
                 value={editFormData.date}
                 onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
-                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                min={new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Please select your preferred date and time. We&apos;ll confirm availability and may suggest alternative times if needed.
+                Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
             </div>
 
