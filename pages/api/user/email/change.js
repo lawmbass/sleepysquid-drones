@@ -149,7 +149,7 @@ async function sendEmailChangeVerification(newEmail, name, verificationLink, cur
         <p>To complete this change, please verify your new email address by clicking the button below:</p>
         
         <div style="text-align: center;">
-          <a href="${verificationLink}" class="button">Verify New Email Address</a>
+          <a href="${verificationLink}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold;">Verify New Email Address</a>
         </div>
         
         <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
