@@ -82,6 +82,20 @@ export default function ClientContent({ user, onUpdate }) {
     }
   }, [user?.phone, createFormData.phone]);
 
+  // Prevent body scroll when package info dialog is open
+  useEffect(() => {
+    if (showPackageInfo) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPackageInfo]);
+
   // Utility function to get minimum date for datetime-local inputs
   const getMinDateTime = () => {
     const minDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -502,8 +516,8 @@ export default function ClientContent({ user, onUpdate }) {
           
           {/* Package Info Dialog */}
           {showPackageInfo && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-60 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
+              <div className="bg-white rounded-lg shadow-xl max-w-md sm:max-w-lg lg:max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between p-4 border-b">
                   <h3 className="text-lg font-semibold text-gray-900">Package Information</h3>
                   <button

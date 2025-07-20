@@ -72,6 +72,20 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   }, [selectedService, onServiceSelect]);
 
+  // Prevent body scroll when package info dialog is open
+  useEffect(() => {
+    if (showPackageInfo) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPackageInfo]);
+
   useEffect(() => {
     if (selectedPackage) {
       setFormData(prev => ({ ...prev, package: selectedPackage }));
@@ -783,8 +797,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
       {/* Package Info Dialog */}
       {showPackageInfo && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md sm:max-w-lg lg:max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Package Information</h3>
               <button
