@@ -382,7 +382,7 @@ export default function ClientContent({ user, onUpdate }) {
                 <p className="mt-1 text-xs text-red-500">{createDateError}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">
-                Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
+                Please select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
             </div>
 
@@ -624,7 +624,7 @@ export default function ClientContent({ user, onUpdate }) {
                 <p className="mt-1 text-xs text-red-500">{editDateError}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">
-                Please select your preferred date and time (minimum 2 days from today). We&apos;ll confirm availability and may suggest alternative times if needed.
+                Please select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
               </p>
             </div>
 
