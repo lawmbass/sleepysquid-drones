@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { FiHeart, FiInfo, FiCamera, FiVideo, FiMap } from 'react-icons/fi';
 import AccessStatusBanner from './AccessStatusBanner';
 
-export default function DefaultContent({ user }) {
+export default function DefaultContent({ user, onUpdate }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
 

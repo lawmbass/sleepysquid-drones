@@ -251,8 +251,19 @@ export default function Settings({ user, onUpdate }) {
   };
 
   const renderProfileSettings = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+    <div className="space-y-8">
+      {/* Section Header */}
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <FiUser className="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Profile Information</h3>
+          <p className="text-sm text-gray-600">Update your personal details and contact information</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name
@@ -436,13 +447,13 @@ export default function Settings({ user, onUpdate }) {
         />
       </div>
       
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-6 border-t border-gray-200">
         <button
           onClick={() => handleSave('profile')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
-          <FiSave className="mr-2 h-4 w-4" />
+          <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Profile'}
         </button>
       </div>
@@ -450,8 +461,19 @@ export default function Settings({ user, onUpdate }) {
   );
 
   const renderPreferences = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+    <div className="space-y-8">
+      {/* Section Header */}
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
+        <div className="p-2 bg-purple-100 rounded-lg">
+          <FiSettings className="h-6 w-6 text-purple-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">System Preferences</h3>
+          <p className="text-sm text-gray-600">Customize your application settings and display options</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Theme
@@ -532,13 +554,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
       </div>
       
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-6 border-t border-gray-200">
         <button
           onClick={() => handleSave('preferences')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
-          <FiSave className="mr-2 h-4 w-4" />
+          <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
@@ -546,7 +568,17 @@ export default function Settings({ user, onUpdate }) {
   );
 
   const renderNotifications = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Section Header */}
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
+        <div className="p-2 bg-green-100 rounded-lg">
+          <FiBell className="h-6 w-6 text-green-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Notification Settings</h3>
+          <p className="text-sm text-gray-600">Control how and when you receive notifications</p>
+        </div>
+      </div>
       <div className="space-y-4">
         {Object.entries(notifications).map(([key, value]) => (
           <div key={key} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
@@ -574,13 +606,13 @@ export default function Settings({ user, onUpdate }) {
         ))}
       </div>
       
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-6 border-t border-gray-200">
         <button
           onClick={() => handleSave('notifications')}
           disabled={loading}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
-          <FiSave className="mr-2 h-4 w-4" />
+          <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Notifications'}
         </button>
       </div>
@@ -744,15 +776,15 @@ export default function Settings({ user, onUpdate }) {
 
   if (initialLoading) {
     return (
-      <div className="space-y-6">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600">Configure your account settings and preferences.</p>
+      <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 -m-6 sm:-m-8 p-6 sm:p-8">
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+          <p className="text-base text-gray-600">Configure your account settings and preferences</p>
         </div>
-        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500 text-sm">Loading settings...</p>
+        <div className="bg-white shadow-lg rounded-lg p-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-blue-600 mx-auto"></div>
+            <p className="mt-6 text-gray-600 font-medium">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -760,44 +792,46 @@ export default function Settings({ user, onUpdate }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm sm:text-base text-gray-600">Configure your account settings and preferences.</p>
+    <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 -m-6 sm:-m-8 p-6 sm:p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+        <p className="text-base text-gray-600">Configure your account settings and preferences</p>
       </div>
 
       {/* Message Display */}
       {message.text && (
-        <div className={`p-3 sm:p-4 rounded-md flex items-center text-sm ${
-          message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+        <div className={`p-4 rounded-lg flex items-center text-sm shadow-sm border ${
+          message.type === 'success' 
+            ? 'bg-green-50 text-green-800 border-green-200' 
+            : 'bg-red-50 text-red-800 border-red-200'
         }`}>
           {message.type === 'success' ? (
-            <FiCheck className="mr-2 h-4 w-4 flex-shrink-0" />
+            <FiCheck className="mr-3 h-5 w-5 flex-shrink-0" />
           ) : (
-            <FiX className="mr-2 h-4 w-4 flex-shrink-0" />
+            <FiX className="mr-3 h-5 w-5 flex-shrink-0" />
           )}
-          <span>{message.text}</span>
+          <span className="font-medium">{message.text}</span>
         </div>
       )}
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 bg-white rounded-t-lg shadow-sm">
         <nav className="flex overflow-x-auto scrollbar-hide">
-          <div className="flex space-x-1 sm:space-x-4 md:space-x-8 min-w-full">
+          <div className="flex space-x-1 sm:space-x-2 md:space-x-4 min-w-full px-2 sm:px-4">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center py-2 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+                  className={`flex flex-col sm:flex-row items-center justify-center py-3 sm:py-4 px-3 sm:px-4 border-b-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all duration-200 min-w-[80px] sm:min-w-[120px] ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 bg-blue-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">{tab.name}</span>
+                  <Icon className="h-6 w-6 sm:h-5 sm:w-5 mb-1 sm:mb-0 sm:mr-2 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium">{tab.name}</span>
                 </button>
               );
             })}
@@ -806,7 +840,7 @@ export default function Settings({ user, onUpdate }) {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+      <div className="bg-white shadow-lg rounded-b-lg rounded-t-none p-6 sm:p-8">
         {activeTab === 'profile' && renderProfileSettings()}
         {activeTab === 'preferences' && renderPreferences()}
         {activeTab === 'notifications' && renderNotifications()}
