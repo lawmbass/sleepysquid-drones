@@ -1,49 +1,90 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { useSession, signOut } from 'next-auth/react';
 import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
 
 export default function VerifyEmailChange() {
   const router = useRouter();
+  const { data: session, update: updateSession } = useSession();
   const { token } = router.query;
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
-
-  const verifyEmailChange = useCallback(async (verificationToken) => {
-    try {
-      const response = await fetch('/api/user/email/verify-change', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: verificationToken }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatus('success');
-        setMessage(data.message);
-        setNewEmail(data.newEmail);
-        // Redirect to dashboard after 5 seconds
-        setTimeout(() => {
-          router.push('/dashboard?section=settings');
-        }, 5000);
-      } else {
-        setStatus('error');
-        setMessage(data.message || 'Verification failed');
-      }
-    } catch (error) {
-      setStatus('error');
-      setMessage('An error occurred while verifying your email change');
-    }
-  }, [router]);
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false);
+  const [hasVerified, setHasVerified] = useState(false); // Prevent duplicate API calls
 
   useEffect(() => {
-    if (token) {
-      verifyEmailChange(token);
+    if (token && !hasVerified) {
+      console.log('Token received, starting verification process...');
+      setHasVerified(true); // Mark as started to prevent duplicates
+      
+      const verifyEmailChange = async () => {
+        try {
+          console.log('Making email verification API call...');
+          const response = await fetch('/api/user/email/verify-change', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setStatus('success');
+            setMessage(data.message);
+            setNewEmail(data.newEmail);
+            
+            // Force logout and redirect to login to prevent session mismatch issues
+            if (data.sessionRefreshRequired) {
+              setIsRefreshingSession(true);
+              try {
+                console.log('Email change successful - forcing fresh login to prevent session issues...');
+                
+                // Sign out to clear stale session
+                await signOut({ redirect: false });
+                
+                // Redirect to login with success message
+                setTimeout(() => {
+                  router.push('/login?message=email-changed&new_email=' + encodeURIComponent(data.newEmail));
+                }, 1500);
+              } catch (error) {
+                console.error('Error during logout:', error);
+                // Fallback: redirect to dashboard anyway
+                setTimeout(() => {
+                  router.push('/dashboard?section=settings');
+                }, 3000);
+              } finally {
+                setIsRefreshingSession(false);
+              }
+            } else {
+              // Redirect normally if no session refresh needed
+              setTimeout(() => {
+                router.push('/dashboard?section=settings');
+              }, 5000);
+            }
+          } else {
+            setStatus('error');
+            setMessage(data.message || 'Verification failed');
+            setNewEmail(''); // Clear any stale email data
+            setIsRefreshingSession(false); // Ensure no refresh state
+            // Explicitly do NOT redirect on verification failure - stay on error page
+            console.log('Email verification failed, staying on error page');
+            return; // Exit early to prevent any further processing
+          }
+        } catch (error) {
+          setStatus('error');
+          setMessage('An error occurred while verifying your email change');
+          setNewEmail(''); // Clear any stale email data
+          setIsRefreshingSession(false); // Ensure no refresh state
+          console.log('Email verification error, staying on error page');
+        }
+      };
+      
+      verifyEmailChange();
     }
-  }, [token, verifyEmailChange]);
+  }, [token, hasVerified, router]); // Simple dependencies
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -85,9 +126,20 @@ export default function VerifyEmailChange() {
                     <strong>Important:</strong> Please use your new email address for future logins.
                   </p>
                 </div>
-                <p className="mt-4 text-sm text-gray-500">
-                  Redirecting to settings in 5 seconds...
-                </p>
+                {isRefreshingSession ? (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <FiLoader className="h-4 w-4 text-blue-600 animate-spin" />
+                      <p className="text-sm text-blue-800">
+                        Signing you out and redirecting to login for a fresh session...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-500">
+                    Redirecting in a few seconds...
+                  </p>
+                )}
               </>
             )}
 
@@ -102,6 +154,14 @@ export default function VerifyEmailChange() {
                 <p className="mt-2 text-gray-600">
                   {message}
                 </p>
+                {message.includes('expired') && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Token expired:</strong> Email change verification links expire after 24 hours. 
+                      Please go to Settings and request a new email change if you still want to change your email address.
+                    </p>
+                  </div>
+                )}
                 <div className="mt-6 space-y-4">
                   <button
                     onClick={() => router.push('/dashboard?section=settings')}

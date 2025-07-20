@@ -40,8 +40,74 @@ export const authOptions = {
 
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Handle OAuth account linking for users after email changes or account resets
+      if (account?.provider === 'google' && profile?.email) {
+        try {
+          const connectMongo = (await import('./mongoose')).default;
+          const mongoose = (await import('mongoose')).default;
+          
+          await connectMongo();
+          
+          // Check if a user already exists with this email (direct match)
+          const usersCollection = mongoose.connection.collection('users');
+          const accountsCollection = mongoose.connection.collection('accounts');
+          
+          const existingUser = await usersCollection.findOne({ 
+            email: profile.email.toLowerCase() 
+          });
+          
+          if (existingUser) {
+            // User exists - check if they have any OAuth accounts
+            const existingOAuthAccount = await accountsCollection.findOne({
+              userId: existingUser._id,
+              provider: 'google'
+            });
+            
+                         if (!existingOAuthAccount) {
+               console.log(`User ${profile.email} exists but has no OAuth account - creating fresh OAuth account link`);
+               // User exists but has no OAuth account (like after we deleted the stale one)
+               // Create the OAuth account record directly to prevent NextAuth adapter conflicts
+               await accountsCollection.insertOne({
+                 provider: account.provider,
+                 type: account.type,
+                 providerAccountId: account.providerAccountId,
+                 access_token: account.access_token,
+                 expires_at: account.expires_at,
+                 refresh_token: account.refresh_token,
+                 scope: account.scope,
+                 token_type: account.token_type,
+                 id_token: account.id_token,
+                 userId: existingUser._id
+               });
+               console.log('✅ Created fresh OAuth account link for existing user');
+               return true;
+            } else if (existingOAuthAccount.providerAccountId !== account.providerAccountId) {
+              console.log(`User ${profile.email} has different Google account ID - updating OAuth account`);
+              // User has OAuth account but with different provider ID (Google updated their account)
+              // Update the existing OAuth account with new provider details
+              await accountsCollection.updateOne(
+                { _id: existingOAuthAccount._id },
+                {
+                  $set: {
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    expires_at: account.expires_at,
+                    refresh_token: account.refresh_token,
+                    scope: account.scope,
+                    token_type: account.token_type,
+                    id_token: account.id_token
+                  }
+                }
+              );
+              console.log('✅ Updated OAuth account with new Google provider details');
+            }
+          }
+        } catch (error) {
+          console.error('Error in signIn callback:', error);
+        }
+      }
+      
       // Allow sign-in to proceed normally
-      // Invitation processing will happen in the session callback after user creation
       return true;
     },
     async redirect({ url, baseUrl }) {
@@ -94,17 +160,30 @@ export const authOptions = {
           // Get user data from database to check access status
           const user = await User.findOne({ email: session.user.email.toLowerCase() });
           
+                    // Get user role and access data
+          if (user) {
+            session.user.role = user.role || 'client'; 
+            session.user.hasAccess = user.hasAccess || false;
+          } else {
+            // No user found, set defaults
+            session.user.role = 'client';
+            session.user.hasAccess = false;
+          }
+          
           if (recentInvitation) {
             // For users with recently accepted invitations, get role directly from database
             console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
-            session.user.role = user?.role || 'client';
-            session.user.hasAccess = user?.hasAccess || false;
-            // Clear cache to ensure future requests get fresh data
+            // Role and access were already set above, just clear cache
             userRoles.clearCache();
           } else {
-            // Use cached role lookup for other users
-            session.user.role = await userRoles.getUserRole(session.user.email);
-            session.user.hasAccess = user?.hasAccess || false;
+            // Use cached role lookup for other users (if not already set above)
+            if (!session.user.role) {
+              session.user.role = await userRoles.getUserRole(session.user.email);
+            }
+            if (session.user.hasAccess === undefined) {
+              const currentUser = await User.findOne({ email: session.user.email.toLowerCase() });
+              session.user.hasAccess = currentUser?.hasAccess || false;
+            }
           }
           
           // Add permissions based on role

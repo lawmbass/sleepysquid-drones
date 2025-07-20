@@ -10,6 +10,7 @@ export default function Login() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Helper function to translate NextAuth error codes to user-friendly messages
   const getErrorMessage = (errorCode) => {
@@ -37,6 +38,15 @@ export default function Login() {
     if (router.query.auth_error) {
       const errorCode = decodeURIComponent(router.query.auth_error);
       setError(getErrorMessage(errorCode));
+    }
+    
+    // Check for email change success message
+    if (router.query.message === 'email-changed' && router.query.new_email) {
+      const newEmail = decodeURIComponent(router.query.new_email);
+      setSuccessMessage(`Email changed successfully to ${newEmail}! Please sign in with your new email.`);
+      
+      // Clear the query parameters to prevent the message from persisting
+      router.replace('/login', undefined, { shallow: true });
     }
     
     // If already signed in, redirect based on user role
@@ -119,6 +129,15 @@ export default function Login() {
                 <div className="flex">
                   <FiAlertCircle className="h-5 w-5 text-red-400 mr-2 mt-0.5" />
                   <div className="text-sm text-red-700">{error}</div>
+                </div>
+              </div>
+            )}
+            
+            {successMessage && (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
+                <div className="flex">
+                  <FiMail className="h-5 w-5 text-green-400 mr-2 mt-0.5" />
+                  <div className="text-sm text-green-700">{successMessage}</div>
                 </div>
               </div>
             )}
