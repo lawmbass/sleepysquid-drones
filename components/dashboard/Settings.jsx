@@ -8,7 +8,9 @@ import {
   FiEye, 
   FiEyeOff,
   FiCheck,
-  FiX
+  FiX,
+  FiMail,
+  FiAlertCircle
 } from 'react-icons/fi';
 
 export default function Settings({ user, onUpdate }) {
@@ -26,7 +28,9 @@ export default function Settings({ user, onUpdate }) {
     company: '',
     bio: '',
     location: '',
-    website: ''
+    website: '',
+    emailVerified: false,
+    pendingEmail: null
   });
 
   // System preferences state
@@ -56,6 +60,16 @@ export default function Settings({ user, onUpdate }) {
     newPassword: '',
     confirmPassword: '',
     twoFactorEnabled: false
+  });
+
+  // Email verification states
+  const [emailChangeData, setEmailChangeData] = useState({
+    newEmail: '',
+    isChanging: false
+  });
+  const [emailActions, setEmailActions] = useState({
+    sendingVerification: false,
+    changingEmail: false
   });
 
   const tabs = [
@@ -92,6 +106,71 @@ export default function Settings({ user, onUpdate }) {
 
     loadSettings();
   }, []);
+
+  const handleSendVerification = async () => {
+    setEmailActions(prev => ({ ...prev, sendingVerification: true }));
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch('/api/user/email/send-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: data.message });
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to send verification email' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to send verification email' });
+    } finally {
+      setEmailActions(prev => ({ ...prev, sendingVerification: false }));
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const handleEmailChange = async () => {
+    if (!emailChangeData.newEmail) {
+      setMessage({ type: 'error', text: 'Please enter a new email address' });
+      return;
+    }
+
+    setEmailActions(prev => ({ ...prev, changingEmail: true }));
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch('/api/user/email/change', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newEmail: emailChangeData.newEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: data.message });
+        setEmailChangeData({ newEmail: '', isChanging: false });
+        // Reload settings to show pending email
+        setTimeout(() => {
+          loadSettings();
+        }, 1000);
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to initiate email change' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to initiate email change' });
+    } finally {
+      setEmailActions(prev => ({ ...prev, changingEmail: false }));
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
 
   const handleSave = async (section) => {
     setLoading(true);
@@ -172,13 +251,104 @@ export default function Settings({ user, onUpdate }) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Email Address
           </label>
-          <input
-            type="email"
-            value={profileData.email}
-            onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            placeholder="Enter your email"
-          />
+          <div className="space-y-2">
+            <div className="relative">
+              <input
+                type="email"
+                value={profileData.email}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm"
+                placeholder="Enter your email"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                {profileData.emailVerified ? (
+                  <div className="flex items-center space-x-1 text-green-600">
+                    <FiCheck className="h-4 w-4" />
+                    <span className="text-xs font-medium">Verified</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1 text-amber-600">
+                    <FiAlertCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium">Unverified</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Verification Actions */}
+            {!profileData.emailVerified && (
+              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <FiMail className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm text-amber-700">Email not verified</span>
+                </div>
+                <button
+                  onClick={handleSendVerification}
+                  disabled={emailActions.sendingVerification}
+                  className="px-3 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {emailActions.sendingVerification ? 'Sending...' : 'Send Verification'}
+                </button>
+              </div>
+            )}
+
+            {/* Pending Email Change */}
+            {profileData.pendingEmail && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center space-x-2 mb-2">
+                  <FiMail className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700">Email Change Pending</span>
+                </div>
+                <p className="text-xs text-blue-600">
+                  Verification email sent to: <strong>{profileData.pendingEmail}</strong>
+                </p>
+                <p className="text-xs text-blue-500 mt-1">
+                  Check your email and click the verification link to complete the change.
+                </p>
+              </div>
+            )}
+
+            {/* Email Change Form */}
+            {!emailChangeData.isChanging ? (
+              <button
+                onClick={() => setEmailChangeData(prev => ({ ...prev, isChanging: true }))}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Change Email Address
+              </button>
+            ) : (
+              <div className="space-y-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                <label className="block text-xs font-medium text-gray-700">
+                  New Email Address
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="email"
+                    value={emailChangeData.newEmail}
+                    onChange={(e) => setEmailChangeData(prev => ({ ...prev, newEmail: e.target.value }))}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Enter new email address"
+                  />
+                  <button
+                    onClick={handleEmailChange}
+                    disabled={emailActions.changingEmail || !emailChangeData.newEmail}
+                    className="px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {emailActions.changingEmail ? 'Sending...' : 'Change'}
+                  </button>
+                  <button
+                    onClick={() => setEmailChangeData({ newEmail: '', isChanging: false })}
+                    className="px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  A verification email will be sent to your new email address.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         <div>

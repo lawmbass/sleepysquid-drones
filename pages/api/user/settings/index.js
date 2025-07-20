@@ -33,7 +33,9 @@ export default async function handler(req, res) {
         company: user.company || '',
         bio: user.bio || '',
         location: user.location || '',
-        website: user.website || ''
+        website: user.website || '',
+        emailVerified: user.emailVerified || false,
+        pendingEmail: user.pendingEmail || null
       },
       preferences: {
         theme: user.preferences?.theme || 'light',

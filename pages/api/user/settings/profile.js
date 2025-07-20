@@ -27,13 +27,20 @@ export default async function handler(req, res) {
     // Extract profile data from request
     const { name, email, phone, company, bio, location, website } = req.body;
 
-    // Update user profile
+    // Check if email is being changed
+    if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+      return res.status(400).json({ 
+        message: 'Email changes must be done through the email change process',
+        requiresEmailVerification: true
+      });
+    }
+
+    // Update user profile (excluding email)
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
       {
         $set: {
           name: name || user.name,
-          email: email || user.email,
           // Add additional fields to the User model as needed
           ...(phone && { phone }),
           ...(company && { company }),

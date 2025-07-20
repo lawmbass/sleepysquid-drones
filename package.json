@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:email-verification": "node scripts/migrate-email-verification.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
