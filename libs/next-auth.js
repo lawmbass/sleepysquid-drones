@@ -170,7 +170,9 @@ export const authOptions = {
         if (newUser) {
           // Mark OAuth users as email verified (Google, etc. have already verified the email)
           // NextAuth only creates users through OAuth providers in this setup
-          newUser.emailVerified = true;
+          newUser.emailVerification = {
+            verified: true
+          };
           console.log(`Marked OAuth user ${message.user.email} as email verified`);
           
           // Check if there's a pending invitation for this email
@@ -209,7 +211,7 @@ export const authOptions = {
           }
           
           await newUser.save();
-          console.log(`Updated new user ${message.user.email} - emailVerified: true, role: ${newUser.role}`);
+          console.log(`Updated new user ${message.user.email} - emailVerification.verified: true, role: ${newUser.role}`);
         }
       } catch (error) {
         console.error('Error processing new user in createUser event:', error);

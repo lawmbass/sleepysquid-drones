@@ -18,8 +18,8 @@ export default async function handler(req, res) {
 
     // Find user with this verification token
     const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: new Date() }
+      'emailVerification.token': token,
+      'emailVerification.expires': { $gt: new Date() }
     });
 
     if (!user) {
@@ -30,10 +30,10 @@ export default async function handler(req, res) {
 
     // Update user as verified and clear verification tokens
     await User.findByIdAndUpdate(user._id, {
-      emailVerified: true,
+      'emailVerification.verified': true,
       $unset: {
-        emailVerificationToken: 1,
-        emailVerificationExpires: 1
+        'emailVerification.token': 1,
+        'emailVerification.expires': 1
       }
     });
 

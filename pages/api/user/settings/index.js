@@ -19,9 +19,9 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database with all settings
-    // Explicitly select pendingEmail field since it's marked with select: false in the model
+    // Explicitly select email verification fields since they're marked with select: false
     const user = await User.findOne({ email: session.user.email })
-      .select('+pendingEmail');
+      .select('+emailVerification +pendingEmailChange');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
         bio: user.bio || '',
         location: user.location || '',
         website: user.website || '',
-        emailVerified: user.emailVerified || false,
-        pendingEmail: user.pendingEmail || null
+        emailVerified: user.emailVerification?.verified || false,
+        pendingEmail: user.pendingEmailChange?.email || null
       },
       preferences: {
         theme: user.preferences?.theme || 'light',

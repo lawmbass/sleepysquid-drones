@@ -35,17 +35,17 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database
-    // Select pendingEmail to check if there's already a pending change
+    // Select pendingEmailChange to check if there's already a pending change
     const user = await User.findOne({ email: session.user.email })
-      .select('+pendingEmail +pendingEmailExpires');
+      .select('+pendingEmailChange');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Check if there's already a pending email change that hasn't expired
-    if (user.pendingEmail && user.pendingEmailExpires && user.pendingEmailExpires > new Date()) {
+    if (user.pendingEmailChange?.email && user.pendingEmailChange?.expires && user.pendingEmailChange.expires > new Date()) {
       return res.status(400).json({ 
-        message: `You already have a pending email change to ${user.pendingEmail}. Please verify that email or wait for it to expire before requesting a new change.` 
+        message: `You already have a pending email change to ${user.pendingEmailChange.email}. Please verify that email or wait for it to expire before requesting a new change.` 
       });
     }
 
@@ -66,9 +66,9 @@ export default async function handler(req, res) {
 
     // Update user with pending email change
     await User.findByIdAndUpdate(user._id, {
-      pendingEmail: newEmail.toLowerCase(),
-      pendingEmailToken: verificationToken,
-      pendingEmailExpires: verificationExpires
+      'pendingEmailChange.email': newEmail.toLowerCase(),
+      'pendingEmailChange.token': verificationToken,
+      'pendingEmailChange.expires': verificationExpires
     });
 
     // Create verification link with proper validation

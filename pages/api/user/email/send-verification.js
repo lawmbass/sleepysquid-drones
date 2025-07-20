@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     // Check if email is already verified
-    if (user.emailVerified) {
+    if (user.emailVerification?.verified) {
       return res.status(400).json({ 
         message: 'Email is already verified',
         isVerified: true
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
 
     // Update user with verification token
     await User.findByIdAndUpdate(user._id, {
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires
+      'emailVerification.token': verificationToken,
+      'emailVerification.expires': verificationExpires
     });
 
     // Create verification link with proper validation

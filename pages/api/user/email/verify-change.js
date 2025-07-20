@@ -17,11 +17,11 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Find user with this pending email verification token
-    // Explicitly select pendingEmail field since it's marked with select: false
+    // Explicitly select pendingEmailChange field since it's marked with select: false
     const user = await User.findOne({
-      pendingEmailToken: token,
-      pendingEmailExpires: { $gt: new Date() }
-    }).select('+pendingEmail +pendingEmailToken +pendingEmailExpires');
+      'pendingEmailChange.token': token,
+      'pendingEmailChange.expires': { $gt: new Date() }
+    }).select('+pendingEmailChange');
 
     if (!user) {
       return res.status(400).json({ 
@@ -29,14 +29,14 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!user.pendingEmail) {
+    if (!user.pendingEmailChange?.email) {
       return res.status(400).json({ 
         message: 'No pending email change found' 
       });
     }
 
     // Store the pending email for response (before it gets cleared)
-    const newEmailAddress = user.pendingEmail;
+    const newEmailAddress = user.pendingEmailChange.email;
 
     // Check if the new email is already in use by another user (race condition prevention)
     const existingUser = await User.findOne({ 
@@ -54,17 +54,15 @@ export default async function handler(req, res) {
     const updateResult = await User.findOneAndUpdate(
       {
         _id: user._id,
-        pendingEmailToken: token,
-        pendingEmailExpires: { $gt: new Date() },
-        pendingEmail: newEmailAddress // Ensure pendingEmail hasn't changed
+        'pendingEmailChange.token': token,
+        'pendingEmailChange.expires': { $gt: new Date() },
+        'pendingEmailChange.email': newEmailAddress // Ensure pendingEmail hasn't changed
       },
       {
         email: newEmailAddress,
-        emailVerified: true,
+        'emailVerification.verified': true,
         $unset: {
-          pendingEmail: 1,
-          pendingEmailToken: 1,
-          pendingEmailExpires: 1
+          pendingEmailChange: 1
         }
       },
       { new: true }

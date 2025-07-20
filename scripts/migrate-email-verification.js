@@ -38,26 +38,26 @@ const migrateEmailVerification = async () => {
     const oauthResult = await User.updateMany(
       { 
         _id: { $in: oauthUsers },
-        emailVerified: { $exists: false }
+        'emailVerification.verified': { $exists: false }
       },
       { 
         $set: { 
-          emailVerified: true
+          'emailVerification.verified': true
         }
       }
     );
 
     console.log(`✅ Marked ${oauthResult.modifiedCount} OAuth users as email verified`);
 
-    // Update remaining users to have emailVerified: false if not already set
+    // Update remaining users to have emailVerification.verified: false if not already set
     const regularUsersResult = await User.updateMany(
       { 
         _id: { $nin: oauthUsers },
-        emailVerified: { $exists: false }
+        'emailVerification.verified': { $exists: false }
       },
       { 
         $set: { 
-          emailVerified: false
+          'emailVerification.verified': false
         }
       }
     );
@@ -66,8 +66,8 @@ const migrateEmailVerification = async () => {
 
     // Show some stats
     const totalUsers = await User.countDocuments();
-    const verifiedUsers = await User.countDocuments({ emailVerified: true });
-    const unverifiedUsers = await User.countDocuments({ emailVerified: false });
+    const verifiedUsers = await User.countDocuments({ 'emailVerification.verified': true });
+    const unverifiedUsers = await User.countDocuments({ 'emailVerification.verified': false });
 
     console.log('\n📊 Email Verification Stats:');
     console.log(`Total users: ${totalUsers}`);
