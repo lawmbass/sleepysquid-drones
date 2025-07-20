@@ -143,7 +143,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
                   }
                 />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                 <p className="text-xs text-blue-600 capitalize font-medium">{userRole}</p>
@@ -203,9 +203,9 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
                   }
                 />
               </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-gray-700">{user?.name}</p>
-                <p className="text-xs font-medium text-gray-500">{user?.email}</p>
+              <div className="ml-3 flex-1 min-w-0 overflow-hidden">
+                <p className="text-sm font-medium text-gray-700 truncate">{user?.name}</p>
+                <p className="text-xs font-medium text-gray-500 truncate">{user?.email}</p>
                 <p className="text-xs font-medium text-blue-600 capitalize">{userRole}</p>
               </div>
               <button

@@ -98,7 +98,7 @@ export default function UsersList({
       <div className={`bg-white border border-gray-200 rounded-lg p-4 ${isPendingInvitation ? 'border-yellow-300 bg-yellow-50' : ''}`}>
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3 flex-1">
+          <div className="flex items-center space-x-3 flex-1 min-w-0 overflow-hidden">
             <div className="flex-shrink-0">
               <OptimizedImage 
                 src={user.image} 
@@ -113,7 +113,7 @@ export default function UsersList({
                 }
               />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-center space-x-2">
                 <h3 className="text-lg font-medium text-gray-900 truncate">{user.name}</h3>
                 {isPendingInvitation && (
@@ -127,7 +127,7 @@ export default function UsersList({
           </div>
           <button
             onClick={() => toggleCardExpansion(user._id)}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
           >
             <FiMoreVertical className="h-5 w-5" />
           </button>
