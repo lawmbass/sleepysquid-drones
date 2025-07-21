@@ -39,6 +39,77 @@ body {
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* Mobile date picker fixes */
+@media (max-width: 768px) {
+  /* Ensure date picker containers don't overflow */
+  input[type="datetime-local"] {
+    position: relative;
+    z-index: 50;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure the native picker modal stays within viewport */
+  input[type="datetime-local"]:focus {
+    transform: none !important;
+  }
+  
+  /* Fix for mobile date picker positioning */
+  .date-picker-container {
+    position: relative;
+    overflow: visible;
+    z-index: 50;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Prevent horizontal scrolling from date picker */
+  body:has(input[type="datetime-local"]:focus) {
+    overflow-x: hidden;
+  }
+  
+  /* iOS specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    input[type="datetime-local"] {
+      -webkit-appearance: none;
+      -webkit-appearance: textfield;
+    }
+    
+    input[type="datetime-local"]::-webkit-datetime-edit {
+      padding: 0;
+      margin: 0;
+    }
+    
+    /* Ensure iOS picker doesn't cause layout shifts */
+    input[type="datetime-local"]:focus {
+      position: relative !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+    }
+  }
+  
+  /* Ensure modals and overlays are properly contained */
+  .modal-overlay,
+  .picker-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+  }
+}
+
+/* Form containers mobile fixes */
+@media (max-width: 768px) {
+  .booking-form-container {
+    overflow-x: hidden;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+}
+
 /* Thumbnail container mobile enhancements */
 @media (max-width: 768px) {
   .thumbnail-container {
