@@ -121,7 +121,7 @@ export default async function handler(req, res) {
     }
 
     // Enhanced input validation and sanitization
-    if (!service || !date || !location || !duration || !name || !email || !phone) {
+    if (!service || !date || !location || !name || !email || !phone) {
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'Please fill in all required fields'
@@ -134,11 +134,25 @@ export default async function handler(req, res) {
       return str.trim().replace(/<[^>]*>/g, ''); // Remove HTML tags
     };
 
+    // Derive duration from package selection
+    const getDurationFromPackage = (packageType) => {
+      switch (packageType) {
+        case 'basic':
+          return '1 hour';
+        case 'standard':
+          return '2 hours';
+        case 'premium':
+          return '4 hours';
+        default:
+          return 'To be determined'; // For custom projects or when no package is selected
+      }
+    };
+
     const sanitizedData = {
       service: sanitizeString(service),
       package: packageType ? sanitizeString(packageType) : null,
       location: sanitizeString(location),
-      duration: sanitizeString(duration),
+      duration: getDurationFromPackage(packageType),
       details: details ? sanitizeString(details) : '',
       name: sanitizeString(name),
       email: sanitizeString(email).toLowerCase(),
