@@ -526,7 +526,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none"
                     >
-                      <option value="">No package selected (custom pricing)</option>
+                      <option value="">Custom pricing</option>
                       {getAvailablePackages(formData.service).map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
                           {pkg.name}
