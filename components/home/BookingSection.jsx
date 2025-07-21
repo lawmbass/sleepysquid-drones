@@ -24,6 +24,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     package: '',
     date: '',
     location: '',
+    duration: '',
     details: '',
     name: '',
     email: '',
@@ -173,6 +174,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.date = 'Please select a date that is at least 2 days from today';
       }
       if (!formData.location) newErrors.location = 'Please enter a location';
+      if (!formData.duration) newErrors.duration = 'Please select the expected duration';
     }
     
     if (currentStep === 2) {
@@ -198,7 +200,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Helper function to check if Step 1 is ready for next step
   const isStep1ReadyForNext = () => {
-    return formData.service && formData.date && formData.location;
+    return formData.service && formData.date && formData.location && formData.duration;
   };
 
   // Helper function to check if form is ready for submission
@@ -614,7 +616,36 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
                 </div>
 
-
+                <div className="mb-6">
+                  <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="duration">
+                    <div className="flex items-center">
+                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
+                      Expected Duration*
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="duration"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-lg border ${errors.duration ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50 appearance-none`}
+                    >
+                      <option value="">Select expected duration</option>
+                      <option value="1-2 hours">1-2 hours</option>
+                      <option value="2-4 hours">2-4 hours</option>
+                      <option value="4-6 hours">4-6 hours</option>
+                      <option value="6-8 hours">6-8 hours</option>
+                      <option value="Full day (8+ hours)">Full day (8+ hours)</option>
+                      <option value="Multiple days">Multiple days</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <FiClock className="text-gray-500" />
+                    </div>
+                  </div>
+                  {errors.duration && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.duration}</p>}
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Estimate how long you expect the service to take</p>
+                </div>
 
                 <div className="mb-6">
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="details">
