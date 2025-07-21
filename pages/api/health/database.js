@@ -12,11 +12,11 @@ export default async function handler(req, res) {
   const startTime = Date.now();
   
   try {
-    // Test MongoDB connection
-    await connectMongo();
+    // Test MongoDB connection - now consistently returns connection object
+    const connection = await connectMongo();
     
     // Test database operation
-    const db = mongoose.connection.db;
+    const db = connection.db;
     await db.admin().ping();
     
     const connectionTime = Date.now() - startTime;

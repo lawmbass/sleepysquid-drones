@@ -10,14 +10,17 @@
 - Added comprehensive MongoDB connection error handling
 - Added database health check endpoint at `/api/health/database`
 
-### 2. MongoDB Connection Timeout Issues
-**Problem**: MongoDB connections were timing out due to lack of proper connection configuration and error handling.
+### 2. MongoDB Connection Critical Bug Fix
+**Problem**: The `connectMongo` function had two critical issues:
+- **Inconsistent Return Types**: Returned different types (Connection object, Promise<Connection>, Promise<Mongoose>) depending on connection state
+- **Hanging Promise**: Promise for connecting state only listened for 'connected' and 'error' events, missing 'disconnected' events, causing indefinite hangs
 
 **Fix**:
-- Added proper MongoDB connection timeouts and retry logic
-- Improved connection pooling settings
-- Added specific error handling for different types of database errors
-- Enhanced logging for database connection issues
+- **Consistent Return Types**: Always returns the connection object for predictable behavior
+- **Comprehensive Event Handling**: Added 'disconnected' event listener and timeout protection
+- **Promise Caching**: Implemented singleton pattern to prevent multiple concurrent connection attempts
+- **Proper Cleanup**: Added event listener cleanup and connection state reset on errors
+- **Timeout Protection**: Added 15-second timeout to prevent hanging promises
 
 ### 3. Rate Limiting Too Restrictive
 **Problem**: The booking rate limit was set to only 3 attempts per 15 minutes per IP, which was too restrictive and was causing legitimate users to be blocked.
