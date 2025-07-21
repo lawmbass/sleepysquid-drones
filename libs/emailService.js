@@ -86,10 +86,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
             <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Location:</td>
             <td style="padding: 12px 0; color: #1f2937;">${booking.location}</td>
           </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Duration:</td>
-            <td style="padding: 12px 0; color: #1f2937;">${booking.duration}</td>
-          </tr>
+
           ${booking.estimatedPrice ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Estimated Price:</td>
@@ -154,7 +151,6 @@ Booking ID: ${booking._id}
 Service: ${serviceDisplayName}
 ${packageDisplayName ? `Package: ${packageDisplayName}\n` : ''}Date: ${formattedDate}
 Location: ${booking.location}
-Duration: ${booking.duration}
 ${booking.estimatedPrice ? `Estimated Price: $${booking.estimatedPrice}\n` : ''}Status: Pending Confirmation
 
 ${booking.details ? `Additional Details: ${booking.details}\n\n` : ''}

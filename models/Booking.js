@@ -112,14 +112,6 @@ const bookingSchema = mongoose.Schema(
       trim: true,
       maxlength: [200, "Location cannot exceed 200 characters"]
     },
-    duration: {
-      type: String,
-      required: [true, "Duration is required"],
-      enum: {
-        values: ['1-2 hours', '3-4 hours', '5-8 hours', 'Full day', 'Multiple days'],
-        message: "Invalid duration"
-      }
-    },
     details: {
       type: String,
       trim: true,

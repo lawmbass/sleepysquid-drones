@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCalendar, FiMapPin, FiClock, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 
@@ -473,7 +473,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 <div className="mb-6">
                   <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2" htmlFor="service">
                     <div className="flex items-center">
-                      <FiClock className="mr-2 text-blue-500 dark:text-blue-400" />
+                      <FiPackage className="mr-2 text-blue-500 dark:text-blue-400" />
                       Select Service*
                     </div>
                   </label>
@@ -613,7 +613,6 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   {errors.location && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.location}</p>}
                   <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
                 </div>
-
 
 
                 <div className="mb-6">

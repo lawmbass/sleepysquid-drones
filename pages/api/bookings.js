@@ -51,7 +51,6 @@ export default async function handler(req, res) {
       package: packageType,
       date,
       location,
-      duration,
       details,
       name,
       email,
@@ -121,7 +120,7 @@ export default async function handler(req, res) {
     }
 
     // Enhanced input validation and sanitization
-    if (!service || !date || !location || !duration || !name || !email || !phone) {
+    if (!service || !date || !location || !name || !email || !phone) {
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'Please fill in all required fields'
@@ -138,7 +137,6 @@ export default async function handler(req, res) {
       service: sanitizeString(service),
       package: packageType ? sanitizeString(packageType) : null,
       location: sanitizeString(location),
-      duration: sanitizeString(duration),
       details: details ? sanitizeString(details) : '',
       name: sanitizeString(name),
       email: sanitizeString(email).toLowerCase(),
@@ -241,7 +239,6 @@ export default async function handler(req, res) {
       package: sanitizedData.package,
       date: bookingDate,
       location: sanitizedData.location,
-      duration: sanitizedData.duration,
       details: sanitizedData.details,
       name: sanitizedData.name,
       email: sanitizedData.email,

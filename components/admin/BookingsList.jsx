@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiDollarSign, FiTarget, FiNavigation, FiUser } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNavigation, FiUser } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 
 const statusColors = {
@@ -115,7 +115,6 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
             <FiCalendar className="h-3 w-3 mr-1" />
             {formatDate(booking.date)}
           </div>
-          <div className="text-xs text-gray-500">{booking.duration}</div>
         </div>
       </div>
 
@@ -335,10 +334,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                           <FiCalendar className="h-3 w-3 mr-1" />
                           {formatDate(booking.date)}
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center">
-                          <FiClock className="h-3 w-3 mr-1" />
-                          {booking.duration}
-                        </div>
+
                         <div className="text-sm text-gray-500 flex items-center">
                           <FiMapPin className="h-3 w-3 mr-1" />
                           {booking.location.length > 30 

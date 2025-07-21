@@ -240,10 +240,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   <FiCalendar className="h-4 w-4 text-gray-500 mr-2" />
                   <span className="text-sm text-gray-900">{formatDate(booking.date)}</span>
                 </div>
-                <div className="flex items-center">
-                  <FiClock className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900">{booking.duration}</span>
-                </div>
+
               </div>
             </div>
           </div>
