@@ -550,6 +550,7 @@ export default function ClientContent({ user, onUpdate }) {
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                     createDateError ? 'border-red-500' : 'border-gray-300'
                   }`}
+                  style={{ minHeight: '42px' }}
                 />
               </div>
               {createDateError && (
@@ -817,6 +818,7 @@ export default function ClientContent({ user, onUpdate }) {
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                     editDateError ? 'border-red-500' : 'border-gray-300'
                   }`}
+                  style={{ minHeight: '42px' }}
                 />
               </div>
               {editDateError && (
