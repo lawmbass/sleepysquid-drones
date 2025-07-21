@@ -21,20 +21,19 @@ const connectMongo = async () => {
   }
   
   try {
+    // Configure mongoose settings
+    mongoose.set('bufferCommands', false); // Disable mongoose buffering
+    
     const connection = await mongoose.connect(process.env.MONGODB_URI, {
       // Connection timeout settings
       serverSelectionTimeoutMS: 10000, // 10 seconds to select a server
       connectTimeoutMS: 10000, // 10 seconds to establish connection
       socketTimeoutMS: 20000, // 20 seconds for socket operations
       
-      // Retry settings
+      // Connection pool settings
       maxPoolSize: 10, // Maximum number of connections
       minPoolSize: 1, // Minimum number of connections
       maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      
-      // Buffering settings
-      bufferMaxEntries: 0, // Disable mongoose buffering
-      bufferCommands: false, // Disable mongoose buffering
       
       // Other settings
       heartbeatFrequencyMS: 10000, // Send a heartbeat every 10 seconds
