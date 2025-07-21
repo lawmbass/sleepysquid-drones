@@ -292,7 +292,7 @@ export default async function handler(req, res) {
         if (shouldSend) {
           await sendBookingConfirmationEmail(savedBooking, { 
             hasAccount: true,
-            loginUrl: `https://${process.env.VERCEL_URL || config.domainName}/dashboard`
+            loginUrl: `https://${config.domainName}/dashboard`
           });
           emailSent = true;
         }
@@ -300,7 +300,7 @@ export default async function handler(req, res) {
         // For non-authenticated users, always send confirmation with account creation prompt
         await sendBookingConfirmationEmail(savedBooking, { 
           hasAccount: false,
-          loginUrl: `https://${process.env.VERCEL_URL || config.domainName}/login`
+          loginUrl: `https://${config.domainName}/login`
         });
         emailSent = true;
       }
