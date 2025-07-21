@@ -595,7 +595,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     Please select your preferred date and time. Click the field to auto-fill with the earliest available date: <strong>{getMinDateDisplayString()}</strong> at 10:00 AM.
                     {isMobile && (
                       <span className="block mt-1 text-blue-600 dark:text-blue-400 text-xs">
-                        📱 Mobile Note: Your device's date picker may show invalid dates, but they will be automatically rejected if selected.
+                        📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
                       </span>
                     )}
                   </p>

@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useSession, signOut } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
 
 export default function VerifyEmailChange() {
   const router = useRouter();
-  const { data: session, update: updateSession } = useSession();
   const { token } = router.query;
   const [status, setStatus] = useState('loading'); // loading, success, error
   const [message, setMessage] = useState('');

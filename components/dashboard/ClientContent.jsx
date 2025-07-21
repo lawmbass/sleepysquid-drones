@@ -540,7 +540,7 @@ export default function ClientContent({ user, onUpdate }) {
                 Click the field to auto-fill with the earliest available date at 10:00 AM, or select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
                 {isMobile && (
                   <span className="block mt-1 text-blue-600 text-xs">
-                    📱 Mobile Note: Your device's date picker may show invalid dates, but they will be automatically rejected if selected.
+                    📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
                   </span>
                 )}
               </p>
@@ -822,7 +822,7 @@ export default function ClientContent({ user, onUpdate }) {
                 Click the field to auto-fill with the earliest available date at 10:00 AM, or select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
                 {isMobile && (
                   <span className="block mt-1 text-blue-600 text-xs">
-                    📱 Mobile Note: Your device's date picker may show invalid dates, but they will be automatically rejected if selected.
+                    📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
                   </span>
                 )}
               </p>
