@@ -45,8 +45,30 @@ export default async function handler(req, res) {
   try {
     console.log('Processing booking request from IP:', req.ip);
     
-    // Connect to MongoDB
-    await connectMongo();
+    // Connect to MongoDB with timeout handling
+    try {
+      await connectMongo();
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError.message);
+      
+      // Handle specific MongoDB errors
+      if (dbError.name === 'MongoNetworkTimeoutError' || dbError.message.includes('timeout')) {
+        return res.status(503).json({
+          error: 'Database connection timeout',
+          message: 'We are experiencing temporary database connectivity issues. Please try again in a few moments.'
+        });
+      } else if (dbError.name === 'MongoServerSelectionError') {
+        return res.status(503).json({
+          error: 'Database unavailable',
+          message: 'Database service is temporarily unavailable. Please try again later.'
+        });
+      } else {
+        return res.status(503).json({
+          error: 'Database connection failed',
+          message: 'Unable to connect to database. Please try again later.'
+        });
+      }
+    }
 
     // Extract booking data from request body
     const {

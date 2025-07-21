@@ -331,6 +331,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           setRecaptchaToken('');
         } else if (data.error === 'Duplicate booking') {
           setErrors({ general: data.message });
+        } else if (data.error === 'Database connection timeout' || data.error === 'Database unavailable' || data.error === 'Database connection failed') {
+          setErrors({ general: data.message + ' This is a temporary issue - please wait a moment and try again.' });
+          // Reset reCAPTCHA on database errors
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset();
+          }
+          setRecaptchaToken('');
         } else {
           setErrors({ general: data.message || 'Something went wrong. Please try again.' });
         }
