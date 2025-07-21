@@ -100,10 +100,10 @@ const bookingSchema = mongoose.Schema(
             return true;
           }
           const minDate = new Date();
-          minDate.setDate(minDate.getDate() + 7);
+          minDate.setDate(minDate.getDate() + 2);
           return value >= minDate;
         },
-        message: "Booking date must be at least 7 days from today"
+        message: "Booking date must be at least 2 days from today"
       }
     },
     location: {

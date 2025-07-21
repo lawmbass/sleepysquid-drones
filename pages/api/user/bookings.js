@@ -163,12 +163,12 @@ export default async function handler(req, res) {
       if (sanitizedUpdates.date) {
         const bookingDate = new Date(sanitizedUpdates.date);
         const minDate = new Date();
-        minDate.setDate(minDate.getDate() + 7);
+        minDate.setDate(minDate.getDate() + 2);
         
         if (bookingDate < minDate || isNaN(bookingDate.getTime())) {
           return res.status(400).json({
             error: 'Invalid date',
-            message: 'Booking date must be at least 7 days from today'
+            message: 'Booking date must be at least 2 days from today'
           });
         }
       }
