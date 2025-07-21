@@ -112,7 +112,6 @@ const bookingSchema = mongoose.Schema(
       trim: true,
       maxlength: [200, "Location cannot exceed 200 characters"]
     },
-
     details: {
       type: String,
       trim: true,
