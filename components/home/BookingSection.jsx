@@ -275,8 +275,18 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
     setIsSubmitting(true);
     setErrors({});
+    
+    // Debug logging
+    console.log('Submitting booking with data:', {
+      ...formData,
+      recaptchaToken: recaptchaToken ? 'present' : 'missing'
+    });
 
     try {
+      // Create an AbortController for request timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
@@ -286,7 +296,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           ...formData,
           recaptchaToken
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -309,15 +322,49 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
             recaptchaRef.current.reset();
           }
           setRecaptchaToken('');
+        } else if (data.error === 'Rate limit exceeded' || data.error === 'Too many booking attempts') {
+          setErrors({ general: data.message + ' Please try again later or contact us directly.' });
+          // Reset reCAPTCHA on rate limit error
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset();
+          }
+          setRecaptchaToken('');
+        } else if (data.error === 'Duplicate booking') {
+          setErrors({ general: data.message });
         } else {
           setErrors({ general: data.message || 'Something went wrong. Please try again.' });
         }
+        
+        // Log the error for debugging
+        console.error('Booking API error:', {
+          error: data.error,
+          message: data.message,
+          status: response.status
+        });
       }
     } catch (error) {
       console.error('Booking submission error:', error);
-      setErrors({ 
-        general: 'Network error. Please check your connection and try again.' 
-      });
+      
+      // Reset reCAPTCHA on network error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+      setRecaptchaToken('');
+      
+      // Provide more specific error messages based on error type
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setErrors({ 
+          general: 'Unable to connect to the server. Please check your internet connection and try again.' 
+        });
+      } else if (error.name === 'AbortError') {
+        setErrors({ 
+          general: 'Request timed out. Please try again.' 
+        });
+      } else {
+        setErrors({ 
+          general: 'Network error. Please check your connection and try again.' 
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -744,7 +791,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
                 {errors.general && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
+                    </div>
                   </div>
                 )}
 

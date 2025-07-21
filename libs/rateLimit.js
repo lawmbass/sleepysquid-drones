@@ -20,13 +20,15 @@ export const createRateLimit = (options = {}) => {
 // Specific rate limiters for different use cases
 export const bookingRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // limit each IP to 3 booking requests per 15 minutes (reduced from 5 for better security)
+  max: 10, // increased from 3 to 10 booking requests per 15 minutes for better user experience
   message: {
     error: 'Too many booking attempts',
     message: 'Too many booking requests. Please wait 15 minutes before trying again.'
   },
   // Skip rate limiting for successful requests to prevent blocking legitimate users
   skipSuccessfulRequests: true,
+  // Only count failed requests towards the limit
+  skipFailedRequests: false,
   // Use a more secure key generator that includes user agent
   keyGenerator: (req) => {
     return req.ip + ':' + (req.headers['user-agent'] || 'unknown');

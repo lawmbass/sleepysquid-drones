@@ -10,9 +10,10 @@ const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
     bookingRateLimit(req, res, (result) => {
       if (result instanceof Error) {
+        console.log('Rate limit exceeded for IP:', req.ip);
         res.status(429).json({
           error: 'Rate limit exceeded',
-          message: 'Too many booking attempts. Please wait before trying again.'
+          message: 'Too many booking attempts. Please wait 15 minutes before trying again.'
         });
         return reject(result);
       }
@@ -42,6 +43,8 @@ export default async function handler(req, res) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
 
   try {
+    console.log('Processing booking request from IP:', req.ip);
+    
     // Connect to MongoDB
     await connectMongo();
 
@@ -161,15 +164,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // Validate date (should be at least 7 days from now)
+    // Validate date (should be at least 2 days from now to match frontend)
     const bookingDate = new Date(date);
     const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 7);
+    minDate.setDate(minDate.getDate() + 2); // Changed from 7 to 2 to match frontend
     
     if (bookingDate < minDate || isNaN(bookingDate.getTime())) {
       return res.status(400).json({
         error: 'Invalid date',
-        message: 'Booking date must be at least 7 days from today'
+        message: 'Booking date must be at least 2 days from today'
       });
     }
 
@@ -250,7 +253,9 @@ export default async function handler(req, res) {
     });
 
     // Save to database
+    console.log('Saving booking to database for:', sanitizedData.email);
     const savedBooking = await newBooking.save();
+    console.log('Booking saved successfully with ID:', savedBooking._id);
 
     // Check if user has an account
     const existingUser = await User.findOne({ email: sanitizedData.email.toLowerCase() });
@@ -283,7 +288,8 @@ export default async function handler(req, res) {
     }
 
     // Return success response (limited data for security)
-    res.status(201).json({
+    console.log('Sending success response for booking:', savedBooking._id);
+    return res.status(201).json({
       success: true,
       message: emailSent 
         ? 'Booking submitted successfully! We will contact you soon to confirm the details. A confirmation email has been sent.'
@@ -321,7 +327,7 @@ export default async function handler(req, res) {
     }
 
     // Generic server error (don't expose sensitive details)
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Internal server error',
       message: 'Something went wrong while processing your booking. Please try again.'
     });
