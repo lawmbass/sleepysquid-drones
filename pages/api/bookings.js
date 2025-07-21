@@ -134,25 +134,10 @@ export default async function handler(req, res) {
       return str.trim().replace(/<[^>]*>/g, ''); // Remove HTML tags
     };
 
-    // Derive duration from package selection
-    const getDurationFromPackage = (packageType) => {
-      switch (packageType) {
-        case 'basic':
-          return '1 hour';
-        case 'standard':
-          return '2 hours';
-        case 'premium':
-          return '4 hours';
-        default:
-          return 'To be determined'; // For custom projects or when no package is selected
-      }
-    };
-
     const sanitizedData = {
       service: sanitizeString(service),
       package: packageType ? sanitizeString(packageType) : null,
       location: sanitizeString(location),
-      duration: getDurationFromPackage(packageType),
       details: details ? sanitizeString(details) : '',
       name: sanitizeString(name),
       email: sanitizeString(email).toLowerCase(),
@@ -255,7 +240,6 @@ export default async function handler(req, res) {
       package: sanitizedData.package,
       date: bookingDate,
       location: sanitizedData.location,
-      duration: sanitizedData.duration,
       details: sanitizedData.details,
       name: sanitizedData.name,
       email: sanitizedData.email,

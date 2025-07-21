@@ -114,11 +114,8 @@ const bookingSchema = mongoose.Schema(
     },
     duration: {
       type: String,
-      required: [true, "Duration is required"],
-      enum: {
-        values: ['1-2 hours', '3-4 hours', '5-8 hours', 'Full day', 'Multiple days'],
-        message: "Invalid duration"
-      }
+      required: false, // Duration is now derived from package selection
+      default: null
     },
     details: {
       type: String,

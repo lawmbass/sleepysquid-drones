@@ -1,5 +1,6 @@
 import config from "@/config";
 import { sendEmail } from "@/libs/mailgun";
+import { getBookingDuration } from "./bookingUtils";
 
 /**
  * Sends a booking confirmation email to the customer
@@ -88,7 +89,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Duration:</td>
-            <td style="padding: 12px 0; color: #1f2937;">${booking.duration}</td>
+            <td style="padding: 12px 0; color: #1f2937;">${getBookingDuration(booking)}</td>
           </tr>
           ${booking.estimatedPrice ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
@@ -154,7 +155,7 @@ Booking ID: ${booking._id}
 Service: ${serviceDisplayName}
 ${packageDisplayName ? `Package: ${packageDisplayName}\n` : ''}Date: ${formattedDate}
 Location: ${booking.location}
-Duration: ${booking.duration}
+Duration: ${getBookingDuration(booking)}
 ${booking.estimatedPrice ? `Estimated Price: $${booking.estimatedPrice}\n` : ''}Status: Pending Confirmation
 
 ${booking.details ? `Additional Details: ${booking.details}\n\n` : ''}
