@@ -101,6 +101,10 @@ export const authOptions = {
               );
               console.log('✅ Updated OAuth account with new Google provider details');
             }
+          } else {
+            // New OAuth user - they will be created by the adapter
+            // We'll set hasAccess to true in the events callback below
+            console.log(`New OAuth user will be created for ${profile.email}`);
           }
         } catch (error) {
           console.error('Error in signIn callback:', error);
@@ -287,6 +291,24 @@ export const authOptions = {
             await invitation.save();
             
             console.log(`Invitation accepted for new user ${message.user.email}`);
+          } else {
+            // No invitation found - this is a new OAuth user signing up directly
+            // Grant access by default for OAuth users since they've authenticated with a trusted provider
+            console.log(`No invitation found for new OAuth user ${message.user.email} - granting default access`);
+            newUser.hasAccess = true;
+            newUser.role = newUser.role || 'client'; // Ensure role is set
+            
+            // Add to access history for tracking
+            if (!newUser.accessHistory) {
+              newUser.accessHistory = [];
+            }
+            newUser.accessHistory.push({
+              hasAccess: true,
+              changedAt: new Date(),
+              changedBy: 'system',
+              reason: 'Auto-granted access for OAuth user',
+              action: 'created'
+            });
           }
           
           await newUser.save();
