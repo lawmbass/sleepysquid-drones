@@ -328,7 +328,6 @@ export default function ClientContent({ user, onUpdate }) {
           package: '',
           date: '',
           location: '',
-          duration: '',
           details: '',
           phone: ''
         });

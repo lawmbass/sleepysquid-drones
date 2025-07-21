@@ -112,11 +112,7 @@ const bookingSchema = mongoose.Schema(
       trim: true,
       maxlength: [200, "Location cannot exceed 200 characters"]
     },
-    duration: {
-      type: String,
-      required: false, // Duration is now derived from package selection
-      default: null
-    },
+
     details: {
       type: String,
       trim: true,

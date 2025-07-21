@@ -146,7 +146,7 @@ export default async function handler(req, res) {
       }
 
       // Validate and sanitize update data
-      const allowedFields = ['service', 'package', 'date', 'location', 'duration', 'details', 'phone'];
+      const allowedFields = ['service', 'package', 'date', 'location', 'details', 'phone'];
       const sanitizedUpdates = {};
 
       for (const field of allowedFields) {

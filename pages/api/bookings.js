@@ -51,7 +51,6 @@ export default async function handler(req, res) {
       package: packageType,
       date,
       location,
-      duration,
       details,
       name,
       email,
