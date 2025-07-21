@@ -37,20 +37,12 @@ export default function ClientContent({ user, onUpdate }) {
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [minDate, setMinDate] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
 
   // Create refs for date inputs
   const createDateInputRef = useRef(null);
   const editDateInputRef = useRef(null);
 
-  // Detect if user is on a mobile device (any mobile browser)
-  const isMobileDevice = () => {
-    // Check if we're in a browser environment (not SSR)
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      return false; // Default to false during SSR
-    }
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-  };
+
 
   // Set and update minimum datetime
   useEffect(() => {
@@ -67,10 +59,7 @@ export default function ClientContent({ user, onUpdate }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Detect mobile device after component mounts (client-side only)
-  useEffect(() => {
-    setIsMobile(isMobileDevice());
-  }, []);
+
 
   // Update active section based on URL query
   useEffect(() => {
@@ -182,10 +171,9 @@ export default function ClientContent({ user, onUpdate }) {
     }
   };
 
-  // Auto-select first valid date when create date field is focused and empty
-  const handleCreateDateFocus = () => {
+  // Auto-select functions for date fields
+  const autoSelectCreateDate = () => {
     if (!createFormData.date) {
-      // Set to first valid date (2 days from now at 10:00 AM)
       const firstValidDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
       firstValidDate.setHours(10, 0, 0, 0); // Set to 10:00 AM
       const formattedDate = firstValidDate.toISOString().slice(0, 16);
@@ -193,15 +181,55 @@ export default function ClientContent({ user, onUpdate }) {
     }
   };
 
-  // Auto-select first valid date when edit date field is focused and empty
-  const handleEditDateFocus = () => {
+  const autoSelectEditDate = () => {
     if (!editFormData.date) {
-      // Set to first valid date (2 days from now at 10:00 AM)
       const firstValidDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
       firstValidDate.setHours(10, 0, 0, 0); // Set to 10:00 AM
       const formattedDate = firstValidDate.toISOString().slice(0, 16);
       setEditFormData(prev => ({ ...prev, date: formattedDate }));
     }
+  };
+
+  // Create form date handlers
+  const handleCreateDateFocus = () => {
+    autoSelectCreateDate();
+  };
+
+  const handleCreateDateTouchStart = () => {
+    autoSelectCreateDate();
+  };
+
+  const handleCreateDateMouseDown = () => {
+    autoSelectCreateDate();
+  };
+
+  // Edit form date handlers
+  const handleEditDateFocus = () => {
+    autoSelectEditDate();
+  };
+
+  const handleEditDateTouchStart = () => {
+    autoSelectEditDate();
+  };
+
+  const handleEditDateMouseDown = () => {
+    autoSelectEditDate();
+  };
+
+  // Handle click on create date container - enhanced for mobile
+  const handleCreateDateContainerClick = () => {
+    autoSelectCreateDate();
+    setTimeout(() => {
+      handleCreateDateFieldClick();
+    }, 10);
+  };
+
+  // Handle click on edit date container - enhanced for mobile
+  const handleEditDateContainerClick = () => {
+    autoSelectEditDate();
+    setTimeout(() => {
+      handleEditDateFieldClick();
+    }, 10);
   };
 
   // Populate edit form when a job is selected for editing
@@ -489,7 +517,8 @@ export default function ClientContent({ user, onUpdate }) {
               <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
               <div 
                 className="relative cursor-pointer date-picker-container"
-                onClick={handleCreateDateFieldClick}
+                onClick={handleCreateDateContainerClick}
+                onTouchStart={autoSelectCreateDate}
               >
                 <input
                   type="datetime-local"
@@ -501,26 +530,19 @@ export default function ClientContent({ user, onUpdate }) {
                     // Validate and show error if needed
                     if (newDate && !validateDate(newDate)) {
                       setCreateDateError('Please select a date that is at least 2 days from today.');
-                      
-                      // For mobile devices, clear the invalid date to prevent confusion
-                      if (isMobile) {
-                        setTimeout(() => {
-                          setCreateFormData(prev => ({ ...prev, date: '' }));
-                        }, 100);
-                      }
+                      // Don't clear the field, just show it as invalid
                     } else {
                       setCreateDateError('');
                     }
                   }}
                   onFocus={handleCreateDateFocus}
+                  onTouchStart={handleCreateDateTouchStart}
+                  onMouseDown={handleCreateDateMouseDown}
                   onBlur={(e) => {
-                    // Additional validation on blur for mobile devices
-                    if (isMobile && e.target.value && !validateDate(e.target.value)) {
+                    // Additional validation on blur for all devices
+                    if (e.target.value && !validateDate(e.target.value)) {
                       setCreateDateError('Please select a date that is at least 2 days from today.');
-                      // Clear invalid date after user sees the error
-                      setTimeout(() => {
-                        setCreateFormData(prev => ({ ...prev, date: '' }));
-                      }, 2000);
+                      // Don't clear invalid dates, just show them as invalid
                     }
                   }}
                   min={minDate}
@@ -533,17 +555,8 @@ export default function ClientContent({ user, onUpdate }) {
               {createDateError && (
                 <p className="mt-1 text-xs text-red-500 font-medium">
                   {createDateError}
-                  {isMobile && " (Invalid selections are cleared automatically)"}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Click the field to auto-fill with the earliest available date at 10:00 AM, or select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
-                {isMobile && (
-                  <span className="block mt-1 text-blue-600 text-xs">
-                    📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
-                  </span>
-                )}
-              </p>
             </div>
 
             <div>
@@ -771,7 +784,8 @@ export default function ClientContent({ user, onUpdate }) {
               <label className="block text-sm font-medium text-gray-700">Preferred Date & Time</label>
               <div 
                 className="relative cursor-pointer date-picker-container"
-                onClick={handleEditDateFieldClick}
+                onClick={handleEditDateContainerClick}
+                onTouchStart={autoSelectEditDate}
               >
                 <input
                   type="datetime-local"
@@ -783,26 +797,19 @@ export default function ClientContent({ user, onUpdate }) {
                     // Validate and show error if needed
                     if (newDate && !validateDate(newDate)) {
                       setEditDateError('Please select a date that is at least 2 days from today.');
-                      
-                      // For mobile devices, clear the invalid date to prevent confusion
-                      if (isMobile) {
-                        setTimeout(() => {
-                          setEditFormData(prev => ({ ...prev, date: '' }));
-                        }, 100);
-                      }
+                      // Don't clear the field, just show it as invalid
                     } else {
                       setEditDateError('');
                     }
                   }}
                   onFocus={handleEditDateFocus}
+                  onTouchStart={handleEditDateTouchStart}
+                  onMouseDown={handleEditDateMouseDown}
                   onBlur={(e) => {
-                    // Additional validation on blur for mobile devices
-                    if (isMobile && e.target.value && !validateDate(e.target.value)) {
+                    // Additional validation on blur for all devices
+                    if (e.target.value && !validateDate(e.target.value)) {
                       setEditDateError('Please select a date that is at least 2 days from today.');
-                      // Clear invalid date after user sees the error
-                      setTimeout(() => {
-                        setEditFormData(prev => ({ ...prev, date: '' }));
-                      }, 2000);
+                      // Don't clear invalid dates, just show them as invalid
                     }
                   }}
                   min={minDate}
@@ -815,17 +822,8 @@ export default function ClientContent({ user, onUpdate }) {
               {editDateError && (
                 <p className="mt-1 text-xs text-red-500 font-medium">
                   {editDateError}
-                  {isMobile && " (Invalid selections are cleared automatically)"}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Click the field to auto-fill with the earliest available date at 10:00 AM, or select your preferred date and time (must be at least 2 days in advance). We&apos;ll confirm availability and may suggest alternative times if needed.
-                {isMobile && (
-                  <span className="block mt-1 text-blue-600 text-xs">
-                    📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
-                  </span>
-                )}
-              </p>
             </div>
 
             <div>

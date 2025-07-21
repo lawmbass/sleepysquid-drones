@@ -35,7 +35,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [bookingResult, setBookingResult] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const [showPackageInfo, setShowPackageInfo] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+
   
   // Create refs
   const dateInputRef = useRef(null);
@@ -62,10 +62,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     return () => clearInterval(interval);
   }, []);
 
-  // Detect mobile device after component mounts (client-side only)
-  useEffect(() => {
-    setIsMobile(isMobileDevice());
-  }, []);
+
 
   // Handle pre-selected service and package
   useEffect(() => {
@@ -134,25 +131,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     return allPackages;
   };
 
-  // Detect if user is on a mobile device (any mobile browser)
-  const isMobileDevice = () => {
-    // Check if we're in a browser environment (not SSR)
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      return false; // Default to false during SSR
-    }
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-  };
 
-  // Get user-friendly minimum date string
-  const getMinDateDisplayString = () => {
-    const minDateObj = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-    return minDateObj.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -171,13 +151,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     if (name === 'date' && value) {
       if (!isValidDate(value)) {
         setErrors(prev => ({ ...prev, [name]: 'Please select a date that is at least 2 days from today' }));
-        
-        // For mobile devices, clear the invalid date to prevent confusion since native pickers don't always respect min attribute
-        if (isMobile) {
-          setTimeout(() => {
-            setFormData(prev => ({ ...prev, date: '' }));
-          }, 100);
-        }
+        // Don't clear the field, just show it as invalid
         return;
       }
     }
@@ -403,15 +377,38 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   };
 
-  // Auto-select first valid date when field is focused and empty
-  const handleDateFocus = () => {
+  // Auto-select first valid date when field is interacted with
+  const autoSelectDate = () => {
     if (!formData.date) {
-      // Set to first valid date (2 days from now at 10:00 AM)
       const firstValidDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
       firstValidDate.setHours(10, 0, 0, 0); // Set to 10:00 AM
       const formattedDate = firstValidDate.toISOString().slice(0, 16);
       setFormData(prev => ({ ...prev, date: formattedDate }));
     }
+  };
+
+  // Handle various interaction events to ensure mobile compatibility
+  const handleDateFocus = () => {
+    autoSelectDate();
+  };
+
+  const handleDateTouchStart = () => {
+    autoSelectDate();
+  };
+
+  const handleDateMouseDown = () => {
+    autoSelectDate();
+  };
+
+  // Handle click on date container - enhanced for mobile
+  const handleDateContainerClick = () => {
+    // Auto-select before any other interaction
+    autoSelectDate();
+    
+    // Small delay to ensure the value is set before picker opens
+    setTimeout(() => {
+      handleDateFieldClick();
+    }, 10);
   };
 
   // Handle reCAPTCHA change
@@ -558,7 +555,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </label>
                   <div 
                     className="relative cursor-pointer date-picker-container"
-                    onClick={handleDateFieldClick}
+                    onClick={handleDateContainerClick}
+                    onTouchStart={autoSelectDate}
                   >
                     <input
                       type="datetime-local"
@@ -569,17 +567,16 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       value={formData.date}
                       onChange={handleChange}
                       onFocus={handleDateFocus}
+                      onTouchStart={handleDateTouchStart}
+                      onMouseDown={handleDateMouseDown}
                       onBlur={(e) => {
                         // Additional validation on blur for mobile devices
-                        if (isMobile && e.target.value && !isValidDate(e.target.value)) {
+                        if (e.target.value && !isValidDate(e.target.value)) {
                           setErrors(prev => ({ 
                             ...prev, 
                             date: 'Please select a date that is at least 2 days from today' 
                           }));
-                          // Clear invalid date after user sees the error
-                          setTimeout(() => {
-                            setFormData(prev => ({ ...prev, date: '' }));
-                          }, 2000);
+                          // Don't clear invalid dates, just show them as invalid
                         }
                       }}
                       className={`w-full px-4 py-3 rounded-lg border ${errors.date ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
@@ -588,17 +585,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   {errors.date && (
                     <p className="text-red-500 dark:text-red-400 text-sm mt-1 font-medium">
                       {errors.date}
-                      {isMobile && " (Invalid selections are cleared automatically)"}
                     </p>
                   )}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                    Please select your preferred date and time. Click the field to auto-fill with the earliest available date: <strong>{getMinDateDisplayString()}</strong> at 10:00 AM.
-                    {isMobile && (
-                      <span className="block mt-1 text-blue-600 dark:text-blue-400 text-xs">
-                        📱 Mobile Note: Your device&apos;s date picker may show invalid dates, but they will be automatically rejected if selected.
-                      </span>
-                    )}
-                  </p>
                 </div>
 
                 <div className="mb-6">
