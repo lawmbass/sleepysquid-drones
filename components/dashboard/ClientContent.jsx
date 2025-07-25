@@ -1265,134 +1265,234 @@ export default function ClientContent({ user, onUpdate }) {
   };
 
   // Jobs List Component
-  const JobsList = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
-          <p className="text-gray-600">Track and manage all your drone service requests.</p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium flex items-center"
-        >
-          <FiPlus className="h-4 w-4 mr-2" />
-          Create New Job
-        </button>
-      </div>
+  const JobsList = () => {
+    // Mobile job card component
+    const MobileJobCard = ({ job }) => {
+      const statusInfo = getStatusInfo(job.status);
+      const StatusIcon = statusInfo.icon;
       
-      {loading ? (
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading your jobs...</p>
+      return (
+        <div 
+          className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => {
+            setSelectedJob(job);
+            setShowJobDetail(true);
+          }}
+        >
+          {/* Header with service and status */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900">
+                {formatServiceType(job.service)}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">{job.location}</div>
+            </div>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 text-${statusInfo.color}-800`}>
+              <StatusIcon className={`h-3 w-3 mr-1`} />
+              {statusInfo.text}
+            </span>
           </div>
-        </div>
-      ) : jobs.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="text-center py-12">
-            <FiFileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
-            <p className="text-gray-500">Create your first service request to get started.</p>
+
+          {/* Date and Price Info */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Date</div>
+              <div className="text-sm font-medium text-gray-900 flex items-center">
+                <FiCalendar className="h-3 w-3 mr-1" />
+                {new Date(job.date).toLocaleDateString()}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Price</div>
+              <div className="text-sm font-medium text-gray-900 flex items-center">
+                <FiDollarSign className="h-3 w-3 mr-1" />
+                {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
+              </div>
+            </div>
           </div>
+
+          {/* Action buttons for pending jobs */}
+          {job.status === 'pending' && (
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-gray-100">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedJob(job);
+                  setShowEditModal(true);
+                }}
+                className="text-gray-600 hover:text-gray-500 p-1"
+                title="Edit job"
+              >
+                <FiEdit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedJob(job);
+                  setShowDeleteConfirm(true);
+                }}
+                className="text-red-600 hover:text-red-500 p-1"
+                title="Delete job"
+              >
+                <FiTrash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Service
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {jobs.map((job) => {
-                  const statusInfo = getStatusInfo(job.status);
-                  const StatusIcon = statusInfo.icon;
-                  return (
-                    <tr key={job._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatServiceType(job.service)}
-                          </div>
-                          <div className="text-sm text-gray-500">{job.location}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(job.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 text-${statusInfo.color}-800`}>
-                          <StatusIcon className={`h-3 w-3 mr-1`} />
-                          {statusInfo.text}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedJob(job);
-                              setShowJobDetail(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-500 flex items-center"
-                          >
-                            <FiEye className="h-4 w-4 mr-1" />
-                            View
-                          </button>
-                          {job.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedJob(job);
-                                  setShowEditModal(true);
-                                }}
-                                className="text-gray-600 hover:text-gray-500"
-                                title="Edit job"
-                              >
-                                <FiEdit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedJob(job);
-                                  setShowDeleteConfirm(true);
-                                }}
-                                className="text-red-600 hover:text-red-500"
-                                title="Delete job"
-                              >
-                                <FiTrash2 className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
+            <p className="text-gray-600">Track and manage all your drone service requests.</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium flex items-center"
+          >
+            <FiPlus className="h-4 w-4 mr-2" />
+            Create New Job
+          </button>
+        </div>
+        
+        {loading ? (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Loading your jobs...</p>
+            </div>
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="text-center py-12">
+              <FiFileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
+              <p className="text-gray-500">Create your first service request to get started.</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mobile View */}
+            <div className="md:hidden">
+              <div className="space-y-4">
+                {jobs.map((job) => (
+                  <MobileJobCard key={job._id} job={job} />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block bg-white shadow rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {jobs.map((job) => {
+                      const statusInfo = getStatusInfo(job.status);
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <tr 
+                          key={job._id} 
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setShowJobDetail(true);
+                          }}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {formatServiceType(job.service)}
+                              </div>
+                              <div className="text-sm text-gray-500">{job.location}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(job.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 text-${statusInfo.color}-800`}>
+                              <StatusIcon className={`h-3 w-3 mr-1`} />
+                              {statusInfo.text}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedJob(job);
+                                  setShowJobDetail(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-500 flex items-center"
+                              >
+                                <FiEye className="h-4 w-4 mr-1" />
+                                View
+                              </button>
+                              {job.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedJob(job);
+                                      setShowEditModal(true);
+                                    }}
+                                    className="text-gray-600 hover:text-gray-500"
+                                    title="Edit job"
+                                  >
+                                    <FiEdit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedJob(job);
+                                      setShowDeleteConfirm(true);
+                                    }}
+                                    className="text-red-600 hover:text-red-500"
+                                    title="Delete job"
+                                  >
+                                    <FiTrash2 className="h-4 w-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   const renderContent = () => {
     switch (activeSection) {
