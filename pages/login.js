@@ -3,7 +3,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { FiMail, FiUser, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
+import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock } from 'react-icons/fi';
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -11,6 +11,12 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginMethod, setLoginMethod] = useState('credentials'); // 'credentials' or 'google'
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
 
   // Helper function to translate NextAuth error codes to user-friendly messages
   const getErrorMessage = (errorCode) => {

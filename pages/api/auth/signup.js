@@ -9,7 +9,7 @@ import {
   recordAuthAttempt,
   sanitizeInput
 } from "@/libs/auth-utils";
-import { sendEmailVerification } from "@/libs/email-service";
+import { sendEmailVerification } from "@/libs/emailService";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
