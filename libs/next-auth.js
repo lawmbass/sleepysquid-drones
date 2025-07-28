@@ -1,7 +1,9 @@
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
+import bcrypt from "bcryptjs";
 
 export const authOptions = {
   // Set any random key in .env.local
@@ -11,6 +13,69 @@ export const authOptions = {
   url: process.env.NEXTAUTH_URL || `https://${config.domainName}`,
   
   providers: [
+    // Credentials provider for username/password authentication
+    CredentialsProvider({
+      id: "credentials",
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        try {
+          const connectMongo = (await import('./mongoose')).default;
+          const User = (await import('../models/User')).default;
+          
+          await connectMongo();
+          
+          // Find user by email (include password field)
+          const user = await User.findOne({ 
+            email: credentials.email.toLowerCase() 
+          }).select('+password');
+          
+          if (!user) {
+            return null;
+          }
+
+          // Check if user has a password (might be OAuth-only user)
+          if (!user.password) {
+            return null;
+          }
+
+          // Verify password
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          // Check if email is verified
+          if (!user.emailVerification?.verified) {
+            throw new Error("EmailNotVerified");
+          }
+
+          // Return user object (exclude password)
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            hasAccess: user.hasAccess,
+          };
+        } catch (error) {
+          console.error('Credentials authorization error:', error);
+          if (error.message === "EmailNotVerified") {
+            throw error;
+          }
+          return null;
+        }
+      }
+    }),
     GoogleProvider({
       // Follow the "Login with Google" tutorial to get your credentials
       clientId: process.env.GOOGLE_ID,
@@ -39,7 +104,7 @@ export const authOptions = {
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile, credentials }) {
       // Handle OAuth account linking for users after email changes or account resets
       if (account?.provider === 'google' && profile?.email) {
         try {
@@ -109,6 +174,12 @@ export const authOptions = {
         } catch (error) {
           console.error('Error in signIn callback:', error);
         }
+      }
+      
+      // Handle credentials sign-in
+      if (account?.provider === 'credentials') {
+        // Additional validation for credentials users can be added here
+        return true;
       }
       
       // Allow sign-in to proceed normally
@@ -206,9 +277,12 @@ export const authOptions = {
       }
       return session;
     },
-    jwt: async ({ token, account, profile }) => {
+    jwt: async ({ token, account, profile, user }) => {
       if (account && profile) {
         token.email = profile.email;
+      }
+      if (user) {
+        token.email = user.email;
       }
       return token;
     },
