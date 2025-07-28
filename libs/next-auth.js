@@ -101,7 +101,41 @@ export const authOptions = {
   // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
   // Requires a MongoDB database. Set MONOGODB_URI env variable.
   // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
-  ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
+  // Note: We use a custom adapter approach for better account linking control
+  ...(connectMongo && { 
+    adapter: {
+      ...MongoDBAdapter(connectMongo),
+      // Override createUser to prevent duplicate users during OAuth linking
+      async createUser(user) {
+        const connectMongo = (await import('./mongoose')).default;
+        const mongoose = (await import('mongoose')).default;
+        
+        await connectMongo();
+        
+        // Check if user already exists (this handles the linking case)
+        const usersCollection = mongoose.connection.collection('users');
+        const existingUser = await usersCollection.findOne({ 
+          email: user.email.toLowerCase() 
+        });
+        
+        if (existingUser) {
+          // User already exists, return the existing user
+          console.log(`User ${user.email} already exists, returning existing user for OAuth linking`);
+          return {
+            id: existingUser._id.toString(),
+            email: existingUser.email,
+            name: existingUser.name,
+            image: existingUser.image,
+            emailVerified: existingUser.emailVerification?.verified ? new Date() : null
+          };
+        }
+        
+        // User doesn't exist, create new user (standard OAuth flow)
+        const defaultAdapter = MongoDBAdapter(connectMongo);
+        return await defaultAdapter.createUser(user);
+      }
+    }
+  }),
 
   callbacks: {
     async signIn({ user, account, profile, credentials }) {
@@ -122,30 +156,62 @@ export const authOptions = {
           });
           
           if (existingUser) {
-            // User exists - check if they have any OAuth accounts
+            console.log(`Found existing user for ${profile.email} - checking OAuth account status`);
+            
+            // User exists - check if they have any OAuth accounts for this provider
             const existingOAuthAccount = await accountsCollection.findOne({
               userId: existingUser._id,
               provider: 'google'
             });
             
-                         if (!existingOAuthAccount) {
-               console.log(`User ${profile.email} exists but has no OAuth account - creating fresh OAuth account link`);
-               // User exists but has no OAuth account (like after we deleted the stale one)
-               // Create the OAuth account record directly to prevent NextAuth adapter conflicts
-               await accountsCollection.insertOne({
-                 provider: account.provider,
-                 type: account.type,
-                 providerAccountId: account.providerAccountId,
-                 access_token: account.access_token,
-                 expires_at: account.expires_at,
-                 refresh_token: account.refresh_token,
-                 scope: account.scope,
-                 token_type: account.token_type,
-                 id_token: account.id_token,
-                 userId: existingUser._id
-               });
-               console.log('✅ Created fresh OAuth account link for existing user');
-               return true;
+            if (!existingOAuthAccount) {
+              console.log(`User ${profile.email} exists but has no Google OAuth account - linking accounts`);
+              // User exists but has no OAuth account - this is account linking
+              // Create the OAuth account record to link Google to existing credentials account
+              await accountsCollection.insertOne({
+                provider: account.provider,
+                type: account.type,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                refresh_token: account.refresh_token,
+                scope: account.scope,
+                token_type: account.token_type,
+                id_token: account.id_token,
+                userId: existingUser._id
+              });
+              
+              // Update the user object that NextAuth will use
+              user.id = existingUser._id.toString();
+              user.email = existingUser.email;
+              user.name = existingUser.name || user.name;
+              user.image = user.image || existingUser.image;
+              
+              // If the existing user doesn't have email verified but Google account is verified, mark as verified
+              if (!existingUser.emailVerification?.verified) {
+                await usersCollection.updateOne(
+                  { _id: existingUser._id },
+                  { 
+                    $set: { 
+                      'emailVerification.verified': true,
+                      hasAccess: true // Grant access since Google email is verified
+                    },
+                    $push: {
+                      accessHistory: {
+                        hasAccess: true,
+                        changedBy: 'system',
+                        changedAt: new Date(),
+                        reason: 'Google account linked - email verified',
+                        action: 'activated'
+                      }
+                    }
+                  }
+                );
+                console.log(`✅ Marked email as verified for existing user ${profile.email} via Google linking`);
+              }
+              
+              console.log('✅ Successfully linked Google account to existing credentials account');
+              return true;
             } else if (existingOAuthAccount.providerAccountId !== account.providerAccountId) {
               console.log(`User ${profile.email} has different Google account ID - updating OAuth account`);
               // User has OAuth account but with different provider ID (Google updated their account)
@@ -164,15 +230,36 @@ export const authOptions = {
                   }
                 }
               );
+              
+              // Update the user object that NextAuth will use
+              user.id = existingUser._id.toString();
+              user.email = existingUser.email;
+              user.name = existingUser.name || user.name;
+              user.image = user.image || existingUser.image;
+              
               console.log('✅ Updated OAuth account with new Google provider details');
+              return true;
+            } else {
+              // OAuth account already exists and matches - normal sign in
+              // Update the user object that NextAuth will use
+              user.id = existingUser._id.toString();
+              user.email = existingUser.email;
+              user.name = existingUser.name || user.name;
+              user.image = user.image || existingUser.image;
+              
+              console.log(`✅ Normal Google sign-in for existing user ${profile.email}`);
+              return true;
             }
           } else {
             // New OAuth user - they will be created by the adapter
             // We'll set hasAccess to true in the events callback below
             console.log(`New OAuth user will be created for ${profile.email}`);
+            return true;
           }
         } catch (error) {
           console.error('Error in signIn callback:', error);
+          // Allow sign-in to proceed even if linking fails
+          return true;
         }
       }
       
