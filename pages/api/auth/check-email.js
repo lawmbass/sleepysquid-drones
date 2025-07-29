@@ -29,8 +29,8 @@ export default async function handler(req, res) {
     // Connect to database
     await connectMongo();
 
-    // Check if user exists
-    const user = await User.findOne({ email: sanitizedEmail });
+    // Check if user exists (include password field for checking)
+    const user = await User.findOne({ email: sanitizedEmail }).select('+password');
     
     if (!user) {
       return res.status(200).json({

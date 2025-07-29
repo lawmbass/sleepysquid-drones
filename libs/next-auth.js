@@ -101,41 +101,10 @@ export const authOptions = {
   // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
   // Requires a MongoDB database. Set MONOGODB_URI env variable.
   // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
-  // Note: We use a custom adapter approach for better account linking control
-  ...(connectMongo && { 
-    adapter: {
-      ...MongoDBAdapter(connectMongo),
-      // Override createUser to prevent duplicate users during OAuth linking
-      async createUser(user) {
-        const connectMongo = (await import('./mongoose')).default;
-        const mongoose = (await import('mongoose')).default;
-        
-        await connectMongo();
-        
-        // Check if user already exists (this handles the linking case)
-        const usersCollection = mongoose.connection.collection('users');
-        const existingUser = await usersCollection.findOne({ 
-          email: user.email.toLowerCase() 
-        });
-        
-        if (existingUser) {
-          // User already exists, return the existing user
-          console.log(`User ${user.email} already exists, returning existing user for OAuth linking`);
-          return {
-            id: existingUser._id.toString(),
-            email: existingUser.email,
-            name: existingUser.name,
-            image: existingUser.image,
-            emailVerified: existingUser.emailVerification?.verified ? new Date() : null
-          };
-        }
-        
-        // User doesn't exist, create new user (standard OAuth flow)
-        const defaultAdapter = MongoDBAdapter(connectMongo);
-        return await defaultAdapter.createUser(user);
-      }
-    }
-  }),
+  // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
+  // Requires a MongoDB database. Set MONOGODB_URI env variable.
+  // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
+  ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
     async signIn({ user, account, profile, credentials }) {

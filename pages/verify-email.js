@@ -1,14 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { FiCheck, FiX, FiLoader } from 'react-icons/fi';
+import Head from 'next/head';
+import Link from 'next/link';
+import { FiMail, FiAlertCircle, FiCheck, FiLoader } from 'react-icons/fi';
 
 export default function VerifyEmail() {
   const router = useRouter();
-  const { token } = router.query;
-  const [status, setStatus] = useState('loading'); // loading, success, error
-  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [token, setToken] = useState('');
 
-  const verifyEmail = useCallback(async (verificationToken) => {
+  useEffect(() => {
+    // Get token from URL
+    if (router.query.token) {
+      setToken(router.query.token);
+      verifyEmail(router.query.token);
+    } else if (router.isReady) {
+      setError('No verification token provided');
+      setIsLoading(false);
+    }
+  }, [router.query.token, router.isReady]);
+
+  const verifyEmail = async (verificationToken) => {
     try {
       const response = await fetch('/api/user/email/verify', {
         method: 'POST',
@@ -21,92 +35,116 @@ export default function VerifyEmail() {
       const data = await response.json();
 
       if (response.ok) {
-        setStatus('success');
-        setMessage(data.message);
-        // Redirect to dashboard after 3 seconds
+        setSuccessMessage(data.message);
+        // Redirect to login after 3 seconds
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/login');
         }, 3000);
       } else {
-        setStatus('error');
-        setMessage(data.message || 'Verification failed');
+        setError(data.message || 'Email verification failed');
       }
     } catch (error) {
-      setStatus('error');
-      setMessage('An error occurred while verifying your email');
+      console.error('Email verification error:', error);
+      setError('An error occurred while verifying your email');
+    } finally {
+      setIsLoading(false);
     }
-  }, [router]);
-
-  useEffect(() => {
-    if (token) {
-      verifyEmail(token);
-    }
-  }, [token, verifyEmail]);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <div className="text-center">
-            {status === 'loading' && (
-              <>
-                <FiLoader className="mx-auto h-12 w-12 text-blue-600 animate-spin" />
-                <h2 className="mt-6 text-2xl font-bold text-gray-900">
-                  Verifying Your Email
-                </h2>
-                <p className="mt-2 text-gray-600">
-                  Please wait while we verify your email address...
-                </p>
-              </>
+    <>
+      <Head>
+        <title>Verify Email - SleepySquid Drones</title>
+        <meta name="description" content="Verify your email address for SleepySquid Drones" />
+      </Head>
+      
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <div className="flex justify-center">
+              <div className={`rounded-full p-3 ${
+                isLoading ? 'bg-blue-600' : 
+                error ? 'bg-red-600' : 'bg-green-600'
+              }`}>
+                {isLoading ? (
+                  <FiLoader className="h-8 w-8 text-white animate-spin" />
+                ) : error ? (
+                  <FiAlertCircle className="h-8 w-8 text-white" />
+                ) : (
+                  <FiCheck className="h-8 w-8 text-white" />
+                )}
+              </div>
+            </div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              {isLoading ? 'Verifying your email...' : 
+               error ? 'Verification failed' : 'Email verified!'}
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              {isLoading ? 'Please wait while we verify your email address' :
+               error ? 'There was a problem verifying your email' :
+               'Your account is now active'}
+            </p>
+          </div>
+
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            {isLoading && (
+              <div className="text-center">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              </div>
             )}
 
-            {status === 'success' && (
-              <>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                  <FiCheck className="h-6 w-6 text-green-600" />
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <FiAlertCircle className="h-5 w-5 text-red-400 mr-2 mt-0.5" />
+                  <div className="text-sm text-red-700">{error}</div>
                 </div>
-                <h2 className="mt-6 text-2xl font-bold text-gray-900">
-                  Email Verified Successfully!
-                </h2>
-                <p className="mt-2 text-gray-600">
-                  {message}
-                </p>
-                <p className="mt-4 text-sm text-gray-500">
-                  Redirecting to dashboard in 3 seconds...
-                </p>
-              </>
+              </div>
+            )}
+            
+            {successMessage && (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
+                <div className="flex">
+                  <FiCheck className="h-5 w-5 text-green-400 mr-2 mt-0.5" />
+                  <div className="text-sm text-green-700">
+                    {successMessage}
+                    <br />
+                    <span className="text-xs">Redirecting to sign in page...</span>
+                  </div>
+                </div>
+              </div>
             )}
 
-            {status === 'error' && (
-              <>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                  <FiX className="h-6 w-6 text-red-600" />
+            <div className="text-center space-y-4">
+              {error && (
+                <div className="space-y-2">
+                  <Link href="/signup" className="block w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                    Create New Account
+                  </Link>
+                  <Link href="/login" className="block text-blue-600 hover:text-blue-500 text-sm">
+                    Back to Sign In
+                  </Link>
                 </div>
-                <h2 className="mt-6 text-2xl font-bold text-gray-900">
-                  Verification Failed
-                </h2>
-                <p className="mt-2 text-gray-600">
-                  {message}
-                </p>
-                <div className="mt-6 space-y-4">
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Go to Dashboard
-                  </button>
-                  <button
-                    onClick={() => router.push('/dashboard?section=settings')}
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Go to Settings
-                  </button>
-                </div>
-              </>
-            )}
+              )}
+
+              {successMessage && (
+                <Link href="/login" className="block w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                  Continue to Sign In
+                </Link>
+              )}
+
+              {!isLoading && !error && !successMessage && (
+                <Link href="/login" className="block w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                  Go to Sign In
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
