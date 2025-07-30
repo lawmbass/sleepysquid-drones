@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     // Update user as verified, grant access, and clear verification tokens
-    const updatedUser = await User.findByIdAndUpdate(user._id, {
+    await User.findByIdAndUpdate(user._id, {
       'emailVerification.verified': true,
       hasAccess: true, // Grant access after email verification
       $unset: {

@@ -45,7 +45,7 @@ export default function Settings({ user, onUpdate }) {
       errors.push('Password must contain at least one number');
     }
     
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       errors.push('Password must contain at least one special character');
     }
     
@@ -788,8 +788,8 @@ export default function Settings({ user, onUpdate }) {
                       <FiCheck className={`h-3 w-3 mr-1 ${/\d/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
                       One number
                     </div>
-                    <div className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
                       One special character
                     </div>
                   </div>

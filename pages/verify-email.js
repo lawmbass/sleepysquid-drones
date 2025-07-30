@@ -1,28 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { FiMail, FiAlertCircle, FiCheck, FiLoader } from 'react-icons/fi';
+import { FiAlertCircle, FiCheck, FiLoader } from 'react-icons/fi';
 
 export default function VerifyEmail() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [token, setToken] = useState('');
 
-  useEffect(() => {
-    // Get token from URL
-    if (router.query.token) {
-      setToken(router.query.token);
-      verifyEmail(router.query.token);
-    } else if (router.isReady) {
-      setError('No verification token provided');
-      setIsLoading(false);
-    }
-  }, [router.query.token, router.isReady]);
-
-  const verifyEmail = async (verificationToken) => {
+  const verifyEmail = useCallback(async (verificationToken) => {
     try {
       const response = await fetch('/api/user/email/verify', {
         method: 'POST',
@@ -49,7 +37,17 @@ export default function VerifyEmail() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    // Get token from URL
+    if (router.query.token) {
+      verifyEmail(router.query.token);
+    } else if (router.isReady) {
+      setError('No verification token provided');
+      setIsLoading(false);
+    }
+  }, [router.query.token, router.isReady, verifyEmail]);
 
   return (
     <>

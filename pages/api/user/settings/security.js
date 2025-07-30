@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     // Get client IP for rate limiting
-    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    // const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
     // Connect to database
     await connectMongo();
