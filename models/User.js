@@ -30,6 +30,22 @@ const userSchema = mongoose.Schema(
       }
     },
     
+    // Password reset functionality
+    passwordReset: {
+      token: {
+        type: String,
+        select: false, // Don't include in queries by default
+      },
+      expires: {
+        type: Date,
+        select: false, // Don't include in queries by default
+      },
+      requestedAt: {
+        type: Date,
+        select: false, // Don't include in queries by default
+      }
+    },
+    
     // Pending email change
     pendingEmailChange: {
       email: {

@@ -19,6 +19,41 @@ export default function Settings({ user, onUpdate }) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showPassword, setShowPassword] = useState(false);
+
+  // Password validation function
+  const validatePasswordStrength = (password) => {
+    const errors = [];
+    
+    if (!password) {
+      errors.push('Password is required');
+      return { isValid: false, errors };
+    }
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+      errors.push('Password must contain at least one special character');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
   
   // Profile settings state
   const [profileData, setProfileData] = useState({
@@ -203,17 +238,31 @@ export default function Settings({ user, onUpdate }) {
           dataToSave = notifications;
           break;
         case 'security':
-          if (security.isOAuthUser) {
-            // OAuth users don't have security settings to update
-            setMessage({ type: 'info', text: 'Security settings are managed by your OAuth provider' });
+          // Check if OAuth user is trying to set up a password
+          if (security.isOAuthUser && !security.newPassword) {
+            // OAuth users can only update if they're setting up a password
+            setMessage({ type: 'info', text: 'Add a password to enable additional sign-in options' });
             setLoading(false);
             return;
           }
-          if (security.newPassword !== security.confirmPassword) {
-            setMessage({ type: 'error', text: 'Passwords do not match' });
-            setLoading(false);
-            return;
+          
+          // Validate password fields if provided
+          if (security.newPassword) {
+            if (security.newPassword !== security.confirmPassword) {
+              setMessage({ type: 'error', text: 'Passwords do not match' });
+              setLoading(false);
+              return;
+            }
+            
+            // Validate password strength
+            const passwordValidation = validatePasswordStrength(security.newPassword);
+            if (!passwordValidation.isValid) {
+              setMessage({ type: 'error', text: passwordValidation.errors[0] });
+              setLoading(false);
+              return;
+            }
           }
+          
           dataToSave = {
             currentPassword: security.currentPassword,
             newPassword: security.newPassword,
@@ -232,12 +281,20 @@ export default function Settings({ user, onUpdate }) {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Settings updated successfully!' });
+        const data = await response.json();
+        setMessage({ type: 'success', text: data.message || 'Settings updated successfully!' });
+        
         if (section === 'profile' && onUpdate) {
           onUpdate({ ...user, ...profileData });
         }
+        
         if (section === 'security') {
           setSecurity(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+          
+          // If this was an initial password setup, refresh the settings to update isOAuthUser status
+          if (data.initialPasswordSetup) {
+            await loadSettings();
+          }
         }
       } else {
         throw new Error('Failed to update settings');
@@ -636,7 +693,7 @@ export default function Settings({ user, onUpdate }) {
               <div>
                 <h4 className="font-medium text-blue-900">Google Account Security</h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  You signed in with Google. Your account security is managed by Google, including two-factor authentication and password management.
+                  You signed in with Google. Your account security is managed by Google, but you can also add a password for additional sign-in options.
                 </p>
               </div>
             </div>
@@ -670,6 +727,74 @@ export default function Settings({ user, onUpdate }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
+            </div>
+          </div>
+
+          {/* Password Setup Section */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900">Add Password</h4>
+              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full border">Optional</span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Set up a password to sign in with either Google or your email and password.
+            </p>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={security.newPassword}
+                  onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="Create a password"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={security.confirmPassword}
+                  onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="Confirm your password"
+                />
+              </div>
+
+              {/* Password Requirements */}
+              {security.newPassword && (
+                <div className="p-3 bg-white border border-gray-200 rounded-md">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Password Requirements:</p>
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div className={`flex items-center ${security.newPassword.length >= 8 ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${security.newPassword.length >= 8 ? 'text-green-600' : 'text-gray-300'}`} />
+                      At least 8 characters
+                    </div>
+                    <div className={`flex items-center ${/[A-Z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[A-Z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                      One uppercase letter
+                    </div>
+                    <div className={`flex items-center ${/[a-z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[a-z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                      One lowercase letter
+                    </div>
+                    <div className={`flex items-center ${/\d/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/\d/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                      One number
+                    </div>
+                    <div className={`flex items-center ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                      One special character
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

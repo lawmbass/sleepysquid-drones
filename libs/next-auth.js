@@ -1,7 +1,9 @@
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
+import bcrypt from "bcryptjs";
 
 export const authOptions = {
   // Set any random key in .env.local
@@ -11,6 +13,69 @@ export const authOptions = {
   url: process.env.NEXTAUTH_URL || `https://${config.domainName}`,
   
   providers: [
+    // Credentials provider for username/password authentication
+    CredentialsProvider({
+      id: "credentials",
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        try {
+          const connectMongo = (await import('./mongoose')).default;
+          const User = (await import('../models/User')).default;
+          
+          await connectMongo();
+          
+          // Find user by email (include password field)
+          const user = await User.findOne({ 
+            email: credentials.email.toLowerCase() 
+          }).select('+password');
+          
+          if (!user) {
+            return null;
+          }
+
+          // Check if user has a password (might be OAuth-only user)
+          if (!user.password) {
+            return null;
+          }
+
+          // Verify password
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          // Check if email is verified
+          if (!user.emailVerification?.verified) {
+            throw new Error("EmailNotVerified");
+          }
+
+          // Return user object (exclude password)
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            hasAccess: user.hasAccess,
+          };
+        } catch (error) {
+          console.error('Credentials authorization error:', error);
+          if (error.message === "EmailNotVerified") {
+            throw error;
+          }
+          return null;
+        }
+      }
+    }),
     GoogleProvider({
       // Follow the "Login with Google" tutorial to get your credentials
       clientId: process.env.GOOGLE_ID,
@@ -36,79 +101,69 @@ export const authOptions = {
   // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
   // Requires a MongoDB database. Set MONOGODB_URI env variable.
   // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
+  // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
+  // Requires a MongoDB database. Set MONOGODB_URI env variable.
+  // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Handle OAuth account linking for users after email changes or account resets
+    async signIn({ user, account, profile, credentials }) {
+      // Basic validation for OAuth providers
       if (account?.provider === 'google' && profile?.email) {
         try {
           const connectMongo = (await import('./mongoose')).default;
-          const mongoose = (await import('mongoose')).default;
+          const User = (await import('../models/User')).default;
           
           await connectMongo();
           
-          // Check if a user already exists with this email (direct match)
-          const usersCollection = mongoose.connection.collection('users');
-          const accountsCollection = mongoose.connection.collection('accounts');
-          
-          const existingUser = await usersCollection.findOne({ 
+          // Check if user exists - but don't modify user object or manually link accounts
+          // Let NextAuth's adapter handle account creation/linking naturally
+          const existingUser = await User.findOne({ 
             email: profile.email.toLowerCase() 
           });
           
           if (existingUser) {
-            // User exists - check if they have any OAuth accounts
-            const existingOAuthAccount = await accountsCollection.findOne({
-              userId: existingUser._id,
-              provider: 'google'
-            });
+            console.log(`Found existing user for ${profile.email} - letting NextAuth adapter handle linking`);
             
-                         if (!existingOAuthAccount) {
-               console.log(`User ${profile.email} exists but has no OAuth account - creating fresh OAuth account link`);
-               // User exists but has no OAuth account (like after we deleted the stale one)
-               // Create the OAuth account record directly to prevent NextAuth adapter conflicts
-               await accountsCollection.insertOne({
-                 provider: account.provider,
-                 type: account.type,
-                 providerAccountId: account.providerAccountId,
-                 access_token: account.access_token,
-                 expires_at: account.expires_at,
-                 refresh_token: account.refresh_token,
-                 scope: account.scope,
-                 token_type: account.token_type,
-                 id_token: account.id_token,
-                 userId: existingUser._id
-               });
-               console.log('✅ Created fresh OAuth account link for existing user');
-               return true;
-            } else if (existingOAuthAccount.providerAccountId !== account.providerAccountId) {
-              console.log(`User ${profile.email} has different Google account ID - updating OAuth account`);
-              // User has OAuth account but with different provider ID (Google updated their account)
-              // Update the existing OAuth account with new provider details
-              await accountsCollection.updateOne(
-                { _id: existingOAuthAccount._id },
-                {
-                  $set: {
-                    providerAccountId: account.providerAccountId,
-                    access_token: account.access_token,
-                    expires_at: account.expires_at,
-                    refresh_token: account.refresh_token,
-                    scope: account.scope,
-                    token_type: account.token_type,
-                    id_token: account.id_token
+            // If the existing user doesn't have email verified but Google account is verified, mark as verified
+            // This is the only database operation we should do here - updating user verification status
+            if (!existingUser.emailVerification?.verified) {
+              await User.updateOne(
+                { _id: existingUser._id },
+                { 
+                  $set: { 
+                    'emailVerification.verified': true,
+                    hasAccess: true // Grant access since Google email is verified
+                  },
+                  $push: {
+                    accessHistory: {
+                      hasAccess: true,
+                      changedBy: 'system',
+                      changedAt: new Date(),
+                      reason: 'Google account verification',
+                      action: 'activated'
+                    }
                   }
                 }
               );
-              console.log('✅ Updated OAuth account with new Google provider details');
+              console.log(`✅ Marked email as verified for user ${profile.email} via Google verification`);
             }
           } else {
-            // New OAuth user - they will be created by the adapter
-            // We'll set hasAccess to true in the events callback below
-            console.log(`New OAuth user will be created for ${profile.email}`);
+            console.log(`New OAuth user ${profile.email} - will be created by NextAuth adapter`);
           }
+          
+          return true;
         } catch (error) {
           console.error('Error in signIn callback:', error);
+          // Allow sign-in to proceed even if verification update fails
+          return true;
         }
+      }
+      
+      // Handle credentials sign-in
+      if (account?.provider === 'credentials') {
+        // Additional validation for credentials users can be added here
+        return true;
       }
       
       // Allow sign-in to proceed normally
@@ -206,9 +261,12 @@ export const authOptions = {
       }
       return session;
     },
-    jwt: async ({ token, account, profile }) => {
+    jwt: async ({ token, account, profile, user }) => {
       if (account && profile) {
         token.email = profile.email;
+      }
+      if (user) {
+        token.email = user.email;
       }
       return token;
     },
