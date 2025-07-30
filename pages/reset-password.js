@@ -25,11 +25,52 @@ export default function ResetPassword() {
     special: false
   });
   const [token, setToken] = useState('');
+  const [tokenValidated, setTokenValidated] = useState(false);
+  const [validatingToken, setValidatingToken] = useState(false);
+
+  // Function to validate token with server
+  const validateToken = async (tokenToValidate) => {
+    setValidatingToken(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/auth/validate-reset-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: tokenToValidate }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTokenValidated(true);
+      } else {
+        setError(data.message || 'Invalid or expired reset token. Please request a new one.');
+        setToken('');
+      }
+    } catch (error) {
+      console.error('Token validation error:', error);
+      setError('Unable to validate reset token. Please try again.');
+      setToken('');
+    } finally {
+      setValidatingToken(false);
+    }
+  };
 
   useEffect(() => {
-    // Get token from URL
+    // Get token from URL and validate format
     if (router.query.token) {
-      setToken(router.query.token);
+      const tokenFromUrl = router.query.token;
+      // Basic token validation - should be a hex string of reasonable length
+      if (typeof tokenFromUrl === 'string' && /^[a-f0-9]{64}$/i.test(tokenFromUrl)) {
+        setToken(tokenFromUrl);
+        // Validate token with server
+        validateToken(tokenFromUrl);
+      } else {
+        setError('Invalid reset token format. Please request a new password reset link.');
+      }
     }
   }, [router.query.token]);
 
@@ -109,9 +150,19 @@ export default function ResetPassword() {
           router.push('/login');
         }, 3000);
       } else {
-        setError(data.message || 'An error occurred while resetting your password');
-        if (data.errors) {
-          setError(data.errors.join(', '));
+        // Handle different error types
+        if (response.status === 429) {
+          setError('Too many attempts. Please wait before trying again.');
+        } else if (response.status === 400) {
+          if (data.errors && Array.isArray(data.errors)) {
+            setError(data.errors.join(', '));
+          } else {
+            setError(data.message || 'Invalid request. Please check your input.');
+          }
+        } else if (response.status >= 500) {
+          setError('Server error. Please try again in a few moments.');
+        } else {
+          setError(data.message || 'An error occurred while resetting your password');
         }
       }
     } catch (error) {
@@ -126,15 +177,18 @@ export default function ResetPassword() {
     return formData.password && 
            formData.confirmPassword &&
            formData.password === formData.confirmPassword &&
-           Object.values(passwordValidation).every(Boolean);
+           Object.values(passwordValidation).every(Boolean) &&
+           tokenValidated;
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || validatingToken) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">
+            {validatingToken ? 'Validating reset token...' : 'Loading...'}
+          </p>
         </div>
       </div>
     );
