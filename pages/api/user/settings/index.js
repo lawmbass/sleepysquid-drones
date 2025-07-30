@@ -19,9 +19,9 @@ export default async function handler(req, res) {
     await connectMongo();
 
     // Get user from database with all settings
-    // Explicitly select email verification fields since they're marked with select: false
+    // Explicitly select email verification fields and password since they're marked with select: false
     const user = await User.findOne({ email: session.user.email })
-      .select('+emailVerification +pendingEmailChange');
+      .select('+emailVerification +pendingEmailChange +password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

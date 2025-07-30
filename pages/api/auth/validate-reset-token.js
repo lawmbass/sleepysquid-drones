@@ -1,8 +1,6 @@
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
 import { 
-  hashPassword, 
-  validatePassword, 
   isTokenExpired,
   checkRateLimit,
   recordAuthAttempt,
@@ -19,34 +17,23 @@ export default async function handler(req, res) {
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     
     // Extract and sanitize input data
-    const { token, password } = req.body;
+    const { token } = req.body;
     const sanitizedToken = sanitizeInput(token);
-    const sanitizedPassword = sanitizeInput(password);
 
     // Validate required fields
-    if (!sanitizedToken || !sanitizedPassword) {
+    if (!sanitizedToken) {
       return res.status(400).json({ 
-        message: 'Token and password are required' 
+        message: 'Token is required' 
       });
     }
 
-    // Check rate limiting
-    const rateLimitCheck = await checkRateLimit(clientIP, 5, 15); // 5 attempts per 15 minutes
+    // Check rate limiting (more lenient for validation)
+    const rateLimitCheck = await checkRateLimit(clientIP, 10, 15); // 10 attempts per 15 minutes
     if (rateLimitCheck.isLimited) {
       await recordAuthAttempt(clientIP);
       return res.status(429).json({ 
-        message: 'Too many password reset attempts. Please try again later.',
+        message: 'Too many validation attempts. Please try again later.',
         retryAfter: rateLimitCheck.resetTime
-      });
-    }
-
-    // Validate password strength
-    const passwordValidation = validatePassword(sanitizedPassword);
-    if (!passwordValidation.isValid) {
-      await recordAuthAttempt(clientIP);
-      return res.status(400).json({ 
-        message: 'Password does not meet requirements',
-        errors: passwordValidation.errors
       });
     }
 
@@ -56,7 +43,7 @@ export default async function handler(req, res) {
     // Find user by password reset token (include password reset fields)
     const user = await User.findOne({ 
       'passwordReset.token': sanitizedToken 
-    }).select('+passwordReset.token +passwordReset.expires +password');
+    }).select('+passwordReset.token +passwordReset.expires');
 
     if (!user || !user.passwordReset || !user.passwordReset.token) {
       await recordAuthAttempt(clientIP);
@@ -73,25 +60,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // Hash the new password
-    const hashedPassword = await hashPassword(sanitizedPassword);
-
-    // Update user password and clear reset token
-    user.password = hashedPassword;
-    user.passwordReset = undefined;
-
-    await user.save();
-
-    // Record successful attempt
+    // Record successful validation attempt
     await recordAuthAttempt(clientIP);
 
     // Return success response
     res.status(200).json({
-      message: 'Password has been reset successfully. You can now sign in with your new password.'
+      message: 'Token is valid',
+      valid: true
     });
 
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('Token validation error:', error);
     
     // Handle specific MongoDB errors
     if (error.name === 'MongoServerError' || error.name === 'MongoError') {
@@ -100,16 +79,9 @@ export default async function handler(req, res) {
       });
     }
     
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Invalid data provided. Please check your input and try again.' 
-      });
-    }
-    
     // Generic error response
     res.status(500).json({ 
-      message: 'An error occurred while resetting your password. Please try again.' 
+      message: 'An error occurred while validating the token. Please try again.' 
     });
   }
 }

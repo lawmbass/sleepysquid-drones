@@ -291,8 +291,8 @@ export default function Settings({ user, onUpdate }) {
         if (section === 'security') {
           setSecurity(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
           
-          // If this was an initial password setup, refresh the settings to update isOAuthUser status
-          if (data.initialPasswordSetup) {
+          // If this was an initial password setup or any password change, refresh the settings
+          if (data.initialPasswordSetup || data.passwordChanged) {
             await loadSettings();
           }
         }
