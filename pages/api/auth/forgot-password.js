@@ -30,9 +30,9 @@ export default async function handler(req, res) {
     }
 
     // Check rate limiting (more restrictive for password reset)
-    const rateLimitCheck = checkRateLimit(clientIP, 3, 15); // 3 attempts per 15 minutes
+    const rateLimitCheck = await checkRateLimit(clientIP, 3, 15); // 3 attempts per 15 minutes
     if (rateLimitCheck.isLimited) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(429).json({ 
         message: 'Too many password reset requests. Please try again later.',
         retryAfter: rateLimitCheck.resetTime
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     // Validate email format
     if (!validateEmail(sanitizedEmail)) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Please enter a valid email address' 
       });
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       
       if (!userWithPassword.password) {
         // OAuth-only user - don't send reset email
-        recordAuthAttempt(clientIP);
+        await recordAuthAttempt(clientIP);
         return res.status(200).json({
           message: 'If an account exists with this email, you will receive password reset instructions shortly.'
         });
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
       
       if (user.passwordReset?.requestedAt && user.passwordReset.requestedAt > fiveMinutesAgo) {
-        recordAuthAttempt(clientIP);
+        await recordAuthAttempt(clientIP);
         return res.status(429).json({
           message: 'A password reset email was recently sent. Please check your email or wait a few minutes before requesting another.'
         });
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
     }
 
     // Record attempt
-    recordAuthAttempt(clientIP);
+    await recordAuthAttempt(clientIP);
 
     // Always return success message to prevent email enumeration
     res.status(200).json({

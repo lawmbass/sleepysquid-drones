@@ -35,9 +35,9 @@ export default async function handler(req, res) {
     }
 
     // Check rate limiting
-    const rateLimitCheck = checkRateLimit(clientIP, 5, 15); // 5 attempts per 15 minutes
+    const rateLimitCheck = await checkRateLimit(clientIP, 5, 15); // 5 attempts per 15 minutes
     if (rateLimitCheck.isLimited) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(429).json({ 
         message: 'Too many signup attempts. Please try again later.',
         retryAfter: rateLimitCheck.resetTime
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
     // Validate email format
     if (!validateEmail(sanitizedEmail)) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Please enter a valid email address' 
       });
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     // Validate password strength
     const passwordValidation = validatePassword(sanitizedPassword);
     if (!passwordValidation.isValid) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Password does not meet requirements',
         errors: passwordValidation.errors
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     // Check if user already exists
     const existingUser = await User.findOne({ email: sanitizedEmail });
     if (existingUser) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'An account with this email already exists' 
       });
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
     }
 
     // Record successful signup attempt
-    recordAuthAttempt(clientIP);
+    await recordAuthAttempt(clientIP);
 
     // Return success response (don't include sensitive data)
     res.status(201).json({

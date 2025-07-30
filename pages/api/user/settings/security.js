@@ -43,9 +43,9 @@ export default async function handler(req, res) {
     // Handle password change or initial password setup
     if (newPassword) {
       // Check rate limiting for password changes
-      const rateLimitCheck = checkRateLimit(`${session.user.email}-password`, 5, 15);
+      const rateLimitCheck = await checkRateLimit(`${session.user.email}-password`, 5, 15);
       if (rateLimitCheck.isLimited) {
-        recordAuthAttempt(`${session.user.email}-password`);
+        await recordAuthAttempt(`${session.user.email}-password`);
         return res.status(429).json({ 
           message: 'Too many password change attempts. Please try again later.',
           retryAfter: rateLimitCheck.resetTime
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       
       // If user has an existing password, they must provide current password
       if (hasExistingPassword && !currentPassword) {
-        recordAuthAttempt(`${session.user.email}-password`);
+        await recordAuthAttempt(`${session.user.email}-password`);
         return res.status(400).json({ 
           message: 'Current password is required to change your password' 
         });
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       if (hasExistingPassword) {
         const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
         if (!isCurrentPasswordValid) {
-          recordAuthAttempt(`${session.user.email}-password`);
+          await recordAuthAttempt(`${session.user.email}-password`);
           return res.status(400).json({ 
             message: 'Current password is incorrect' 
           });
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       // Validate new password strength
       const passwordValidation = validatePassword(newPassword);
       if (!passwordValidation.isValid) {
-        recordAuthAttempt(`${session.user.email}-password`);
+        await recordAuthAttempt(`${session.user.email}-password`);
         return res.status(400).json({ 
           message: 'New password does not meet requirements',
           errors: passwordValidation.errors
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
       // Check if new password is different from current (only if they have an existing password)
       if (hasExistingPassword && await comparePassword(newPassword, user.password)) {
-        recordAuthAttempt(`${session.user.email}-password`);
+        await recordAuthAttempt(`${session.user.email}-password`);
         return res.status(400).json({ 
           message: 'New password must be different from your current password' 
         });
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       passwordChanged = true;
 
       // Record successful password change attempt
-      recordAuthAttempt(`${session.user.email}-password`);
+      await recordAuthAttempt(`${session.user.email}-password`);
     }
 
     // Handle two-factor authentication

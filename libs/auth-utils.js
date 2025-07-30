@@ -146,52 +146,95 @@ export function sanitizeInput(input) {
 }
 
 /**
- * Rate limiting check for authentication attempts
+ * Rate limiting check for authentication attempts using database storage
  * @param {string} identifier - Email or IP address
  * @param {number} maxAttempts - Maximum attempts allowed (default: 5)
  * @param {number} windowMinutes - Time window in minutes (default: 15)
  * @returns {Object} - Rate limit status
  */
-export function checkRateLimit(identifier, maxAttempts = 5, windowMinutes = 15) {
-  // This is a simple in-memory implementation
-  // In production, you should use Redis or a database
-  if (!global.authAttempts) {
-    global.authAttempts = new Map();
+export async function checkRateLimit(identifier, maxAttempts = 5, windowMinutes = 15) {
+  try {
+    const connectMongo = (await import('./mongoose')).default;
+    const mongoose = (await import('mongoose')).default;
+    
+    await connectMongo();
+    
+    // Use a dedicated collection for rate limiting
+    const rateLimitCollection = mongoose.connection.collection('rateLimit');
+    
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - (windowMinutes * 60 * 1000));
+    
+    // Clean up old attempts outside the time window
+    await rateLimitCollection.deleteMany({
+      identifier,
+      timestamp: { $lt: windowStart }
+    });
+    
+    // Count recent attempts within the time window
+    const recentAttempts = await rateLimitCollection.countDocuments({
+      identifier,
+      timestamp: { $gte: windowStart }
+    });
+    
+    const isLimited = recentAttempts >= maxAttempts;
+    const remainingAttempts = Math.max(0, maxAttempts - recentAttempts);
+    
+    // Get the earliest attempt to calculate reset time
+    let resetTime = null;
+    if (recentAttempts > 0) {
+      const earliestAttempt = await rateLimitCollection.findOne(
+        { identifier, timestamp: { $gte: windowStart } },
+        { sort: { timestamp: 1 } }
+      );
+      if (earliestAttempt) {
+        resetTime = new Date(earliestAttempt.timestamp.getTime() + (windowMinutes * 60 * 1000));
+      }
+    }
+    
+    return {
+      isLimited,
+      remainingAttempts,
+      resetTime
+    };
+  } catch (error) {
+    console.error('Rate limit check failed:', error);
+    // Fail open - allow the attempt if rate limiting fails
+    return {
+      isLimited: false,
+      remainingAttempts: maxAttempts,
+      resetTime: null
+    };
   }
-  
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - (windowMinutes * 60 * 1000));
-  
-  // Get existing attempts for this identifier
-  const attempts = global.authAttempts.get(identifier) || [];
-  
-  // Filter out attempts outside the time window
-  const recentAttempts = attempts.filter(attempt => attempt > windowStart);
-  
-  // Update the attempts list
-  global.authAttempts.set(identifier, recentAttempts);
-  
-  const isLimited = recentAttempts.length >= maxAttempts;
-  const remainingAttempts = Math.max(0, maxAttempts - recentAttempts.length);
-  
-  return {
-    isLimited,
-    remainingAttempts,
-    resetTime: recentAttempts.length > 0 ? 
-      new Date(recentAttempts[0].getTime() + (windowMinutes * 60 * 1000)) : null
-  };
 }
 
 /**
- * Record an authentication attempt
+ * Record an authentication attempt in the database
  * @param {string} identifier - Email or IP address
  */
-export function recordAuthAttempt(identifier) {
-  if (!global.authAttempts) {
-    global.authAttempts = new Map();
+export async function recordAuthAttempt(identifier) {
+  try {
+    const connectMongo = (await import('./mongoose')).default;
+    const mongoose = (await import('mongoose')).default;
+    
+    await connectMongo();
+    
+    // Use a dedicated collection for rate limiting
+    const rateLimitCollection = mongoose.connection.collection('rateLimit');
+    
+    await rateLimitCollection.insertOne({
+      identifier,
+      timestamp: new Date()
+    });
+    
+    // Optional: Clean up very old records to prevent collection growth
+    // Keep records for a maximum of 24 hours
+    const cleanupTime = new Date(Date.now() - (24 * 60 * 60 * 1000));
+    await rateLimitCollection.deleteMany({
+      timestamp: { $lt: cleanupTime }
+    });
+  } catch (error) {
+    console.error('Failed to record auth attempt:', error);
+    // Non-critical error - continue execution
   }
-  
-  const attempts = global.authAttempts.get(identifier) || [];
-  attempts.push(new Date());
-  global.authAttempts.set(identifier, attempts);
 }

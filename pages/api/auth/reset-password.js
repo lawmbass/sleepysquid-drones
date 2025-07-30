@@ -31,9 +31,9 @@ export default async function handler(req, res) {
     }
 
     // Check rate limiting
-    const rateLimitCheck = checkRateLimit(clientIP, 5, 15); // 5 attempts per 15 minutes
+    const rateLimitCheck = await checkRateLimit(clientIP, 5, 15); // 5 attempts per 15 minutes
     if (rateLimitCheck.isLimited) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(429).json({ 
         message: 'Too many password reset attempts. Please try again later.',
         retryAfter: rateLimitCheck.resetTime
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     // Validate password strength
     const passwordValidation = validatePassword(sanitizedPassword);
     if (!passwordValidation.isValid) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Password does not meet requirements',
         errors: passwordValidation.errors
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     }).select('+passwordReset.token +passwordReset.expires +password');
 
     if (!user) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Invalid or expired password reset token' 
       });
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
     // Check if token has expired
     if (isTokenExpired(user.passwordReset.expires)) {
-      recordAuthAttempt(clientIP);
+      await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
         message: 'Password reset token has expired. Please request a new one.' 
       });
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     await user.save();
 
     // Record successful attempt
-    recordAuthAttempt(clientIP);
+    await recordAuthAttempt(clientIP);
 
     // Return success response
     res.status(200).json({
