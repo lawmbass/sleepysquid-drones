@@ -872,7 +872,8 @@ export default function Settings({ user, onUpdate }) {
         </div>
       )}
       
-      {!security.isOAuthUser && (
+      {/* Save button for OAuth users when adding password, or always for regular users */}
+      {(security.isOAuthUser && (security.newPassword || security.confirmPassword)) || !security.isOAuthUser ? (
         <div className="flex justify-end pt-4">
           <button
             onClick={() => handleSave('security')}
@@ -880,10 +881,10 @@ export default function Settings({ user, onUpdate }) {
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
           >
             <FiSave className="mr-2 h-4 w-4" />
-            {loading ? 'Saving...' : 'Update Security'}
+            {loading ? 'Saving...' : (security.isOAuthUser ? 'Add Password' : 'Update Security')}
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
