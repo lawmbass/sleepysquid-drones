@@ -2,6 +2,8 @@
 
 Professional drone services website with admin dashboard and automated mission integration.
 
+<!-- Build trigger: 2024-12-26 -->
+
 ## Quick Setup
 
 ```bash
