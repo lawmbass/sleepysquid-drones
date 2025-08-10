@@ -43,10 +43,7 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Our Services</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Aerial Photography</Link>
-              </li>
-              <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Drone Videography</Link>
+                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Aerial Photography & Videography</Link>
               </li>
               <li>
                 <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Mapping & Surveying</Link>
@@ -56,6 +53,9 @@ const Footer = () => {
               </li>
               <li>
                 <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Inspection Services</Link>
+              </li>
+              <li>
+                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Event Coverage</Link>
               </li>
             </ul>
           </div>
