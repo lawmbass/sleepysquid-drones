@@ -156,7 +156,14 @@ const PricingSection = ({ onPackageSelect }) => {
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
         >
           {pricingPlans.map((plan) => (
-            <PricingCard key={plan.id} plan={plan} variants={itemVariants} onPackageSelect={onPackageSelect} />
+            <PricingCard 
+              key={plan.id} 
+              plan={plan} 
+              variants={itemVariants} 
+              onPackageSelect={onPackageSelect}
+              activePromo={activePromo}
+              calculateDiscountedPrice={calculateDiscountedPrice}
+            />
           ))}
         </motion.div>
 
@@ -179,7 +186,7 @@ const PricingSection = ({ onPackageSelect }) => {
   );
 };
 
-const PricingCard = ({ plan, variants, onPackageSelect }) => {
+const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDiscountedPrice }) => {
   const handleBookPackage = (e) => {
     e.preventDefault();
     if (onPackageSelect) {

@@ -368,7 +368,12 @@ export default function PromoManagement() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${status.color}-100 text-${status.color}-800`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          status.color === 'green' ? 'bg-green-100 text-green-800' :
+                          status.color === 'red' ? 'bg-red-100 text-red-800' :
+                          status.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
                           <FiCheck className="mr-1 h-3 w-3" />
                           {status.label}
                         </span>

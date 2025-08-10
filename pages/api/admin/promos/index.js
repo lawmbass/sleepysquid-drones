@@ -67,9 +67,15 @@ async function handleGetPromos(req, res) {
 
     const total = await Promo.countDocuments(query);
 
+    // Map _id to id for frontend consistency
+    const mappedPromos = promos.map(promo => ({
+      ...promo.toObject(),
+      id: promo._id.toString()
+    }));
+
     return res.status(200).json({
       data: {
-        promos,
+        promos: mappedPromos,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -134,13 +140,24 @@ async function handleCreatePromo(req, res, user) {
       });
     }
 
+    // Handle different user ID formats from NextAuth session
+    let createdBy;
+    if (user._id) {
+      createdBy = user._id;
+    } else if (user.id) {
+      createdBy = user.id;
+    } else {
+      // If no ID available, use email as fallback (not ideal but prevents errors)
+      createdBy = user.email;
+    }
+
     const promo = new Promo({
       name,
       description,
       discountPercentage,
       startDate: start,
       endDate: end,
-      createdBy: user._id
+      createdBy
     });
 
     await promo.save();

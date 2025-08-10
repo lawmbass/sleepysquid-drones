@@ -91,35 +91,55 @@ async function handleUpdatePromo(req, res, id) {
       }
     }
 
-    // Validation for date range
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      
-      if (start >= end) {
-        return res.status(400).json({
-          error: 'Invalid date range',
-          message: 'End date must be after start date'
-        });
-      }
-
-      // Check for overlapping active promos (excluding current promo)
-      const overlappingPromo = await Promo.findOne({
-        _id: { $ne: id },
-        isActive: true,
-        $or: [
-          {
-            startDate: { $lte: end },
-            endDate: { $gte: start }
-          }
-        ]
+    // Validation for date range and overlapping promos
+    let start, end;
+    
+    if (startDate !== undefined) {
+      start = new Date(startDate);
+    }
+    if (endDate !== undefined) {
+      end = new Date(endDate);
+    }
+    
+    // If we have both dates, validate the range
+    if (start && end && start >= end) {
+      return res.status(400).json({
+        error: 'Invalid date range',
+        message: 'End date must be after start date'
       });
-
-      if (overlappingPromo) {
-        return res.status(400).json({
-          error: 'Overlapping promo',
-          message: 'There is already an active promo during this time period'
+    }
+    
+    // If we're updating dates or isActive, check for overlaps
+    if ((startDate !== undefined || endDate !== undefined || isActive !== undefined) && isActive !== false) {
+      // Get current promo to use existing dates if not being updated
+      const currentPromo = await Promo.findById(id);
+      if (!currentPromo) {
+        return res.status(404).json({ error: 'Promo not found' });
+      }
+      
+      const effectiveStart = start || currentPromo.startDate;
+      const effectiveEnd = end || currentPromo.endDate;
+      const willBeActive = isActive !== undefined ? isActive : currentPromo.isActive;
+      
+      if (willBeActive) {
+        // Check for overlapping active promos (excluding current promo)
+        const overlappingPromo = await Promo.findOne({
+          _id: { $ne: id },
+          isActive: true,
+          $or: [
+            {
+              startDate: { $lte: effectiveEnd },
+              endDate: { $gte: effectiveStart }
+            }
+          ]
         });
+
+        if (overlappingPromo) {
+          return res.status(400).json({
+            error: 'Overlapping promo',
+            message: 'There is already an active promo during this time period'
+          });
+        }
       }
     }
 
