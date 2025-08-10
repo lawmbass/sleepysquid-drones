@@ -6,8 +6,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 
 const services = [
-  { id: 'aerial-photography', name: 'Aerial Photography' },
-  { id: 'drone-videography', name: 'Drone Videography' },
+  { id: 'aerial-media', name: 'Aerial Photography & Videography' },
   { id: 'mapping-surveying', name: 'Mapping & Surveying' },
   { id: 'real-estate', name: 'Real Estate Tours' },
   { id: 'inspection', name: 'Inspection Services' },
@@ -122,7 +121,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     ];
 
     // Services that require at least Standard package (no Basic)
-    const standardMinServices = ['drone-videography', 'mapping-surveying', 'inspection', 'event-coverage', 'custom'];
+    const standardMinServices = ['mapping-surveying', 'inspection', 'event-coverage', 'custom'];
     
     if (standardMinServices.includes(serviceType)) {
       return allPackages.filter(pkg => pkg.id !== 'basic');

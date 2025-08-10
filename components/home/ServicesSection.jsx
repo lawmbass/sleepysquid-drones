@@ -1,28 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCamera, FiVideo, FiMap, FiHome, FiActivity, FiSearch } from 'react-icons/fi';
+import { FiCamera, FiMap, FiHome, FiActivity, FiSearch } from 'react-icons/fi';
 import Image from 'next/image';
 
 const services = [
   {
     id: 1,
-    title: 'Aerial Photography',
-    serviceId: 'aerial-photography',
-    description: 'Stunning high-resolution photos from unique aerial perspectives, perfect for real estate, events, or personal projects.',
+    title: 'Aerial Photography & Videography',
+    serviceId: 'aerial-media',
+    description: 'Stunning high-resolution photos and cinematic aerial footage from unique perspectives, perfect for real estate, events, marketing, or personal projects.',
     icon: <FiCamera className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1534996858221-380b92700493?q=80&w=2671&auto=format&fit=crop'
   },
   {
     id: 2,
-    title: 'Drone Videography',
-    serviceId: 'drone-videography',
-    description: 'Cinematic aerial footage that captures dynamic movement and sweeping landscapes for films, marketing, or special occasions.',
-    icon: <FiVideo className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1508444845599-5c89863b1c44?q=80&w=2671&auto=format&fit=crop'
-  },
-  {
-    id: 3,
     title: 'Mapping & Surveying',
     serviceId: 'mapping-surveying',
     description: 'Precise aerial mapping and 3D modeling for construction, agriculture, and land development projects.',
@@ -30,7 +22,7 @@ const services = [
     image: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?q=80&w=2574&auto=format&fit=crop'
   },
   {
-    id: 4,
+    id: 3,
     title: 'Real Estate Tours',
     serviceId: 'real-estate',
     description: 'Comprehensive aerial property tours that showcase homes, land, and commercial properties from every angle.',
@@ -38,7 +30,7 @@ const services = [
     image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2670&auto=format&fit=crop'
   },
   {
-    id: 5,
+    id: 4,
     title: 'Inspection Services',
     serviceId: 'inspection',
     description: 'Safe and efficient inspections of roofs, towers, power lines, and other hard-to-reach infrastructure.',
@@ -46,7 +38,7 @@ const services = [
     image: 'https://images.unsplash.com/photo-1591588582259-e675bd2e6088?q=80&w=2670&auto=format&fit=crop'
   },
   {
-    id: 6,
+    id: 5,
     title: 'Event Coverage',
     serviceId: 'event-coverage',
     description: 'Dynamic aerial documentation of weddings, sports events, festivals, and other special occasions.',
