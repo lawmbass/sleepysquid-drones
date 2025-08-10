@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiCheck } from 'react-icons/fi';
+import { FiCheck, FiGift } from 'react-icons/fi';
 
 const pricingPlans = [
   {
@@ -70,6 +70,34 @@ const PricingSection = ({ onPackageSelect }) => {
     triggerOnce: true,
     threshold: 0.1,
   });
+  const [activePromo, setActivePromo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchActivePromo();
+  }, []);
+
+  const fetchActivePromo = async () => {
+    try {
+      const response = await fetch('/api/promo/active');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasActivePromo) {
+          setActivePromo(data.promo);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching active promo:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateDiscountedPrice = (originalPrice) => {
+    if (!activePromo) return originalPrice;
+    const discount = (originalPrice * activePromo.discountPercentage) / 100;
+    return Math.round(originalPrice - discount);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -98,6 +126,26 @@ const PricingSection = ({ onPackageSelect }) => {
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Choose the perfect drone service package for your needs with our all-inclusive pricing
           </p>
+          
+          {activePromo && (
+            <div className="mt-8 max-w-2xl mx-auto">
+              <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <FiGift className="h-6 w-6 mr-2" />
+                  <h3 className="text-xl font-bold">{activePromo.name}</h3>
+                </div>
+                <p className="text-lg mb-3">{activePromo.description}</p>
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="bg-white bg-opacity-20 rounded-lg px-4 py-2">
+                    <span className="text-2xl font-bold">{activePromo.discountPercentage}% OFF</span>
+                  </div>
+                  <div className="text-sm opacity-90">
+                    Valid until {new Date(activePromo.endDate).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <motion.div 
@@ -157,8 +205,25 @@ const PricingCard = ({ plan, variants, onPackageSelect }) => {
         <p className="text-gray-600 dark:text-gray-300 mb-6">{plan.description}</p>
         
         <div className="mb-6">
-          <span className="text-4xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
-          <span className="text-gray-500 dark:text-gray-400"> / project</span>
+          {activePromo ? (
+            <div className="text-center">
+              <div className="text-gray-500 dark:text-gray-400 line-through text-lg">
+                ${plan.price}
+              </div>
+              <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                ${calculateDiscountedPrice(plan.price)}
+              </div>
+              <div className="text-green-600 dark:text-green-400 font-medium">
+                Save ${plan.price - calculateDiscountedPrice(plan.price)}
+              </div>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">/ project</span>
+            </div>
+          ) : (
+            <>
+              <span className="text-4xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
+              <span className="text-gray-500 dark:text-gray-400"> / project</span>
+            </>
+          )}
         </div>
         
         <ul className="space-y-3 mb-8">

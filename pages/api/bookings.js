@@ -1,6 +1,7 @@
 import connectMongo from "@/libs/mongoose";
 import Booking from "@/models/Booking";
 import User from "@/models/User";
+import Promo from "@/models/Promo";
 import { bookingRateLimit } from "@/libs/rateLimit";
 import { sendBookingConfirmationEmail, shouldSendEmailNotification } from "@/libs/emailService";
 import config from "@/config";
@@ -234,6 +235,28 @@ export default async function handler(req, res) {
       }
     }
 
+    // Apply promo discount if available
+    let appliedPromo = null;
+    if (estimatedPrice) {
+      try {
+        const activePromo = await Promo.getActivePromo();
+        if (activePromo) {
+          const originalPrice = estimatedPrice;
+          estimatedPrice = activePromo.calculateDiscountedPrice(estimatedPrice);
+          appliedPromo = {
+            id: activePromo._id,
+            name: activePromo.name,
+            discountPercentage: activePromo.discountPercentage,
+            originalPrice,
+            discountedPrice: estimatedPrice
+          };
+        }
+      } catch (promoError) {
+        console.error('Error applying promo discount:', promoError);
+        // Continue without promo if there's an error
+      }
+    }
+
     // Check for duplicate bookings (same email and date)
     // Create separate date objects to prevent mutation of the original bookingDate
     const startOfDay = new Date(bookingDate);
@@ -269,6 +292,7 @@ export default async function handler(req, res) {
       email: sanitizedData.email,
       phone: sanitizedData.phone,
       estimatedPrice,
+      appliedPromo, // Store promo information
       status: 'pending',
       ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress, // For tracking
       userAgent: req.headers['user-agent'] // For tracking

@@ -270,13 +270,14 @@ export const userRoles = {
         const adminNav = [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
+          { name: 'Promos', href: '/dashboard?section=promos', icon: 'FiPercent' },
           { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
         
         // Only show Users link for SleepySquid admins
         if (isSleepySquidAdmin) {
-          adminNav.splice(3, 0, { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' });
+          adminNav.splice(4, 0, { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' });
         }
         
         return adminNav;

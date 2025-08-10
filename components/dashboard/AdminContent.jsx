@@ -6,6 +6,7 @@ import BookingFilters from '@/components/admin/BookingFilters';
 import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
 import UserManagement from '@/components/admin/UserManagement';
+import PromoManagement from '@/components/admin/PromoManagement';
 import AccessStatusBanner from './AccessStatusBanner';
 // Note: AdminSettings is now an inline component within this file
 
@@ -227,6 +228,9 @@ export default function AdminContent({ user, onUpdate }) {
           );
         }
         return <UserManagement />;
+      
+      case 'promos':
+        return <PromoManagement />;
       
       default:
         return (
