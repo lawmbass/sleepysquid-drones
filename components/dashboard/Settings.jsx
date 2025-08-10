@@ -12,8 +12,10 @@ import {
   FiMail,
   FiAlertCircle
 } from 'react-icons/fi';
+import { useDarkMode } from '@/components/layout/DarkModeContext';
 
 export default function Settings({ user, onUpdate }) {
+  const { theme, setTheme } = useDarkMode();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function Settings({ user, onUpdate }) {
 
   // System preferences state
   const [preferences, setPreferences] = useState({
-    theme: 'light',
+    theme: theme,
     language: 'en',
     timezone: 'UTC',
     dateFormat: 'MM/DD/YYYY',
@@ -133,6 +135,11 @@ export default function Settings({ user, onUpdate }) {
           hasPassword: data.security.hasPassword,
           isOAuthUser: data.security.isOAuthUser
         }));
+        
+        // Sync theme with context
+        if (data.preferences?.theme && data.preferences.theme !== theme) {
+          setTheme(data.preferences.theme);
+        }
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -146,6 +153,11 @@ export default function Settings({ user, onUpdate }) {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Sync preferences theme with context theme
+  useEffect(() => {
+    setPreferences(prev => ({ ...prev, theme }));
+  }, [theme]);
 
   const handleSendVerification = async () => {
     setEmailActions(prev => ({ ...prev, sendingVerification: true }));
@@ -537,15 +549,26 @@ export default function Settings({ user, onUpdate }) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Theme
           </label>
-          <select
-            value={preferences.theme}
-            onChange={(e) => setPreferences(prev => ({ ...prev, theme: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="auto">Auto</option>
-          </select>
+          <div className="space-y-2">
+            <select
+              value={preferences.theme}
+              onChange={(e) => {
+                const newTheme = e.target.value;
+                setPreferences(prev => ({ ...prev, theme: newTheme }));
+                setTheme(newTheme); // Sync with context immediately
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto (System)</option>
+            </select>
+            {preferences.theme === 'auto' && (
+              <p className="text-xs text-gray-500">
+                Automatically follows your system's light/dark mode preference
+              </p>
+            )}
+          </div>
         </div>
         
         <div>
