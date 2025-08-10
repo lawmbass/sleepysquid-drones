@@ -9,7 +9,7 @@ const services = [
     id: 1,
     title: 'Aerial Photography & Videography',
     serviceId: 'aerial-media',
-    description: 'Stunning high-resolution photos and cinematic aerial footage from unique perspectives, perfect for real estate, events, marketing, or personal projects.',
+    description: 'High-quality photos and videos from unique aerial perspectives for real estate, events, and marketing.',
     icon: <FiCamera className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1534996858221-380b92700493?q=80&w=2671&auto=format&fit=crop'
   },
@@ -17,7 +17,7 @@ const services = [
     id: 2,
     title: 'Mapping & Surveying',
     serviceId: 'mapping-surveying',
-    description: 'Precise aerial mapping and 3D modeling for construction, agriculture, and land development projects.',
+    description: 'Precise aerial mapping and 3D modeling for construction, agriculture, and land development.',
     icon: <FiMap className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?q=80&w=2574&auto=format&fit=crop'
   },
@@ -25,7 +25,7 @@ const services = [
     id: 3,
     title: 'Real Estate Tours',
     serviceId: 'real-estate',
-    description: 'Comprehensive aerial property tours that showcase homes, land, and commercial properties from every angle.',
+    description: 'Comprehensive aerial property tours showcasing homes and commercial properties from every angle.',
     icon: <FiHome className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2670&auto=format&fit=crop'
   },
@@ -33,7 +33,7 @@ const services = [
     id: 4,
     title: 'Inspection Services',
     serviceId: 'inspection',
-    description: 'Safe and efficient inspections of roofs, towers, power lines, and other hard-to-reach infrastructure.',
+    description: 'Safe and efficient inspections of roofs, towers, power lines, and hard-to-reach infrastructure.',
     icon: <FiSearch className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1591588582259-e675bd2e6088?q=80&w=2670&auto=format&fit=crop'
   },
@@ -41,7 +41,7 @@ const services = [
     id: 5,
     title: 'Event Coverage',
     serviceId: 'event-coverage',
-    description: 'Dynamic aerial documentation of weddings, sports events, festivals, and other special occasions.',
+    description: 'Dynamic aerial documentation of weddings, sports events, festivals, and special occasions.',
     icon: <FiActivity className="text-4xl text-blue-500" />,
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2670&auto=format&fit=crop'
   }
