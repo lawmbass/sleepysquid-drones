@@ -84,25 +84,36 @@ export const DarkModeProvider = ({ children }) => {
     if (theme === 'dark') {
       shouldBeDark = true;
     } else if (theme === 'auto') {
-      // Check system preference
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      shouldBeDark = mediaQuery.matches;
-      
-      // Listen for system theme changes
-      const handleSystemThemeChange = (e) => {
-        if (theme === 'auto') {
-          setIsDarkMode(e.matches);
-        }
-      };
-      
-      mediaQuery.addEventListener('change', handleSystemThemeChange);
-      return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      // Check time of day (dark mode from 6 PM to 6 AM)
+      const now = new Date();
+      const hour = now.getHours();
+      shouldBeDark = hour >= 18 || hour < 6; // 6 PM to 6 AM
     } else {
       // 'light' theme
       shouldBeDark = false;
     }
 
     setIsDarkMode(shouldBeDark);
+  }, [theme]);
+
+  // For auto mode, check time every minute to update theme
+  useEffect(() => {
+    if (theme !== 'auto') return;
+
+    const checkTimeAndUpdate = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const shouldBeDark = hour >= 18 || hour < 6; // 6 PM to 6 AM
+      setIsDarkMode(shouldBeDark);
+    };
+
+    // Check immediately
+    checkTimeAndUpdate();
+
+    // Set up interval to check every minute
+    const interval = setInterval(checkTimeAndUpdate, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
   }, [theme]);
 
   // Apply dark mode class to document

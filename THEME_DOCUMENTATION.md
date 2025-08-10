@@ -5,14 +5,14 @@
 The application now supports a comprehensive theme system with three modes:
 - **Light**: Always uses light theme
 - **Dark**: Always uses dark theme  
-- **Auto**: Automatically follows the system's light/dark mode preference
+- **Auto**: Automatically switches to dark mode from 6 PM to 6 AM
 
 ## Features
 
 ### ✅ Implemented Features
 
 1. **Database Integration**: User theme preferences are stored in the database and persist across sessions
-2. **System Theme Detection**: Auto mode uses `prefers-color-scheme` media query to detect system theme
+2. **Time-based Auto Mode**: Auto mode switches to dark mode from 6 PM to 6 AM
 3. **Real-time Updates**: Theme changes are applied immediately and saved to the database
 4. **Settings Integration**: Theme can be changed from the Settings page in the Preferences tab
 5. **Fallback Support**: Uses localStorage when user is not logged in
@@ -26,7 +26,7 @@ The application now supports a comprehensive theme system with three modes:
 The main theme management system that:
 - Loads user preferences from database on login
 - Syncs with localStorage for offline support
-- Handles system theme changes for auto mode
+- Handles time-based theme switching for auto mode (6 PM - 6 AM)
 - Provides theme state to all components
 
 #### API Integration
@@ -53,7 +53,7 @@ preferences: {
 ### For Users
 
 1. **Change Theme**: Go to Settings → Preferences → Theme dropdown
-2. **Auto Mode**: Select "Auto (System)" to follow your system's theme preference
+2. **Auto Mode**: Select "Auto (Time-based)" to switch to dark mode from 6 PM to 6 AM
 3. **Manual Mode**: Select "Light" or "Dark" for fixed themes
 
 ### For Developers
@@ -104,8 +104,8 @@ Visit `/theme-test` to see a comprehensive demonstration of the theme functional
 
 ## Browser Support
 
-- **System Theme Detection**: Modern browsers with `prefers-color-scheme` support
-- **Fallback**: Uses localStorage for older browsers or when system detection fails
+- **Time-based Detection**: Uses JavaScript Date API (supported in all modern browsers)
+- **Fallback**: Uses localStorage for older browsers or when time detection fails
 - **Tailwind CSS**: All modern browsers with CSS custom properties support
 
 ## Migration Notes
@@ -118,8 +118,8 @@ The theme system is backward compatible:
 ## Future Enhancements
 
 Potential improvements:
+- Customizable time ranges for auto mode
 - Theme-specific color palettes
 - Custom theme creation
-- Theme scheduling (auto-switch at certain times)
 - High contrast mode support
 - Reduced motion preferences integration

@@ -561,11 +561,11 @@ export default function Settings({ user, onUpdate }) {
             >
               <option value="light">Light</option>
               <option value="dark">Dark</option>
-              <option value="auto">Auto (System)</option>
+              <option value="auto">Auto (Time-based)</option>
             </select>
             {preferences.theme === 'auto' && (
               <p className="text-xs text-gray-500">
-                Automatically follows your system's light/dark mode preference
+                Automatically switches to dark mode from 6 PM to 6 AM
               </p>
             )}
           </div>
