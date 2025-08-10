@@ -166,6 +166,19 @@ const bookingSchema = mongoose.Schema(
       min: [0, "Price cannot be negative"],
       default: null
     },
+    appliedPromo: {
+      type: {
+        id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Promo'
+        },
+        name: String,
+        discountPercentage: Number,
+        originalPrice: Number,
+        discountedPrice: Number
+      },
+      default: null
+    },
     status: {
       type: String,
       enum: {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Head from 'next/head';
 import Layout from '@/components/layout/Layout';
+import PromoBanner from '@/components/home/PromoBanner';
 import HeroSection from '@/components/home/HeroSection';
 import ServicesSection from '@/components/home/ServicesSection';
 import PortfolioSection from '@/components/home/PortfolioSection';
@@ -45,6 +46,7 @@ export default function Home() {
       </Head>
       
       <Layout>
+        <PromoBanner />
         <HeroSection />
         <ServicesSection onServiceSelect={handleServiceSelect} />
         <PortfolioSection />
