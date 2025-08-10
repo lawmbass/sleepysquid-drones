@@ -1,6 +1,6 @@
-import { connectDB } from '@/libs/mongodb';
+import connectMongo from '@/libs/mongoose';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { authOptions } from '@/libs/next-auth';
 import Promo from '@/models/Promo';
 
 export default async function handler(req, res) {
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Promo ID is required' });
   }
 
-  await connectDB();
+  await connectMongo();
 
   switch (req.method) {
     case 'GET':

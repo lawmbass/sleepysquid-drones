@@ -14,7 +14,7 @@ export default function PromoManagement() {
     startDate: '',
     endDate: ''
   });
-  const [pagination, setPagination] = useState({});
+  // Removed unused pagination state
 
   useEffect(() => {
     fetchPromos();
@@ -35,7 +35,6 @@ export default function PromoManagement() {
 
       const data = await response.json();
       setPromos(data.data.promos || []);
-      setPagination(data.data.pagination || {});
     } catch (error) {
       console.error('Error fetching promos:', error);
       setError('Failed to load promos. Please try again.');

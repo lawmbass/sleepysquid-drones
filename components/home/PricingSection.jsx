@@ -71,7 +71,7 @@ const PricingSection = ({ onPackageSelect }) => {
     threshold: 0.1,
   });
   const [activePromo, setActivePromo] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Removed unused loading state
 
   useEffect(() => {
     fetchActivePromo();
@@ -88,8 +88,6 @@ const PricingSection = ({ onPackageSelect }) => {
       }
     } catch (error) {
       console.error('Error fetching active promo:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

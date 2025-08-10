@@ -1,4 +1,4 @@
-import { connectDB } from '@/libs/mongodb';
+import connectMongo from '@/libs/mongoose';
 import Promo from '@/models/Promo';
 
 export default async function handler(req, res) {
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    await connectDB();
+    await connectMongo();
     
     const activePromo = await Promo.getActivePromo();
     
