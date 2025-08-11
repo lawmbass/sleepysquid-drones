@@ -82,60 +82,60 @@ export default function BookingStats({ stats, missionStats, user }) {
   const MobileCompactView = () => (
     <div className="md:hidden">
       {/* Main summary card */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-4 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Dashboard Overview</h3>
-          <div className="text-sm text-gray-500">Welcome back, {user?.name || 'User'}</div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard Overview</h3>
+          <div className="text-sm text-gray-500 dark:text-gray-400">Welcome back, {user?.name || 'User'}</div>
         </div>
         
         {/* Key metrics in compact grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="flex items-center justify-center mb-1">
-              <FiCalendar className="h-5 w-5 text-blue-600" />
+              <FiCalendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="text-xl font-bold text-blue-600">{totalBookings}</div>
-            <div className="text-xs text-gray-600">Total Bookings</div>
+            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{totalBookings}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Total Bookings</div>
           </div>
           
-          <div className="text-center p-3 bg-indigo-50 rounded-lg">
+          <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
             <div className="flex items-center justify-center mb-1">
-              <FiCalendar className="h-5 w-5 text-indigo-600" />
+              <FiCalendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <div className="text-xl font-bold text-indigo-600">{stats.customerBookings || 0}</div>
-            <div className="text-xs text-gray-600">Customer Bookings</div>
+            <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{stats.customerBookings || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Customer Bookings</div>
           </div>
           
-          <div className="text-center p-3 bg-cyan-50 rounded-lg">
+          <div className="text-center p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
             <div className="flex items-center justify-center mb-1">
-              <FiTarget className="h-5 w-5 text-cyan-600" />
+              <FiTarget className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <div className="text-xl font-bold text-cyan-600">{missionStats?.totalMissions || 0}</div>
-            <div className="text-xs text-gray-600">Mission Bookings</div>
+            <div className="text-xl font-bold text-cyan-600 dark:text-cyan-400">{missionStats?.totalMissions || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Mission Bookings</div>
           </div>
           
-          <div className="text-center p-3 bg-purple-50 rounded-lg">
+          <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
             <div className="flex items-center justify-center mb-1">
-              <FiDollarSign className="h-5 w-5 text-purple-600" />
+              <FiDollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <div className="text-lg font-bold text-purple-600">${totalRevenue.toLocaleString()}</div>
-            <div className="text-xs text-gray-600">Total Revenue</div>
+            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">${totalRevenue.toLocaleString()}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Total Revenue</div>
           </div>
         </div>
         
         {/* Status breakdown */}
-        <div className="border-t pt-3">
+        <div className="border-t dark:border-gray-700 pt-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                <span className="text-gray-600">Pending</span>
-                <span className="ml-1 font-medium">{stats.pending?.count || 0}</span>
+                <span className="text-gray-600 dark:text-gray-300">Pending</span>
+                <span className="ml-1 font-medium dark:text-gray-200">{stats.pending?.count || 0}</span>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                <span className="text-gray-600">Confirmed</span>
-                <span className="ml-1 font-medium">{stats.confirmed?.count || 0}</span>
+                <span className="text-gray-600 dark:text-gray-300">Confirmed</span>
+                <span className="ml-1 font-medium dark:text-gray-200">{stats.confirmed?.count || 0}</span>
               </div>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function BookingStats({ stats, missionStats, user }) {
         return (
           <div
             key={stat.name}
-            className="bg-white overflow-hidden shadow rounded-lg border border-gray-200"
+            className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-700"
           >
             <div className="p-5">
               <div className="flex items-center">
@@ -163,10 +163,10 @@ export default function BookingStats({ stats, missionStats, user }) {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                       {stat.name}
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-gray-900 dark:text-white">
                       {stat.value}
                     </dd>
                   </dl>

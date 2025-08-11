@@ -154,10 +154,8 @@ export default function Settings({ user, onUpdate }) {
     loadSettings();
   }, [loadSettings]);
 
-  // Sync preferences theme with context theme
-  useEffect(() => {
-    setPreferences(prev => ({ ...prev, theme }));
-  }, [theme]);
+  // We no longer automatically sync preferences theme with context theme
+  // This allows the user to preview changes before saving
 
   const handleSendVerification = async () => {
     setEmailActions(prev => ({ ...prev, sendingVerification: true }));
@@ -300,6 +298,11 @@ export default function Settings({ user, onUpdate }) {
           onUpdate({ ...user, ...profileData });
         }
         
+        if (section === 'preferences') {
+          // Apply theme change only after successful save
+          setTheme(preferences.theme);
+        }
+        
         if (section === 'security') {
           setSecurity(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
           
@@ -322,32 +325,32 @@ export default function Settings({ user, onUpdate }) {
   const renderProfileSettings = () => (
     <div className="space-y-8">
       {/* Section Header */}
-      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <FiUser className="h-6 w-6 text-blue-600" />
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+          <FiUser className="h-6 w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Profile Information</h3>
-          <p className="text-sm text-gray-600">Update your personal details and contact information</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Update your personal details and contact information</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Full Name
           </label>
           <input
             type="text"
             value={profileData.name}
             onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Enter your full name"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Email Address
           </label>
           <div className="space-y-2">
@@ -356,17 +359,17 @@ export default function Settings({ user, onUpdate }) {
                 type="email"
                 value={profileData.email}
                 readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-600 text-gray-600 dark:text-gray-300 text-sm"
                 placeholder="Enter your email"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 {profileData.emailVerified ? (
-                  <div className="flex items-center space-x-1 text-green-600">
+                  <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
                     <FiCheck className="h-4 w-4" />
                     <span className="text-xs font-medium">Verified</span>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-1 text-amber-600">
+                  <div className="flex items-center space-x-1 text-amber-600 dark:text-amber-400">
                     <FiAlertCircle className="h-4 w-4" />
                     <span className="text-xs font-medium">Unverified</span>
                   </div>
@@ -376,15 +379,15 @@ export default function Settings({ user, onUpdate }) {
             
             {/* Verification Actions */}
             {!profileData.emailVerified && (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
                 <div className="flex items-center space-x-2">
-                  <FiMail className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm text-amber-700">Email not verified</span>
+                  <FiMail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-sm text-amber-700 dark:text-amber-400">Email not verified</span>
                 </div>
                 <button
                   onClick={handleSendVerification}
                   disabled={emailActions.sendingVerification}
-                  className="px-3 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded border border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded border border-amber-300 dark:border-amber-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {emailActions.sendingVerification ? 'Sending...' : 'Send Verification'}
                 </button>
@@ -393,15 +396,15 @@ export default function Settings({ user, onUpdate }) {
 
             {/* Pending Email Change */}
             {profileData.pendingEmail && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                 <div className="flex items-center space-x-2 mb-2">
-                  <FiMail className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Email Change Pending</span>
+                  <FiMail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Email Change Pending</span>
                 </div>
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-blue-600 dark:text-blue-300">
                   Verification email sent to: <strong>{profileData.pendingEmail}</strong>
                 </p>
-                <p className="text-xs text-blue-500 mt-1">
+                <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
                   Check your email and click the verification link to complete the change.
                 </p>
               </div>
@@ -411,13 +414,13 @@ export default function Settings({ user, onUpdate }) {
             {!emailChangeData.isChanging ? (
               <button
                 onClick={() => setEmailChangeData(prev => ({ ...prev, isChanging: true }))}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
               >
                 Change Email Address
               </button>
             ) : (
-              <div className="space-y-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <label className="block text-xs font-medium text-gray-700">
+              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
                   New Email Address
                 </label>
                 <div className="space-y-2 sm:space-y-0 sm:flex sm:space-x-2">
@@ -425,26 +428,26 @@ export default function Settings({ user, onUpdate }) {
                     type="email"
                     value={emailChangeData.newEmail}
                     onChange={(e) => setEmailChangeData(prev => ({ ...prev, newEmail: e.target.value }))}
-                    className="w-full sm:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full sm:flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="Enter new email address"
                   />
                   <div className="flex space-x-2 sm:space-x-0 sm:space-x-2">
                     <button
                       onClick={handleEmailChange}
                       disabled={emailActions.changingEmail || !emailChangeData.newEmail}
-                      className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white text-xs font-medium rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {emailActions.changingEmail ? 'Sending...' : 'Change'}
                     </button>
                     <button
                       onClick={() => setEmailChangeData({ newEmail: '', isChanging: false })}
-                      className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50"
+                      className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 bg-white dark:bg-gray-700"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   A verification email will be sent to your new email address.
                 </p>
               </div>
@@ -453,76 +456,76 @@ export default function Settings({ user, onUpdate }) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Phone Number
           </label>
           <input
             type="tel"
             value={profileData.phone}
             onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Enter your phone number"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Company
           </label>
           <input
             type="text"
             value={profileData.company}
             onChange={(e) => setProfileData(prev => ({ ...prev, company: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Enter your company name"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Location
           </label>
           <input
             type="text"
             value={profileData.location}
             onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Enter your location"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Website
           </label>
           <input
             type="url"
             value={profileData.website}
             onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Enter your website URL"
           />
         </div>
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Bio
         </label>
-        <textarea
-          value={profileData.bio}
-          onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          placeholder="Tell us about yourself..."
-        />
+                    <textarea
+              value={profileData.bio}
+              onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              placeholder="Tell us about yourself..."
+            />
       </div>
       
-      <div className="flex justify-end pt-6 border-t border-gray-200">
+      <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={() => handleSave('profile')}
           disabled={loading}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
+          className="flex items-center px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Profile'}
@@ -534,19 +537,19 @@ export default function Settings({ user, onUpdate }) {
   const renderPreferences = () => (
     <div className="space-y-8">
       {/* Section Header */}
-      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
-        <div className="p-2 bg-purple-100 rounded-lg">
-          <FiSettings className="h-6 w-6 text-purple-600" />
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+          <FiSettings className="h-6 w-6 text-purple-600 dark:text-purple-400" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">System Preferences</h3>
-          <p className="text-sm text-gray-600">Customize your application settings and display options</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">System Preferences</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Customize your application settings and display options</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Theme
           </label>
           <div className="space-y-2">
@@ -555,9 +558,9 @@ export default function Settings({ user, onUpdate }) {
               onChange={(e) => {
                 const newTheme = e.target.value;
                 setPreferences(prev => ({ ...prev, theme: newTheme }));
-                setTheme(newTheme); // Sync with context immediately
+                // Theme will be updated when Save is clicked
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="light">Light</option>
               <option value="dark">Dark</option>
@@ -572,13 +575,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Language
           </label>
           <select
             value={preferences.language}
             onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="en">English</option>
             <option value="es">Spanish</option>
@@ -588,13 +591,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Timezone
           </label>
           <select
             value={preferences.timezone}
             onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="UTC">UTC</option>
             <option value="America/New_York">Eastern Time</option>
@@ -605,13 +608,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Date Format
           </label>
           <select
             value={preferences.dateFormat}
             onChange={(e) => setPreferences(prev => ({ ...prev, dateFormat: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="MM/DD/YYYY">MM/DD/YYYY</option>
             <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -620,13 +623,13 @@ export default function Settings({ user, onUpdate }) {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Currency
           </label>
           <select
             value={preferences.currency}
             onChange={(e) => setPreferences(prev => ({ ...prev, currency: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (€)</option>
@@ -636,11 +639,11 @@ export default function Settings({ user, onUpdate }) {
         </div>
       </div>
       
-      <div className="flex justify-end pt-6 border-t border-gray-200">
+      <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={() => handleSave('preferences')}
           disabled={loading}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
+          className="flex items-center px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Preferences'}
@@ -652,23 +655,23 @@ export default function Settings({ user, onUpdate }) {
   const renderNotifications = () => (
     <div className="space-y-8">
       {/* Section Header */}
-      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
-        <div className="p-2 bg-green-100 rounded-lg">
-          <FiBell className="h-6 w-6 text-green-600" />
+      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+          <FiBell className="h-6 w-6 text-green-600 dark:text-green-400" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Notification Settings</h3>
-          <p className="text-sm text-gray-600">Control how and when you receive notifications</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notification Settings</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Control how and when you receive notifications</p>
         </div>
       </div>
       <div className="space-y-4">
         {Object.entries(notifications).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+          <div key={key} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div className="flex-1 pr-4">
-              <h4 className="font-medium text-gray-900 text-sm sm:text-base">
+              <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
               </h4>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {getNotificationDescription(key)}
               </p>
             </div>
@@ -688,11 +691,11 @@ export default function Settings({ user, onUpdate }) {
         ))}
       </div>
       
-      <div className="flex justify-end pt-6 border-t border-gray-200">
+      <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={() => handleSave('notifications')}
           disabled={loading}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
+          className="flex items-center px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           <FiSave className="mr-3 h-5 w-5" />
           {loading ? 'Saving...' : 'Save Notifications'}
@@ -706,35 +709,35 @@ export default function Settings({ user, onUpdate }) {
       {security.isOAuthUser ? (
         // OAuth users (Google sign-in) - simplified security settings
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h4 className="font-medium text-blue-900">Google Account Security</h4>
-                <p className="text-sm text-blue-700 mt-1">
+                <h4 className="font-medium text-blue-900 dark:text-blue-300">Google Account Security</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
                   You signed in with Google. Your account security is managed by Google, but you can also add a password for additional sign-in options.
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h4 className="font-medium text-gray-900 mb-2">Security Features</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Security Features</h4>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
               <li className="flex items-center">
-                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                <FiCheck className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
                 Email verification handled by Google
               </li>
               <li className="flex items-center">
-                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                <FiCheck className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
                 Password security managed by Google
               </li>
               <li className="flex items-center">
-                <FiCheck className="h-4 w-4 text-green-600 mr-2" />
+                <FiCheck className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
                 Two-factor authentication available through Google
               </li>
             </ul>
@@ -743,7 +746,7 @@ export default function Settings({ user, onUpdate }) {
                 href="https://myaccount.google.com/security"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+                className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium"
               >
                 Manage Google Account Security
                 <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -754,65 +757,65 @@ export default function Settings({ user, onUpdate }) {
           </div>
 
           {/* Password Setup Section */}
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">Add Password</h4>
-              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full border">Optional</span>
+              <h4 className="font-medium text-gray-900 dark:text-white">Add Password</h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-600 px-2 py-1 rounded-full border border-gray-200 dark:border-gray-500">Optional</span>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
               Set up a password to sign in with either Google or your email and password.
             </p>
             
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   New Password
                 </label>
                 <input
                   type="password"
                   value={security.newPassword}
                   onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Create a password"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Confirm Password
                 </label>
                 <input
                   type="password"
                   value={security.confirmPassword}
                   onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Confirm your password"
                 />
               </div>
 
               {/* Password Requirements */}
               {security.newPassword && (
-                <div className="p-3 bg-white border border-gray-200 rounded-md">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Password Requirements:</p>
+                <div className="p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password Requirements:</p>
                   <div className="grid grid-cols-1 gap-1 text-xs">
-                    <div className={`flex items-center ${security.newPassword.length >= 8 ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${security.newPassword.length >= 8 ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${security.newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${security.newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       At least 8 characters
                     </div>
-                    <div className={`flex items-center ${/[A-Z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${/[A-Z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${/[A-Z]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[A-Z]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       One uppercase letter
                     </div>
-                    <div className={`flex items-center ${/[a-z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${/[a-z]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${/[a-z]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[a-z]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       One lowercase letter
                     </div>
-                    <div className={`flex items-center ${/\d/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${/\d/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${/\d/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/\d/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       One number
                     </div>
-                    <div className={`flex items-center ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>
-                      <FiCheck className={`h-3 w-3 mr-1 ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600' : 'text-gray-300'}`} />
+                    <div className={`flex items-center ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                      <FiCheck className={`h-3 w-3 mr-1 ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(security.newPassword) ? 'text-green-600 dark:text-green-400' : 'text-gray-300 dark:text-gray-600'}`} />
                       One special character
                     </div>
                   </div>
@@ -825,21 +828,21 @@ export default function Settings({ user, onUpdate }) {
         // Regular users with password - full security settings
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Current Password
             </label>
-            <div className="relative">
+                          <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={security.currentPassword}
                 onChange={(e) => setSecurity(prev => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Enter current password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 dark:text-gray-400"
               >
                 {showPassword ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
               </button>
@@ -847,35 +850,35 @@ export default function Settings({ user, onUpdate }) {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               New Password
             </label>
             <input
               type="password"
               value={security.newPassword}
               onChange={(e) => setSecurity(prev => ({ ...prev, newPassword: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Enter new password"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Confirm New Password
             </label>
             <input
               type="password"
               value={security.confirmPassword}
               onChange={(e) => setSecurity(prev => ({ ...prev, confirmPassword: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Confirm new password"
             />
           </div>
           
-          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div className="flex-1 pr-4">
-              <h4 className="font-medium text-gray-900 text-sm sm:text-base">Two-Factor Authentication</h4>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Two-Factor Authentication</h4>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Add an extra layer of security to your account
               </p>
             </div>
@@ -901,7 +904,7 @@ export default function Settings({ user, onUpdate }) {
           <button
             onClick={() => handleSave('security')}
             disabled={loading}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+            className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 text-sm"
           >
             <FiSave className="mr-2 h-4 w-4" />
             {loading ? 'Saving...' : (security.isOAuthUser ? 'Add Password' : 'Update Security')}
@@ -927,15 +930,15 @@ export default function Settings({ user, onUpdate }) {
 
   if (initialLoading) {
     return (
-      <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 -m-6 sm:-m-8 p-6 sm:p-8">
+      <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950 -m-6 sm:-m-8 p-6 sm:p-8">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-          <p className="text-base text-gray-600">Configure your account settings and preferences</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+          <p className="text-base text-gray-600 dark:text-gray-300">Configure your account settings and preferences</p>
         </div>
-        <div className="bg-white shadow-lg rounded-lg p-8">
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-8">
           <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-blue-600 mx-auto"></div>
-            <p className="mt-6 text-gray-600 font-medium">Loading settings...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-blue-600 dark:border-blue-400 mx-auto"></div>
+            <p className="mt-6 text-gray-600 dark:text-gray-300 font-medium">Loading settings...</p>
           </div>
         </div>
       </div>
@@ -943,18 +946,18 @@ export default function Settings({ user, onUpdate }) {
   }
 
   return (
-    <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 -m-6 sm:-m-8 p-6 sm:p-8">
+    <div className="space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950 -m-6 sm:-m-8 p-6 sm:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-base text-gray-600">Configure your account settings and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+        <p className="text-base text-gray-600 dark:text-gray-300">Configure your account settings and preferences</p>
       </div>
 
       {/* Message Display */}
       {message.text && (
         <div className={`p-4 rounded-lg flex items-center text-sm shadow-sm border ${
           message.type === 'success' 
-            ? 'bg-green-50 text-green-800 border-green-200' 
-            : 'bg-red-50 text-red-800 border-red-200'
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800' 
+            : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
         }`}>
           {message.type === 'success' ? (
             <FiCheck className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -966,7 +969,7 @@ export default function Settings({ user, onUpdate }) {
       )}
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 bg-white rounded-t-lg shadow-sm">
+      <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-lg shadow-sm">
         <nav className="flex overflow-x-auto scrollbar-hide">
           <div className="flex space-x-1 sm:space-x-2 md:space-x-4 min-w-full px-2 sm:px-4">
             {tabs.map((tab) => {
@@ -977,8 +980,8 @@ export default function Settings({ user, onUpdate }) {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex flex-col sm:flex-row items-center justify-center py-3 sm:py-4 px-3 sm:px-4 border-b-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-all duration-200 min-w-[80px] sm:min-w-[120px] ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                 >
                   <Icon className="h-6 w-6 sm:h-5 sm:w-5 mb-1 sm:mb-0 sm:mr-2 flex-shrink-0" />
@@ -991,7 +994,7 @@ export default function Settings({ user, onUpdate }) {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white shadow-lg rounded-b-lg rounded-t-none p-6 sm:p-8">
+      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-b-lg rounded-t-none p-6 sm:p-8">
         {activeTab === 'profile' && renderProfileSettings()}
         {activeTab === 'preferences' && renderPreferences()}
         {activeTab === 'notifications' && renderNotifications()}

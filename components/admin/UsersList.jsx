@@ -73,10 +73,10 @@ export default function UsersList({
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'admin': return 'bg-purple-100 text-purple-800';
-      case 'client': return 'bg-blue-100 text-blue-800';
-      case 'pilot': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300';
+      case 'client': return 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300';
+      case 'pilot': return 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
     }
   };
 
@@ -95,7 +95,7 @@ export default function UsersList({
     const isExpanded = expandedCard === user._id;
     
     return (
-      <div className={`bg-white border border-gray-200 rounded-lg p-4 ${isPendingInvitation ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+      <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isPendingInvitation ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0 overflow-hidden">
@@ -115,19 +115,19 @@ export default function UsersList({
             </div>
             <div className="flex-1 min-w-0 overflow-hidden">
               <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-medium text-gray-900 truncate">{user.name}</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">{user.name}</h3>
                 {isPendingInvitation && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">
                     Pending
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-500 truncate">{user.email}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
           <button
             onClick={() => toggleCardExpansion(user._id)}
-            className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            className="flex-shrink-0 p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <FiMoreVertical className="h-5 w-5" />
           </button>
@@ -143,7 +143,7 @@ export default function UsersList({
                 {user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}
               </span>
             ) : (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                 <FiUser className="h-4 w-4 mr-1" />
                 User
               </span>
@@ -198,26 +198,26 @@ export default function UsersList({
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="space-y-3">
               {user.company && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <HiOfficeBuilding className="h-4 w-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <HiOfficeBuilding className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
                   {user.company}
                 </div>
               )}
               {user.phone && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <FiPhone className="h-4 w-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                  <FiPhone className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
                   {user.phone}
                 </div>
               )}
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                 <span className="font-medium mr-2">Joined:</span>
                 {formatDate(user.createdAt)}
               </div>
               {isPendingInvitation && (
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                   <div>Invited by: {user.invitedBy}</div>
                   <div>Expires: {new Date(user.expiresAt).toLocaleDateString()}</div>
                 </div>
@@ -232,7 +232,7 @@ export default function UsersList({
                     <button
                       onClick={() => handleResendInvitation(user)}
                       disabled={resendingInvitation === user._id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-md shadow-sm text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
                     >
                       {resendingInvitation === user._id ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -244,7 +244,7 @@ export default function UsersList({
                     <button
                       onClick={() => handleDeleteUser(user)}
                       disabled={deletingUser === user._id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
                     >
                       <FiX className="h-4 w-4 mr-2" />
                       Cancel Invitation
@@ -254,7 +254,7 @@ export default function UsersList({
                   <>
                     <button
                       onClick={() => onEditUser(user)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-md shadow-sm text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
                     >
                       <FiEdit2 className="h-4 w-4 mr-2" />
                       Edit User
@@ -263,7 +263,7 @@ export default function UsersList({
                       <button
                         onClick={() => handleDeleteUser(user)}
                         disabled={deletingUser === user._id}
-                        className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
                       >
                         <FiTrash2 className="h-4 w-4 mr-2" />
                         Delete User
@@ -281,19 +281,19 @@ export default function UsersList({
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Users</h3>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="animate-pulse">
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                   </div>
                 </div>
               ))}
@@ -306,13 +306,13 @@ export default function UsersList({
 
   if (error) {
     return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Users</h3>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="text-center py-8">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         </div>
       </div>
@@ -321,15 +321,15 @@ export default function UsersList({
 
   if (!users || users.length === 0) {
     return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Users</h3>
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="text-center py-8">
-            <FiUser className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <FiUser className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No users found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               No users match your current filters.
             </p>
           </div>
@@ -339,13 +339,13 @@ export default function UsersList({
   }
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2 sm:mb-0">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 sm:mb-0">
             Users ({pagination.totalCount || 0})
           </h3>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} users
           </div>
         </div>
@@ -353,7 +353,7 @@ export default function UsersList({
 
       {/* Mobile Card Layout */}
       <div className="block lg:hidden">
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {users.map((user) => (
             <div key={user._id} className="p-4">
               <UserCard user={user} />
@@ -366,32 +366,32 @@ export default function UsersList({
       <div className="hidden lg:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {users.map((user) => {
                 const RoleIcon = getRoleIcon(user.role);
                 const isPendingInvitation = user.isPendingInvitation;
                 
                 return (
-                  <tr key={user._id} className={`hover:bg-gray-50 ${isPendingInvitation ? 'bg-yellow-50' : ''}`}>
+                  <tr key={user._id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${isPendingInvitation ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -409,32 +409,32 @@ export default function UsersList({
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
                             {user.name}
                             {isPendingInvitation && (
-                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">
                                 Pending Invitation
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                             <FiMail className="h-3 w-3 mr-1" />
                             {user.email}
                           </div>
                                                      {user.company && (
-                             <div className="text-sm text-gray-500 flex items-center">
+                             <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                                <HiOfficeBuilding className="h-3 w-3 mr-1" />
                                {user.company}
                              </div>
                            )}
                           {user.phone && (
-                            <div className="text-sm text-gray-500 flex items-center">
+                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                               <FiPhone className="h-3 w-3 mr-1" />
                               {user.phone}
                             </div>
                           )}
                           {isPendingInvitation && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Invited by {user.invitedBy} • Expires {new Date(user.expiresAt).toLocaleDateString()}
                             </div>
                           )}
@@ -501,7 +501,7 @@ export default function UsersList({
                       )}
                     </td>
                     
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(user.createdAt)}
                     </td>
                     
@@ -555,7 +555,7 @@ export default function UsersList({
                             )}
                           </>
                         ) : (
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">
                             Admin Only
                           </span>
                         )}
@@ -571,23 +571,23 @@ export default function UsersList({
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div className="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div className="text-sm text-gray-700 mb-2 sm:mb-0">
+            <div className="text-sm text-gray-700 dark:text-gray-300 mb-2 sm:mb-0">
               Page {pagination.currentPage} of {pagination.totalPages}
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={() => onPageChange(pagination.currentPage - 1)}
                 disabled={!pagination.hasPrevPage}
-                className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
               <button
                 onClick={() => onPageChange(pagination.currentPage + 1)}
                 disabled={!pagination.hasNextPage}
-                className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>

@@ -19,16 +19,20 @@ export const DarkModeProvider = ({ children }) => {
 
   // Set initial theme from localStorage to prevent flash
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme);
+    }
   }, []);
 
   // Load user preferences from database
   const loadUserPreferences = async () => {
     if (!session?.user?.email) {
       // No session, use localStorage fallback
-      const savedTheme = localStorage.getItem('theme') || 'light';
-      setTheme(savedTheme);
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+      }
       setIsLoading(false);
       return;
     }
@@ -42,14 +46,18 @@ export const DarkModeProvider = ({ children }) => {
         localStorage.setItem('theme', userTheme); // Sync with localStorage
       } else {
         // Fallback to localStorage
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        setTheme(savedTheme);
+        if (typeof window !== 'undefined') {
+          const savedTheme = localStorage.getItem('theme') || 'light';
+          setTheme(savedTheme);
+        }
       }
     } catch (error) {
       console.error('Failed to load user preferences:', error);
       // Fallback to localStorage
-      const savedTheme = localStorage.getItem('theme') || 'light';
-      setTheme(savedTheme);
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +137,9 @@ export const DarkModeProvider = ({ children }) => {
 
   // Save theme preference to localStorage
   useEffect(() => {
-    localStorage.setItem('theme', theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', theme);
+    }
   }, [theme]);
 
   const setThemeAndSync = async (newTheme) => {

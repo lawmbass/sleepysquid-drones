@@ -145,15 +145,15 @@ export default function AdminContent({ user, onUpdate }) {
             <AccessStatusBanner user={user} />
             
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-              <p className="text-gray-600">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
+              <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
             </div>
             
             <BookingStats stats={stats} user={user} />
             
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">Recent Bookings</h2>
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Recent Bookings</h2>
               </div>
               <BookingsList 
                 bookings={bookings.slice(0, 5)} 
@@ -171,8 +171,8 @@ export default function AdminContent({ user, onUpdate }) {
         return (
           <div className="space-y-6">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Bookings Management</h1>
-              <p className="text-gray-600">Manage all customer bookings and service requests.</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings Management</h1>
+              <p className="text-gray-600 dark:text-gray-300">Manage all customer bookings and service requests.</p>
             </div>
             
             <BookingFilters 
@@ -203,22 +203,22 @@ export default function AdminContent({ user, onUpdate }) {
           return (
             <div className="space-y-6">
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-                <p className="text-gray-600">You don&apos;t have permission to access user management.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Access Denied</h1>
+                <p className="text-gray-600 dark:text-gray-300">You don&apos;t have permission to access user management.</p>
               </div>
               
-              <div className="bg-red-50 border border-red-200 rounded-md p-6">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-5 w-5 text-red-400 dark:text-red-500" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">
+                    <h3 className="text-sm font-medium text-red-800 dark:text-red-400">
                       Access Restricted
                     </h3>
-                    <p className="mt-1 text-sm text-red-700">
+                    <p className="mt-1 text-sm text-red-700 dark:text-red-300">
                       User management is restricted to SleepySquid administrators only. You will be redirected to the dashboard shortly.
                     </p>
                   </div>
@@ -236,14 +236,14 @@ export default function AdminContent({ user, onUpdate }) {
         return (
           <div className="space-y-6">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600">Welcome to your admin dashboard.</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300">Welcome to your admin dashboard.</p>
             </div>
             
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
               <div className="text-center py-12">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Section Not Found</h3>
-                <p className="text-gray-500">The requested section could not be found.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Section Not Found</h3>
+                <p className="text-gray-500 dark:text-gray-400">The requested section could not be found.</p>
               </div>
             </div>
           </div>

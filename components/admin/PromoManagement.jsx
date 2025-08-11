@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiPlus, FiEdit, FiTrash2, FiCalendar, FiPercent, FiClock, FiCheck, FiX } from 'react-icons/fi';
+import ConfirmationDialog from './ConfirmationDialog';
 
 export default function PromoManagement() {
   const [promos, setPromos] = useState([]);
@@ -76,13 +77,19 @@ export default function PromoManagement() {
     }
   };
 
-  const handleDelete = async (promoId) => {
-    if (!confirm('Are you sure you want to delete this promo?')) {
-      return;
-    }
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, promo: null });
+  const [deletingPromoId, setDeletingPromoId] = useState(null);
 
+  const handleDelete = (promo) => {
+    setConfirmDialog({ isOpen: true, promo });
+  };
+
+  const handleConfirmDelete = async () => {
+    const promo = confirmDialog.promo;
+    setDeletingPromoId(promo.id);
+    
     try {
-      const response = await fetch(`/api/admin/promos/${promoId}`, {
+      const response = await fetch(`/api/admin/promos/${promo.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -95,7 +102,14 @@ export default function PromoManagement() {
     } catch (error) {
       console.error('Error deleting promo:', error);
       setError('Failed to delete promo. Please try again.');
+    } finally {
+      setDeletingPromoId(null);
+      setConfirmDialog({ isOpen: false, promo: null });
     }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDialog({ isOpen: false, promo: null });
   };
 
   const handleEdit = (promo) => {
@@ -155,12 +169,12 @@ export default function PromoManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Promo Management</h1>
-          <p className="text-gray-600">Manage promotional discounts for all packages</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Promo Management</h1>
+          <p className="text-gray-600 dark:text-gray-300">Manage promotional discounts for all packages</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
         >
           <FiPlus className="mr-2 h-4 w-4" />
           Create Promo
@@ -168,25 +182,25 @@ export default function PromoManagement() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
           <div className="flex">
-            <FiX className="h-5 w-5 text-red-400" />
+            <FiX className="h-5 w-5 text-red-400 dark:text-red-500" />
             <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           </div>
         </div>
       )}
 
       {showCreateForm && (
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
               {editingPromo ? 'Edit Promo' : 'Create New Promo'}
             </h2>
             <button
               onClick={resetForm}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
             >
               <FiX className="h-5 w-5" />
             </button>
@@ -195,7 +209,7 @@ export default function PromoManagement() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Promo Name
                 </label>
                 <input
@@ -203,13 +217,13 @@ export default function PromoManagement() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="e.g., Summer Sale 2024"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Discount Percentage
                 </label>
                 <div className="mt-1 relative">
@@ -220,33 +234,32 @@ export default function PromoManagement() {
                     max="100"
                     value={formData.discountPercentage}
                     onChange={(e) => setFormData({ ...formData, discountPercentage: parseInt(e.target.value) })}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-8"
+                    className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-8 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="10"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <FiPercent className="h-4 w-4 text-gray-400" />
+                    <FiPercent className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   </div>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
               <textarea
-                required
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="Describe the promotion and what customers can expect..."
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Start Date
                 </label>
                 <input
@@ -254,12 +267,12 @@ export default function PromoManagement() {
                   required
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   End Date
                 </label>
                 <input
@@ -267,7 +280,7 @@ export default function PromoManagement() {
                   required
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -276,13 +289,13 @@ export default function PromoManagement() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
               >
                 {editingPromo ? 'Update Promo' : 'Create Promo'}
               </button>
@@ -291,42 +304,42 @@ export default function PromoManagement() {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Current Promos</h3>
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Current Promos</h3>
         </div>
 
         {loading ? (
           <div className="p-6 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading promos...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Loading promos...</p>
           </div>
         ) : promos.length === 0 ? (
           <div className="p-6 text-center">
-            <FiClock className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No promos</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <FiClock className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No promos</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Get started by creating a new promotional discount.
             </p>
           </div>
         ) : (
           <div className="overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Promo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Discount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Duration
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Created
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -334,63 +347,63 @@ export default function PromoManagement() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {promos.map((promo) => {
                   const status = getPromoStatus(promo);
                   return (
-                    <tr key={promo.id} className="hover:bg-gray-50">
+                    <tr key={promo.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {promo.name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {promo.description}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 dark:text-white">
                           {promo.discountPercentage}% off
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 dark:text-white">
                           <div className="flex items-center">
-                            <FiCalendar className="mr-1 h-4 w-4 text-gray-400" />
+                            <FiCalendar className="mr-1 h-4 w-4 text-gray-400 dark:text-gray-500" />
                             {formatDate(promo.startDate)}
                           </div>
                           <div className="flex items-center">
-                            <FiCalendar className="mr-1 h-4 w-4 text-gray-400" />
+                            <FiCalendar className="mr-1 h-4 w-4 text-gray-400 dark:text-gray-500" />
                             {formatDate(promo.endDate)}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          status.color === 'green' ? 'bg-green-100 text-green-800' :
-                          status.color === 'red' ? 'bg-red-100 text-red-800' :
-                          status.color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
+                          status.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                          status.color === 'red' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                          status.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' :
+                          'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
                         }`}>
                           <FiCheck className="mr-1 h-3 w-3" />
                           {status.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(promo.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => handleEdit(promo)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                           >
                             <FiEdit className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(promo.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() => handleDelete(promo)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                           >
                             <FiTrash2 className="h-4 w-4" />
                           </button>
@@ -404,6 +417,19 @@ export default function PromoManagement() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        title="Delete Promo"
+        message={confirmDialog.promo ? `Are you sure you want to delete the promo "${confirmDialog.promo.name}"? This action cannot be undone.` : ''}
+        confirmText="Delete Promo"
+        cancelText="Cancel"
+        confirmButtonClass="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+        isLoading={deletingPromoId === confirmDialog.promo?.id}
+      />
     </div>
   );
 }

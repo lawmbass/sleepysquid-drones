@@ -1,14 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiGift, FiX } from 'react-icons/fi';
+import { usePromoBanner } from '../layout/PromoBannerContext';
 
 export default function PromoBanner() {
+  const { setIsPromoBannerVisible, setPromoBannerHeight } = usePromoBanner();
   const [activePromo, setActivePromo] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const bannerRef = useRef(null);
 
   useEffect(() => {
     fetchActivePromo();
   }, []);
+
+  useEffect(() => {
+    // Update CSS variable for banner height
+    if (bannerRef.current && isVisible && activePromo) {
+      const height = bannerRef.current.offsetHeight;
+      document.documentElement.style.setProperty('--promo-banner-height', `${height}px`);
+      setPromoBannerHeight(height);
+      setIsPromoBannerVisible(true);
+    } else {
+      document.documentElement.style.setProperty('--promo-banner-height', '0px');
+      setPromoBannerHeight(0);
+      setIsPromoBannerVisible(false);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.documentElement.style.setProperty('--promo-banner-height', '0px');
+      setPromoBannerHeight(0);
+      setIsPromoBannerVisible(false);
+    };
+  }, [isVisible, activePromo, setPromoBannerHeight, setIsPromoBannerVisible]);
 
   const fetchActivePromo = async () => {
     try {
@@ -36,7 +60,7 @@ export default function PromoBanner() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+    <div ref={bannerRef} className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center space-x-3">

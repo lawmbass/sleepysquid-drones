@@ -7,7 +7,7 @@ const HeroSection = () => {
   return (
     <div className="relative h-screen flex items-center overflow-hidden">
       {/* Background Video or Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0" style={{ top: '0' }}>
         {/* If you have a video, use this: */}
         {/* <video
           autoPlay

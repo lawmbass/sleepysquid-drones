@@ -142,20 +142,20 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
       onClick={onClose}
     >
       <div 
-        className="relative my-2 sm:my-8 mx-auto p-4 sm:p-6 border w-full max-w-4xl shadow-lg rounded-lg bg-white"
+        className="relative my-2 sm:my-8 mx-auto p-4 sm:p-6 border border-gray-200 dark:border-gray-700 w-full max-w-4xl shadow-lg rounded-lg bg-white dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b">
-          <h3 className="text-lg font-medium text-gray-900">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
             {booking.source === 'customer' ? 'Booking' : 'Mission'} Details - {booking.name}
             {booking.missionId && (
-              <span className="ml-2 text-sm text-gray-500">({booking.missionId})</span>
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">({booking.missionId})</span>
             )}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
             <FiX className="h-6 w-6" />
           </button>
@@ -164,37 +164,37 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         <div className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Customer Information */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 {booking.source === 'customer' ? 'Customer' : 'Mission'} Information
               </h4>
               <div className="space-y-3">
                 {booking.source !== 'customer' && (
                   <div className="flex items-center">
                     <FiTarget className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900 dark:text-white">
                       Source: {booking.source ? booking.source.charAt(0).toUpperCase() + booking.source.slice(1) : 'Unknown'}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center">
                   <FiMail className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900">{booking.email}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{booking.email}</span>
                 </div>
                 {booking.source === 'customer' && (
                   <div className="flex items-center">
                     <FiPhone className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900">{booking.phone}</span>
+                    <span className="text-sm text-gray-900 dark:text-white">{booking.phone}</span>
                   </div>
                 )}
                 <div className="flex items-start">
                   <FiMapPin className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
-                  <span className="text-sm text-gray-900">{booking.location}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{booking.location}</span>
                 </div>
                 {booking.payout && (
                   <div className="flex items-center">
                     <FiDollarSign className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900 dark:text-white">
                       Mission Payout: {booking.payout.toLocaleString()}
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 {booking.travelDistance && (
                   <div className="flex items-center">
                     <FiNavigation className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900 dark:text-white">
                       Travel: {booking.travelDistance.toFixed(1)} mi
                       {booking.travelTime && ` (${Math.round(booking.travelTime)} min)`}
                     </span>
@@ -211,7 +211,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 {booking.acceptedAt && (
                   <div className="flex items-center">
                     <FiClock className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900 dark:text-white">
                       Auto-accepted: {formatDate(booking.acceptedAt)}
                     </span>
                   </div>
@@ -220,12 +220,12 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             </div>
 
             {/* Service Information */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Service Information</h4>
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Service Information</h4>
               <div className="space-y-3">
                 <div className="flex items-center">
                   <FiPackage className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900">
+                  <span className="text-sm text-gray-900 dark:text-white">
                     {serviceLabels[booking.service] || booking.service}
                   </span>
                 </div>
@@ -238,7 +238,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 )}
                 <div className="flex items-center">
                   <FiCalendar className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900">{formatDate(booking.date)}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
                 </div>
 
               </div>
@@ -248,9 +248,9 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
           {/* Project Details */}
           {booking.details && (
             <div className="mt-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Project Details</h4>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-700">{booking.details}</p>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Project Details</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-700 dark:text-gray-300">{booking.details}</p>
               </div>
             </div>
           )}
@@ -258,9 +258,9 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
           {/* Mission Email Content */}
           {booking.missionEmail && (
             <div className="mt-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Original Mission Email</h4>
-              <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
-                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Original Mission Email</h4>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg max-h-64 overflow-y-auto">
+                <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">
                   {booking.missionEmail}
                 </pre>
               </div>
@@ -269,7 +269,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
           {/* Admin Form */}
           <form onSubmit={handleSubmit} className="mt-6">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">Admin Actions</h4>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Admin Actions</h4>
             
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -280,13 +280,13 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => handleChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                 >
                   {statuses.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -298,7 +298,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
               {/* Estimated Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {booking.source === 'customer' ? 'Estimated Price' : 'Mission Payout'} ($)
                 </label>
                 <input
@@ -307,12 +307,12 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   step="0.01"
                   value={formData.estimatedPrice}
                   onChange={(e) => handleChange('estimatedPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                   placeholder="0.00"
                   readOnly={booking.source !== 'customer' && booking.payout}
                 />
                 {booking.source !== 'customer' && booking.payout && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Mission payout is fixed at ${booking.payout}
                   </p>
                 )}
@@ -320,7 +320,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
               {/* Final Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Final Price ($)
                 </label>
                 <input
@@ -329,7 +329,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   step="0.01"
                   value={formData.finalPrice}
                   onChange={(e) => handleChange('finalPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                   placeholder="0.00"
                 />
               </div>
@@ -337,7 +337,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
             {/* Admin Notes */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Admin Notes
               </label>
               <textarea
@@ -345,18 +345,18 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 onChange={(e) => handleChange('adminNotes', e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                 placeholder="Add any internal notes about this booking..."
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {formData.adminNotes.length}/500 characters
               </p>
             </div>
 
             {/* Booking Metadata */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h5 className="text-sm font-medium text-gray-900 mb-2">Booking Information</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs text-gray-600">
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Booking Information</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs text-gray-600 dark:text-gray-300">
                 <div>
                   <span className="font-medium">Created:</span> {formatDate(booking.createdAt)}
                 </div>
@@ -398,7 +398,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
                 >
                   Cancel
                 </button>

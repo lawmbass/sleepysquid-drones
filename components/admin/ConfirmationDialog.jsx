@@ -34,14 +34,14 @@ const ConfirmationDialog = ({
       onClick={onCancel}
     >
       <div 
-        className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             {title}
           </h3>
-          <p className="text-gray-600 whitespace-pre-line">
+          <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
             {message}
           </p>
         </div>

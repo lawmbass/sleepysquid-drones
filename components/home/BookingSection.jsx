@@ -34,6 +34,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
   const [bookingResult, setBookingResult] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const [showPackageInfo, setShowPackageInfo] = useState(false);
+  const [activePromo, setActivePromo] = useState(null);
 
   
   // Create refs
@@ -60,6 +61,31 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch active promo
+  useEffect(() => {
+    fetchActivePromo();
+  }, []);
+
+  const fetchActivePromo = async () => {
+    try {
+      const response = await fetch('/api/promo/active');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasActivePromo) {
+          setActivePromo(data.promo);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching active promo:', error);
+    }
+  };
+
+  const calculateDiscountedPrice = (originalPrice) => {
+    if (!activePromo) return originalPrice;
+    const discount = (originalPrice * activePromo.discountPercentage) / 100;
+    return Math.round(originalPrice - discount);
+  };
 
 
 
@@ -114,20 +140,31 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Helper function to get available packages for a service type
   const getAvailablePackages = (serviceType) => {
-    const allPackages = [
-      { id: 'basic', name: 'Basic Package - $199', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
-      { id: 'standard', name: 'Standard Package - $399', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
-      { id: 'premium', name: 'Premium Package - $799', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
+    const basePackages = [
+      { id: 'basic', basePrice: 199, name: 'Basic Package', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
+      { id: 'standard', basePrice: 399, name: 'Standard Package', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
+      { id: 'premium', basePrice: 799, name: 'Premium Package', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
     ];
 
     // Services that require at least Standard package (no Basic)
     const standardMinServices = ['mapping-surveying', 'inspection', 'event-coverage', 'custom'];
     
-    if (standardMinServices.includes(serviceType)) {
-      return allPackages.filter(pkg => pkg.id !== 'basic');
-    }
-    
-    return allPackages;
+    const availablePackages = standardMinServices.includes(serviceType) 
+      ? basePackages.filter(pkg => pkg.id !== 'basic')
+      : basePackages;
+
+    // Add pricing to package names based on active promo
+    return availablePackages.map(pkg => {
+      const finalPrice = calculateDiscountedPrice(pkg.basePrice);
+      const priceDisplay = activePromo && finalPrice < pkg.basePrice 
+        ? `$${finalPrice} (was $${pkg.basePrice})`
+        : `$${pkg.basePrice}`;
+      
+      return {
+        ...pkg,
+        name: `${pkg.name} - ${priceDisplay}`
+      };
+    });
   };
 
 
@@ -944,10 +981,10 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Package Information</h3>
-              <button
-                onClick={() => setShowPackageInfo(false)}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"
-              >
+                          <button
+              onClick={() => setShowPackageInfo(false)}
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+            >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
@@ -965,7 +1002,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
               <div className="grid gap-4 lg:gap-6">
                 {getAvailablePackages(formData.service).find(pkg => pkg.id === 'basic') ? (
                   <div className="border rounded-lg p-4 lg:p-5 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 lg:mb-3 text-lg">Basic Package - $199</h4>
+                    <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 lg:mb-3 text-lg">
+                      Basic Package - {activePromo ? `$${calculateDiscountedPrice(199)}` : '$199'}
+                      {activePromo && calculateDiscountedPrice(199) < 199 && (
+                        <span className="text-sm text-green-600 dark:text-green-400 ml-2">(was $199)</span>
+                      )}
+                    </h4>
                     <ul className="text-sm lg:text-base text-green-700 dark:text-green-300 space-y-1 lg:space-y-2">
                       <li>• <strong>1 hour</strong> of flight time</li>
                       <li>• 10-15 high-resolution photos</li>
@@ -992,7 +1034,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 )}
                 
                 <div className="border rounded-lg p-4 lg:p-5 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 lg:mb-3 text-lg">Standard Package - $399</h4>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 lg:mb-3 text-lg">
+                    Standard Package - {activePromo ? `$${calculateDiscountedPrice(399)}` : '$399'}
+                    {activePromo && calculateDiscountedPrice(399) < 399 && (
+                      <span className="text-sm text-blue-600 dark:text-blue-400 ml-2">(was $399)</span>
+                    )}
+                  </h4>
                   <ul className="text-sm lg:text-base text-blue-700 dark:text-blue-300 space-y-1 lg:space-y-2">
                     <li>• <strong>2 hours</strong> of flight time</li>
                     <li>• 25-30 high-resolution photos</li>
@@ -1004,7 +1051,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </div>
                 
                 <div className="border rounded-lg p-4 lg:p-5 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 lg:mb-3 text-lg">Premium Package - $799</h4>
+                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 lg:mb-3 text-lg">
+                    Premium Package - {activePromo ? `$${calculateDiscountedPrice(799)}` : '$799'}
+                    {activePromo && calculateDiscountedPrice(799) < 799 && (
+                      <span className="text-sm text-purple-600 dark:text-purple-400 ml-2">(was $799)</span>
+                    )}
+                  </h4>
                   <ul className="text-sm lg:text-base text-purple-700 dark:text-purple-300 space-y-1 lg:space-y-2">
                     <li>• <strong>4 hours</strong> of flight time</li>
                     <li>• 50+ high-resolution photos</li>

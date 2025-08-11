@@ -24,7 +24,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-teal-900/90 dark:bg-gray-900/95 backdrop-blur-sm py-2 shadow-lg' : 'bg-gradient-to-b from-black/20 to-transparent dark:from-gray-900/30 dark:to-transparent py-4'}`}>
+    <nav className={`fixed w-full z-40 transition-all duration-300 ${scrolled ? 'bg-teal-900/90 dark:bg-gray-900/95 backdrop-blur-sm py-2 shadow-lg' : 'bg-gradient-to-b from-black/40 to-transparent dark:from-gray-900/50 dark:to-transparent py-4'}`} style={{ top: 'var(--promo-banner-height, 0px)' }}>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold text-white hover:text-blue-300 transition-colors">

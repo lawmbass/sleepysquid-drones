@@ -5,8 +5,8 @@ export default function AccessHistory({ accessHistory = [] }) {
   if (!accessHistory || accessHistory.length === 0) {
     return (
       <div className="text-center py-4">
-        <FiClock className="mx-auto h-8 w-8 text-gray-400" />
-        <p className="mt-2 text-sm text-gray-500">No access history available</p>
+        <FiClock className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500" />
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No access history available</p>
       </div>
     );
   }
@@ -14,26 +14,26 @@ export default function AccessHistory({ accessHistory = [] }) {
   const getActionIcon = (action) => {
     switch (action) {
       case 'activated':
-        return <FiCheck className="h-4 w-4 text-green-500" />;
+        return <FiCheck className="h-4 w-4 text-green-500 dark:text-green-400" />;
       case 'deactivated':
-        return <FiX className="h-4 w-4 text-red-500" />;
+        return <FiX className="h-4 w-4 text-red-500 dark:text-red-400" />;
       case 'created':
-        return <FiUser className="h-4 w-4 text-blue-500" />;
+        return <FiUser className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
       default:
-        return <FiClock className="h-4 w-4 text-gray-500" />;
+        return <FiClock className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
     }
   };
 
   const getActionColor = (action) => {
     switch (action) {
       case 'activated':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
       case 'deactivated':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
       case 'created':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -67,8 +67,8 @@ export default function AccessHistory({ accessHistory = [] }) {
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-medium text-gray-900 flex items-center">
-        <FiClock className="h-4 w-4 mr-2" />
+      <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+        <FiClock className="h-4 w-4 mr-2 text-gray-700 dark:text-gray-300" />
         Access History
       </h4>
       
@@ -85,15 +85,15 @@ export default function AccessHistory({ accessHistory = [] }) {
                     {getActionIcon(entry.action)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {getActionText(entry.action, entry.hasAccess)}
                     </p>
                     {entry.reason && (
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         {entry.reason}
                       </p>
                     )}
-                    <div className="flex items-center mt-2 text-xs text-gray-500">
+                    <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
                       <span>
                         Changed by: {entry.changedBy || 'System'}
                       </span>
@@ -107,8 +107,8 @@ export default function AccessHistory({ accessHistory = [] }) {
                 <div className="flex-shrink-0">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                     entry.hasAccess 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                   }`}>
                     {entry.hasAccess ? 'Active' : 'Inactive'}
                   </span>
@@ -120,8 +120,8 @@ export default function AccessHistory({ accessHistory = [] }) {
       </div>
       
       {sortedHistory.length > 5 && (
-        <div className="text-center pt-2 border-t border-gray-200">
-          <p className="text-xs text-gray-500">
+        <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Showing {Math.min(5, sortedHistory.length)} of {sortedHistory.length} entries
           </p>
         </div>
