@@ -26,6 +26,10 @@ function fail(message) {
   process.exitCode = 1;
 }
 
+function stripSqlComments(sql) {
+  return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--.*$/gm, "");
+}
+
 function staticChecks(sql) {
   const tables = [...sql.matchAll(/CREATE TABLE public\.(\w+)/g)].map((match) => match[1]);
   if (tables.length === 0) {
@@ -40,7 +44,8 @@ function staticChecks(sql) {
     }
   }
 
-  if (/USING\s*\(\s*true\s*\)/i.test(sql) || /WITH CHECK\s*\(\s*true\s*\)/i.test(sql)) {
+  const code = stripSqlComments(sql);
+  if (/USING\s*\(\s*true\s*\)/i.test(code) || /WITH CHECK\s*\(\s*true\s*\)/i.test(code)) {
     fail("found an always-true RLS policy");
   }
 
