@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByPasswordResetToken } from "@/libs/db/users";
 import { 
   isTokenExpired,
   checkRateLimit,
@@ -37,13 +36,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Find user by password reset token (include password reset fields)
-    const user = await User.findOne({ 
-      'passwordReset.token': sanitizedToken 
-    }).select('+passwordReset.token +passwordReset.expires');
+    const user = await findUserByPasswordResetToken(sanitizedToken);
 
     if (!user || !user.passwordReset || !user.passwordReset.token) {
       await recordAuthAttempt(clientIP);
@@ -73,7 +66,7 @@ export default async function handler(req, res) {
     console.error('Token validation error:', error);
     
     // Handle specific MongoDB errors
-    if (error.name === 'MongoServerError' || error.name === 'MongoError') {
+    if (error.name === 'DbError') {
       return res.status(500).json({ 
         message: 'Database error occurred. Please try again in a few moments.' 
       });

@@ -1,5 +1,4 @@
-import connectMongo from '@/libs/mongoose';
-import Invitation from '@/models/Invitation';
+import { findValidInvitation } from '@/libs/db/invitations';
 
 export default async function handler(req, res) {
   // Only allow GET requests
@@ -11,9 +10,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to database
-    await connectMongo();
-
     const { token } = req.query;
 
     if (!token) {
@@ -24,7 +20,7 @@ export default async function handler(req, res) {
     }
 
     // Find valid invitation by token
-    const invitation = await Invitation.findValidInvitation(token);
+    const invitation = await findValidInvitation(token);
 
     if (!invitation) {
       return res.status(404).json({

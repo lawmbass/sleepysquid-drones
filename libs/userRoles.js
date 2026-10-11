@@ -92,13 +92,12 @@ const getPilotEmails = () => {
 // Get user role from database
 const getUserRoleFromDatabase = async (email) => {
   try {
-    // Dynamic import to avoid circular dependency
-    const { default: User } = await import('../models/User.js');
-    const user = await User.findOne({ email: email.toLowerCase() }).lean();
-    return user?.role || ROLES.CLIENT; // Default to client instead of user
+    const { findUserByEmail } = await import('./db/users');
+    const user = await findUserByEmail(email.toLowerCase());
+    return user?.role || ROLES.CLIENT;
   } catch (error) {
     console.error('Error fetching user role from database:', error);
-    return ROLES.CLIENT; // Default to client instead of user
+    return ROLES.CLIENT;
   }
 };
 
@@ -190,9 +189,8 @@ export const userRoles = {
     }
     
     try {
-      // Dynamic import to avoid circular dependency
-      const { default: User } = await import('../models/User.js');
-      const user = await User.findOne({ email: email.toLowerCase() });
+      const { findUserByEmail, patchUser } = await import('./db/users');
+      const user = await findUserByEmail(email.toLowerCase());
       if (!user) {
         throw new Error('User not found');
       }
@@ -202,12 +200,15 @@ export const userRoles = {
         throw new Error('Only admins can create admin users');
       }
       
-      // Set metadata for role change tracking
-      user._roleChangedBy = changedBy;
-      user._roleChangeReason = reason;
-      
-      user.role = newRole;
-      await user.save();
+      await patchUser(user.id, {
+        role: newRole,
+        pushRoleHistory: {
+          role: newRole,
+          changedBy,
+          changedAt: new Date().toISOString(),
+          reason,
+        },
+      });
       
       // Clear cache for this user
       userRoleCache.delete(email.toLowerCase());
@@ -226,9 +227,8 @@ export const userRoles = {
     }
     
     try {
-      // Dynamic import to avoid circular dependency
-      const { default: User } = await import('../models/User.js');
-      const user = await User.findOne({ email: email.toLowerCase() }, 'roleHistory').lean();
+      const { findUserByEmail } = await import('./db/users');
+      const user = await findUserByEmail(email.toLowerCase());
       return user?.roleHistory || [];
     } catch (error) {
       console.error('Error fetching user role history:', error);
@@ -270,6 +270,7 @@ export const userRoles = {
         const adminNav = [
           { name: 'Dashboard', href: '/dashboard', icon: 'FiHome' },
           { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
+          { name: 'Listings', href: '/dashboard?section=listings', icon: 'FiClipboard' },
           { name: 'Promos', href: '/dashboard?section=promos', icon: 'FiPercent' },
           { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }

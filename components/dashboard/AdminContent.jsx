@@ -7,6 +7,7 @@ import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
 import UserManagement from '@/components/admin/UserManagement';
 import PromoManagement from '@/components/admin/PromoManagement';
+import ListingsSection from '@/components/admin/ListingsSection';
 import AccessStatusBanner from './AccessStatusBanner';
 // Note: AdminSettings is now an inline component within this file
 
@@ -231,6 +232,9 @@ export default function AdminContent({ user, onUpdate }) {
       
       case 'promos':
         return <PromoManagement />;
+
+      case 'listings':
+        return <ListingsSection />;
       
       default:
         return (

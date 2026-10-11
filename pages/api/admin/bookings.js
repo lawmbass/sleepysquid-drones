@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import Booking from "@/models/Booking";
+import { displayValue, listAllBookings, listBookings } from "@/libs/db/bookings";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -62,10 +61,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
-    await connectMongo();
-
-    // Extract query parameters
     const { 
       status, 
       service,
@@ -81,126 +76,60 @@ export default async function handler(req, res) {
       travel_distance_max
     } = req.query;
 
-    // Build filter object
-    const filter = {};
-    
-    if (status) filter.status = status;
-    if (service) filter.service = service;
-    if (source) filter.source = source;
-    if (email) filter.email = { $regex: email, $options: 'i' };
-    
-    // Date range filter
-    if (date_from || date_to) {
-      filter.date = {};
-      if (date_from) filter.date.$gte = new Date(date_from);
-      if (date_to) filter.date.$lte = new Date(date_to);
-    }
+    const filters = {
+      status,
+      service,
+      source,
+      email,
+      dateFrom: date_from,
+      dateTo: date_to,
+      payoutMin: payout_min,
+      payoutMax: payout_max,
+      travelDistanceMax: travel_distance_max,
+    };
 
-    // Mission-specific filters
-    if (payout_min || payout_max) {
-      filter.payout = {};
-      if (payout_min) filter.payout.$gte = parseFloat(payout_min);
-      if (payout_max) filter.payout.$lte = parseFloat(payout_max);
-    }
-
-    if (travel_distance_max) {
-      filter.travelDistance = { $lte: parseFloat(travel_distance_max) };
-    }
-
-    // Calculate pagination
     const limitNum = parseInt(limit);
     const pageNum = parseInt(page);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get bookings with pagination
-    const bookings = await Booking.find(filter)
-      .sort(sort)
-      .limit(limitNum)
-      .skip(skip)
-      .lean();
-
-    // Get total count for pagination
-    const totalCount = await Booking.countDocuments(filter);
+    const { bookings, count: totalCount } = await listBookings(filters, {
+      sort,
+      limit: limitNum,
+      offset: skip,
+    });
     const totalPages = Math.ceil(totalCount / limitNum);
 
-    // Get booking statistics
-    const stats = await Booking.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          totalValue: { 
-            $sum: {
-              $cond: [
-                { $ne: ['$payout', null] },
-                '$payout',
-                { $ifNull: ['$finalPrice', '$estimatedPrice'] }
-              ]
-            }
-          }
-        }
-      }
-    ]);
+    const allBookings = await listAllBookings({});
+    const stats = {};
+    const processedSourceStats = {};
+    const missions = [];
 
-    // Get mission-specific statistics
-    const missionStats = await Booking.aggregate([
-      {
-        $match: { source: { $ne: 'customer' } }
-      },
-      {
-        $group: {
-          _id: null,
-          totalMissions: { $sum: 1 },
-          totalPayout: { $sum: '$payout' },
-          avgPayout: { $avg: '$payout' },
-          avgTravelDistance: { $avg: '$travelDistance' },
-          avgTravelTime: { $avg: '$travelTime' },
-          sourceBreakdown: {
-            $push: {
-              source: '$source',
-              payout: '$payout'
-            }
-          }
-        }
-      }
-    ]);
+    for (const booking of allBookings) {
+      const value = displayValue(booking);
+      if (!stats[booking.status]) stats[booking.status] = { count: 0, totalValue: 0 };
+      stats[booking.status].count += 1;
+      stats[booking.status].totalValue += value;
 
-    // Get source breakdown
-    const sourceStats = await Booking.aggregate([
-      {
-        $group: {
-          _id: '$source',
-          count: { $sum: 1 },
-          totalValue: { 
-            $sum: {
-              $cond: [
-                { $ne: ['$payout', null] },
-                '$payout',
-                { $ifNull: ['$finalPrice', '$estimatedPrice'] }
-              ]
-            }
-          }
-        }
-      }
-    ]);
+      const sourceKey = booking.source || "customer";
+      if (!processedSourceStats[sourceKey]) processedSourceStats[sourceKey] = { count: 0, totalValue: 0 };
+      processedSourceStats[sourceKey].count += 1;
+      processedSourceStats[sourceKey].totalValue += value;
 
-    // Process mission statistics
-    const processedMissionStats = missionStats[0] || {
-      totalMissions: 0,
-      totalPayout: 0,
-      avgPayout: 0,
-      avgTravelDistance: 0,
-      avgTravelTime: 0
+      if (booking.source && booking.source !== "customer") missions.push(booking);
+    }
+
+    const payouts = missions.map((booking) => booking.payout).filter((value) => value != null);
+    const distances = missions.map((booking) => booking.travelDistance).filter((value) => value != null);
+    const times = missions.map((booking) => booking.travelTime).filter((value) => value != null);
+    const average = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+
+    const processedMissionStats = {
+      totalMissions: missions.length,
+      totalPayout: payouts.reduce((sum, value) => sum + value, 0),
+      avgPayout: average(payouts),
+      avgTravelDistance: average(distances),
+      avgTravelTime: average(times),
     };
-
-    // Process source statistics
-    const processedSourceStats = sourceStats.reduce((acc, stat) => {
-      acc[stat._id] = {
-        count: stat.count,
-        totalValue: stat.totalValue || 0
-      };
-      return acc;
-    }, {});
 
     // Calculate customer bookings count
     const customerBookingsCount = processedSourceStats.customer?.count || 0;
@@ -218,13 +147,7 @@ export default async function handler(req, res) {
           hasPrevPage: pageNum > 1
         },
         stats: {
-          ...stats.reduce((acc, stat) => {
-            acc[stat._id] = {
-              count: stat.count,
-              totalValue: stat.totalValue || 0
-            };
-            return acc;
-          }, {}),
+          ...stats,
           customerBookings: customerBookingsCount
         },
         missionStats: processedMissionStats,

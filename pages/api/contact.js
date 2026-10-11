@@ -1,4 +1,3 @@
-import connectMongo from "@/libs/mongoose";
 import { sendEmail } from "@/libs/mailgun";
 import adminConfig from "@/libs/adminConfig";
 
@@ -62,9 +61,6 @@ export default async function handler(req, res) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
 
   try {
-    // Connect to MongoDB (for potential logging in the future)
-    await connectMongo();
-
     // Extract contact data from request body
     const {
       name,

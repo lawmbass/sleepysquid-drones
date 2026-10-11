@@ -1,7 +1,7 @@
-import connectMongo from "@/libs/mongoose";
-import Booking from "@/models/Booking";
-import User from "@/models/User";
-import Promo from "@/models/Promo";
+import { findSameDayBooking, insertBooking } from "@/libs/db/bookings";
+import { findUserByEmail } from "@/libs/db/users";
+import { calculateDiscountedPrice, getActivePromo } from "@/libs/db/promos";
+import { isUniqueViolation } from "@/libs/db/shared";
 import { bookingRateLimit } from "@/libs/rateLimit";
 import { sendBookingConfirmationEmail, shouldSendEmailNotification } from "@/libs/emailService";
 import config from "@/config";
@@ -45,31 +45,6 @@ export default async function handler(req, res) {
 
   try {
     console.log('Processing booking request from IP:', req.ip);
-    
-    // Connect to MongoDB with timeout handling
-    try {
-      await connectMongo();
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError.message);
-      
-      // Handle specific MongoDB errors
-      if (dbError.name === 'MongoNetworkTimeoutError' || dbError.message.includes('timeout')) {
-        return res.status(503).json({
-          error: 'Database connection timeout',
-          message: 'We are experiencing temporary database connectivity issues. Please try again in a few moments.'
-        });
-      } else if (dbError.name === 'MongoServerSelectionError') {
-        return res.status(503).json({
-          error: 'Database unavailable',
-          message: 'Database service is temporarily unavailable. Please try again later.'
-        });
-      } else {
-        return res.status(503).json({
-          error: 'Database connection failed',
-          message: 'Unable to connect to database. Please try again later.'
-        });
-      }
-    }
 
     // Extract booking data from request body
     const {
@@ -239,12 +214,12 @@ export default async function handler(req, res) {
     let appliedPromo = null;
     if (estimatedPrice) {
       try {
-        const activePromo = await Promo.getActivePromo();
+        const activePromo = await getActivePromo();
         if (activePromo) {
           const originalPrice = estimatedPrice;
-          estimatedPrice = activePromo.calculateDiscountedPrice(estimatedPrice);
+          estimatedPrice = calculateDiscountedPrice(activePromo.discountPercentage, estimatedPrice);
           appliedPromo = {
-            id: activePromo._id,
+            id: activePromo.id,
             name: activePromo.name,
             discountPercentage: activePromo.discountPercentage,
             originalPrice,
@@ -265,13 +240,11 @@ export default async function handler(req, res) {
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
     
-    const existingBooking = await Booking.findOne({
-      email: sanitizedData.email,
-      date: {
-        $gte: startOfDay,
-        $lt: endOfDay
-      }
-    });
+    const existingBooking = await findSameDayBooking(
+      sanitizedData.email,
+      startOfDay.toISOString(),
+      endOfDay.toISOString()
+    );
 
     if (existingBooking) {
       return res.status(409).json({
@@ -280,31 +253,26 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create new booking with sanitized data
-    const newBooking = new Booking({
-      source: 'customer', // Mark as customer booking for dashboard visibility
+    console.log('Saving booking to database for:', sanitizedData.email);
+    const savedBooking = await insertBooking({
+      source: 'customer',
       service: sanitizedData.service,
       package: sanitizedData.package,
-      date: bookingDate,
+      date: bookingDate.toISOString(),
       location: sanitizedData.location,
       details: sanitizedData.details,
       name: sanitizedData.name,
       email: sanitizedData.email,
       phone: sanitizedData.phone,
       estimatedPrice,
-      appliedPromo, // Store promo information
+      appliedPromo,
       status: 'pending',
-      ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress, // For tracking
-      userAgent: req.headers['user-agent'] // For tracking
+      ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent']
     });
+    console.log('Booking saved successfully with ID:', savedBooking.id);
 
-    // Save to database
-    console.log('Saving booking to database for:', sanitizedData.email);
-    const savedBooking = await newBooking.save();
-    console.log('Booking saved successfully with ID:', savedBooking._id);
-
-    // Check if user has an account
-    const existingUser = await User.findOne({ email: sanitizedData.email.toLowerCase() });
+    const existingUser = await findUserByEmail(sanitizedData.email.toLowerCase());
     const hasAccount = !!existingUser;
 
     // Send confirmation email based on user preferences
@@ -334,14 +302,14 @@ export default async function handler(req, res) {
     }
 
     // Return success response (limited data for security)
-    console.log('Sending success response for booking:', savedBooking._id);
+    console.log('Sending success response for booking:', savedBooking.id);
     return res.status(201).json({
       success: true,
       message: emailSent 
         ? 'Booking submitted successfully! We will contact you soon to confirm the details. A confirmation email has been sent.'
         : 'Booking submitted successfully! We will contact you soon to confirm the details.',
       booking: {
-        id: savedBooking._id,
+        id: savedBooking.id,
         service: savedBooking.service,
         date: savedBooking.date,
         location: savedBooking.location,
@@ -356,7 +324,7 @@ export default async function handler(req, res) {
     console.error('Booking submission error:', error);
     
     // Handle duplicate booking scenario
-    if (error.code === 11000) {
+    if (isUniqueViolation(error)) {
       return res.status(409).json({
         error: 'Duplicate booking',
         message: 'A booking with similar details already exists'

@@ -1,8 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
 import { adminConfig } from '@/libs/adminConfig';
-import connectMongo from '@/libs/mongoose';
-import Invitation from '@/models/Invitation';
+import { deleteInvitation, findInvitationById } from '@/libs/db/invitations';
 
 export default async function handler(req, res) {
   // Only allow DELETE requests
@@ -31,13 +30,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
     const { id } = req.query;
 
     // Find and delete the invitation
-    const invitation = await Invitation.findById(id);
+    const invitation = await findInvitationById(id);
     
     if (!invitation) {
       return res.status(404).json({
@@ -47,7 +43,7 @@ export default async function handler(req, res) {
     }
 
     // Delete the invitation
-    await Invitation.findByIdAndDelete(id);
+    await deleteInvitation(id);
 
     return res.status(200).json({
       success: true,

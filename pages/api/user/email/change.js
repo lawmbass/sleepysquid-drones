@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 import { sendEmail } from "@/libs/mailgun";
 import config from "@/config";
 import crypto from "crypto";
@@ -31,13 +30,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database
-    // Select pendingEmailChange to check if there's already a pending change
-    const user = await User.findOne({ email: session.user.email })
-      .select('+pendingEmailChange.email +pendingEmailChange.token +pendingEmailChange.expires');
+    const user = await findUserByEmail(session.user.email, { includeSecrets: true });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -54,8 +47,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'New email must be different from current email' });
     }
 
-    // Check if new email already exists
-    const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
+    const existingUser = await findUserByEmail(newEmail.toLowerCase());
     if (existingUser) {
       return res.status(400).json({ message: 'This email is already in use' });
     }
@@ -64,11 +56,12 @@ export default async function handler(req, res) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Update user with pending email change
-    await User.findByIdAndUpdate(user._id, {
-      'pendingEmailChange.email': newEmail.toLowerCase(),
-      'pendingEmailChange.token': verificationToken,
-      'pendingEmailChange.expires': verificationExpires
+    await patchUser(user.id, {
+      pendingEmailChange: {
+        email: newEmail.toLowerCase(),
+        token: verificationToken,
+        expires: verificationExpires
+      }
     });
 
     // Create verification link with proper validation

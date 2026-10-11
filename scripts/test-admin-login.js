@@ -26,7 +26,9 @@ console.log(`   NEXTAUTH_SECRET: ${process.env.NEXTAUTH_SECRET ? '✅ Set' : '�
 console.log(`   NEXTAUTH_URL: ${process.env.NEXTAUTH_URL ? '✅ Set' : '❌ Not set'}`);
 console.log(`   GOOGLE_ID: ${process.env.GOOGLE_ID ? '✅ Set' : '❌ Not set'}`);
 console.log(`   GOOGLE_SECRET: ${process.env.GOOGLE_SECRET ? '✅ Set' : '❌ Not set'}`);
-console.log(`   MONGODB_URI: ${process.env.MONGODB_URI ? '✅ Set' : '❌ Not set'}\n`);
+console.log(`   NEXT_PUBLIC_SUPABASE_URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Not set'}`);
+console.log(`   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Not set'}`);
+console.log(`   SUPABASE_SERVICE_ROLE_KEY: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Not set'}\n`);
 
 if (process.env.ADMIN_EMAILS) {
   const adminEmails = process.env.ADMIN_EMAILS.split(',').map(email => email.trim());

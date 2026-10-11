@@ -1,5 +1,5 @@
-import connectMongo from "@/libs/mongoose";
-import Booking from "@/models/Booking";
+import { deleteBooking, findBookingById, updateBooking } from "@/libs/db/bookings";
+import { isUuid } from "@/libs/db/shared";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -71,11 +71,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
-    await connectMongo();
-
-    // Validate the booking ID format
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!isUuid(id)) {
       return res.status(400).json({
         error: 'Invalid booking ID',
         message: 'The provided booking ID is not valid'
@@ -85,7 +81,7 @@ export default async function handler(req, res) {
     // Handle DELETE request
     if (req.method === 'DELETE') {
       // Find the existing booking
-      const existingBooking = await Booking.findById(id);
+      const existingBooking = await findBookingById(id);
       
       if (!existingBooking) {
         return res.status(404).json({
@@ -94,8 +90,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Delete the booking
-      await Booking.findByIdAndDelete(id);
+      await deleteBooking(id);
 
       // Return success response
       return res.status(200).json({
@@ -108,7 +103,7 @@ export default async function handler(req, res) {
     }
 
     // Handle PATCH request - Find the existing booking
-    const existingBooking = await Booking.findById(id);
+    const existingBooking = await findBookingById(id);
     
     if (!existingBooking) {
       return res.status(404).json({
@@ -191,17 +186,7 @@ export default async function handler(req, res) {
     }
 
     // Update the booking
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      { 
-        ...updates,
-        updatedAt: new Date()
-      },
-      { 
-        new: true,
-        runValidators: true
-      }
-    );
+    const updatedBooking = await updateBooking(id, updates);
 
     if (!updatedBooking) {
       return res.status(404).json({
@@ -223,17 +208,15 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Admin booking update error:', error);
     
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+    if (error.name === 'ValidationError' || error.code === '23514') {
+      const errors = error.errors ? Object.values(error.errors).map(err => err.message) : [error.message];
       return res.status(400).json({
         error: 'Validation failed',
         message: errors.join(', ')
       });
     }
     
-    // Handle mongoose cast errors (invalid ObjectId, etc.)
-    if (error.name === 'CastError') {
+    if (error.name === 'CastError' || error.code === '22P02') {
       return res.status(400).json({
         error: 'Invalid data format',
         message: 'The provided data format is invalid'

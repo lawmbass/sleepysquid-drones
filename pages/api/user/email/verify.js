@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmailVerificationToken, patchUser } from "@/libs/db/users";
 import { sendWelcomeEmail } from "@/libs/emailService";
 
 export default async function handler(req, res) {
@@ -14,14 +13,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Verification token is required' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Find user with this verification token
-    const user = await User.findOne({
-      'emailVerification.token': token,
-      'emailVerification.expires': { $gt: new Date() }
-    });
+    const user = await findUserByEmailVerificationToken(token);
 
     if (!user) {
       return res.status(400).json({ 
@@ -29,24 +21,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // Update user as verified, grant access, and clear verification tokens
-    await User.findByIdAndUpdate(user._id, {
-      'emailVerification.verified': true,
-      hasAccess: true, // Grant access after email verification
-      $unset: {
-        'emailVerification.token': 1,
-        'emailVerification.expires': 1
-      },
-      $push: {
-        accessHistory: {
-          hasAccess: true,
-          changedBy: 'system',
-          changedAt: new Date(),
-          reason: 'Email verified - access granted',
-          action: 'activated'
-        }
+    await patchUser(user.id, {
+      emailVerification: { verified: true, token: null, expires: null },
+      hasAccess: true,
+      pushAccessHistory: {
+        hasAccess: true,
+        changedBy: 'system',
+        changedAt: new Date().toISOString(),
+        reason: 'Email verified - access granted',
+        action: 'activated'
       }
-    }, { new: true });
+    });
 
     // Send welcome email
     try {

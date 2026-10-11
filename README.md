@@ -1,171 +1,214 @@
 # SleepySquid Drones
 
-Professional drone services website with admin dashboard and automated mission integration.
+Professional drone services website with an admin dashboard. The site runs on Next.js (pages router) and stores data in Supabase Postgres.
 
-## Quick Setup
+Production: https://drones.sleepysquid.com  
+Supabase project: `etbesmtdsjlmadaexvrv` (`https://etbesmtdsjlmadaexvrv.supabase.co`)
+
+The Atlas cluster is gone. There is no data to migrate. Apply the SQL migration once and start with empty tables.
+
+## Quick setup
 
 ```bash
-# Install and setup
 npm install
-cp .env.example .env  # Edit with your settings
+cp .env.example .env
 npm run dev
 ```
 
-**Key Environment Variables:**
+## Environment variables
+
+Required for the app and the health check:
+
 ```env
-MONGODB_URI=mongodb://localhost:27017/sleepysquid-drones
+NEXT_PUBLIC_SUPABASE_URL=https://etbesmtdsjlmadaexvrv.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
-ADMIN_EMAILS=your-email@domain.com
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
-RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
+NEXTAUTH_SECRET=
+GOOGLE_ID=
+GOOGLE_SECRET=
+ADMIN_EMAILS=you@sleepysquid.com
 ```
 
-## reCAPTCHA Setup (Anti-Spam Protection)
+Production `NEXTAUTH_URL` is `https://drones.sleepysquid.com`. `SITE_URL` should match.
 
-1. **Create Google reCAPTCHA keys:**
-   - Go to [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
-   - Create a new site with **reCAPTCHA v2** ("I'm not a robot" checkbox)
-   - Add your domain(s): `localhost`, `yourdomain.com`
-   - **Note:** We use v2 (checkbox) instead of v3 (invisible) for better user experience and clearer spam detection
+Also used when those features are on: reCAPTCHA, Mailgun, Stripe, OpenAI, SMTP. See `.env.example`. Do not commit `.env` or any real keys.
 
-2. **Add to your `.env` file:**
-   ```env
-   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lc...your-site-key
-   RECAPTCHA_SECRET_KEY=6Lc...your-secret-key
-   ```
+`SUPABASE_SERVICE_ROLE_KEY` is server-only. API routes import it after a session check. Do not put it in `NEXT_PUBLIC_*` or in client components.
 
-3. **Test the forms:**
-   - Visit `/` and try submitting the booking form
-   - Scroll down and test the contact form
-   - reCAPTCHA should appear before form submission
-   - Forms won't submit without completing reCAPTCHA
-   - Contact form submissions send email notifications to admin emails
+## Apply the database
+
+One migration, applied once, in this order (the file does it for you):
+
+1. `admin_allowlist` and `public.is_dashboard_admin()`
+2. `users`
+3. `oauth_accounts`
+4. `bookings`
+5. `promos`
+6. `invitations`
+7. `rate_limit_events`
+8. `mission_listings`
+9. Row level security and grants
+
+In the Supabase SQL editor, paste `supabase/migrations/20261011120000_initial_schema.sql` and run it. Or use the Supabase CLI against this project. This repo does not apply the migration for you.
+
+`npm run check:rls` checks the SQL (RLS on every table, no always-true policies, anon cannot read bookings or listings). If the three Supabase env vars are set, it also probes the live project. Without keys it only runs the static check.
+
+## Auth
+
+Sign-in stays on **NextAuth** (JWT sessions): Google plus email and password. Supabase Auth is not used. Leave the Google and email providers disabled in the Supabase dashboard. Site URL and redirect allow-lists in Supabase Auth are unused. Setting Site URL to `https://drones.sleepysquid.com` is harmless if you set it anyway.
+
+Users live in `public.users`. Google accounts are linked in `public.oauth_accounts` during the NextAuth `signIn` callback.
+
+### Admin rules
+
+- API admin routes return 401 with no session, then 403 unless `adminConfig.isAdmin` is true: the email ends with `@sleepysquid.com` **and** is listed in `ADMIN_EMAILS`.
+- Middleware lets any `@sleepysquid.com` address into dashboard pages even when `hasAccess` is false. Other users with `hasAccess` false go to `/access-denied`.
+- Protected pages: `/dashboard`, `/admin`, `/profile`, `/settings`. `/` matches exactly, so it no longer treats every path as public. `/api/*` is never redirected to login; handlers keep returning 401.
+
+`public.is_dashboard_admin()` is true when a Supabase JWT email ends with `@sleepysquid.com` or is in `admin_allowlist` (starts empty). NextAuth does not issue Supabase JWTs, so the website uses the service role after its own session check. The RLS policies are what a direct PostgREST client would hit.
+
+### Google Cloud (NextAuth)
+
+Authorized JavaScript origins:
+
+- `https://drones.sleepysquid.com`
+- `http://localhost:3000`
+
+Authorized redirect URIs:
+
+- `https://drones.sleepysquid.com/api/auth/callback/google`
+- `http://localhost:3000/api/auth/callback/google`
+
+### Supabase dashboard
+
+1. Project Settings → API: copy the project URL, the anon key, and the service role key into the three env vars above.
+2. Run the SQL migration once.
+3. Do not enable Supabase Auth providers. This app does not use them.
 
 ## Features
 
-**Public Website** (`/`)
-- Portfolio showcase with image galleries
-- Service booking system with reCAPTCHA protection
-- Contact form with email notifications to admins
-- Pricing and service information
+**Public site** (`/`)
 
-**Admin Dashboard** (`/admin`)
-- Booking management and analytics
-- Customer data and revenue tracking
-- Mission integration with Zeitview
+- Portfolio, pricing, contact form (email only; nothing is stored)
+- Booking form with reCAPTCHA. Public inserts are customer bookings at least two days out.
 
-**Security**
-- Rate limiting on booking and contact forms
-- reCAPTCHA protection against spam submissions
-- Input validation and sanitization
-- Secure sessions with NextAuth.js
+**Dashboard** (`/dashboard`)
 
-## Key Commands
+- Bookings, mission analytics, promos, users
+- **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
 
-```bash
-# Development
-npm run dev
+## drone-gigs
 
-# Production
-npm run build && npm start
+`lawmbass/drone-gigs` writes with the same `SUPABASE_SERVICE_ROLE_KEY` against this project. It no longer uses `MONGODB_URI`.
 
-# Admin key generation
-node scripts/generateAdminKey.js
+### `public.bookings` (accepted missions and customer bookings)
 
-# Database testing
-node scripts/test-admin-login.js
-```
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid | `gen_random_uuid()` |
+| `source` | text | `customer` (default), `zeitview`, or `manual` |
+| `service` | text | Required, non-blank. Not limited to the website enum, so the bot is not blocked by it. |
+| `package` | text | `basic`, `standard`, `premium`, or null |
+| `mission_id` | text | Unique. Null for customers. Must match `^DBM[0-9]+$` when set. Duplicate insert is Postgres `23505` on `bookings_mission_id_key`; skip that mission. |
+| `payout` | numeric(12,2) | USD. Null allowed. |
+| `travel_distance` | numeric(12,2) | Miles |
+| `travel_time` | numeric(12,2) | Minutes |
+| `duration` | numeric(12,2) | Minutes, nullable |
+| `accepted_at` | timestamptz | When the bot accepted the mission |
+| `mission_email` | text | Original email |
+| `latitude`, `longitude` | numeric(9,6) | Optional |
+| `date` | timestamptz | Required |
+| `location` | text | Required, 1–200 chars |
+| `details` | text | Default `''`, max 1000 |
+| `name`, `email`, `phone` | text | Required when `source = 'customer'`. Mission rows may leave them null. |
+| `estimated_price`, `final_price` | numeric(12,2) | Customer prices |
+| `applied_promo` | jsonb | Optional |
+| `status` | text | `pending`, `confirmed`, `in-progress`, `completed`, `cancelled` |
+| `ip_address`, `user_agent` | text | Optional |
+| `admin_notes` | text | Default `''`, max 500 |
+| `created_at`, `updated_at` | timestamptz | `updated_at` is maintained by a trigger |
 
-## Admin Access
+Bot insert example: `source: 'zeitview'`, `service`, `mission_id`, `payout`, `location`, `travel_distance`, `travel_time`, `date`, `duration`, `accepted_at`, `admin_notes`, `mission_email`. Set `status` to `confirmed` for an auto-accept.
 
-1. Add your email to `ADMIN_EMAILS` in `.env`
-2. Visit `/admin` and sign in with Google OAuth
-3. Manage bookings, view analytics, track revenue
+### `public.mission_listings` (every mission the bot sees)
 
-## Mission Integration
+One row per mission. Unique on `(source, external_mission_id)` (`mission_listings_source_external_unique`). Upsert with `onConflict: 'source,external_mission_id'`.
 
-**drone-gigs** automatically accepts Zeitview missions and saves them to your database. Both systems share the same MongoDB database for unified booking management.
+Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and the descriptive fields. **Do not send `admin_notes` or `tags` on update.** Those are for the dashboard. When a mission is accepted, set `status` to `accepted` and `booking_id` to the `bookings.id` you just inserted.
 
-**Setup drone-gigs:**
-```bash
-cd drone-gigs
-npm install
-# Configure .env with same MONGODB_URI
-npm start  # Starts monitoring for missions
-```
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid | Primary key |
+| `source` | text | Required, non-blank (for example `zeitview`) |
+| `external_mission_id` | text | Required. Not format-checked, so declined gigs with non-DBM ids still store. |
+| `first_seen_at` | timestamptz | Default `now()`. Do not overwrite. |
+| `last_seen_at` | timestamptz | Update on every sighting. |
+| `status` | text | `seen` (default), `accepted`, `declined_by_filter`, `expired`, `unavailable` |
+| `decline_reason` | text | Which acceptance rule failed, for example `payout_below_minimum` |
+| `title` | text | |
+| `client_name` | text | Client or company on the listing |
+| `mission_type` | text | Client or mission type used by the dashboard filter |
+| `address` | text | |
+| `latitude`, `longitude` | numeric(9,6) | |
+| `payout` | numeric(12,2) | USD |
+| `travel_distance` | numeric(12,2) | Miles from home |
+| `travel_time` | numeric(12,2) | Minutes from home |
+| `due_window_start`, `due_window_end`, `deadline` | timestamptz | |
+| `estimated_on_site_minutes` | numeric(12,2) | Minutes |
+| `required_equipment` | jsonb | Array of strings or objects. Default `[]`. |
+| `required_certifications` | jsonb | Array. Part 107, thermal, and similar. Default `[]`. |
+| `deliverables` | jsonb | Array. Default `[]`. |
+| `flight_plan` | jsonb | Array of steps. Default `[]`. See below. |
+| `raw_email_html` | text | Original email HTML |
+| `raw_email_text` | text | Original email text |
+| `raw_detail` | jsonb | Full scraped mission page |
+| `booking_id` | uuid | FK to `bookings.id`, `ON DELETE SET NULL`. Set when accepted. |
+| `admin_notes` | text | Admin only. Default `''`, max 2000. Bot must not overwrite. |
+| `tags` | jsonb | Admin only. Array of strings (`have skills`, `need equipment X`). Bot must not overwrite. |
+| `equipment_search` | text | Generated from equipment and certifications. Do not write it. |
+| `created_at`, `updated_at` | timestamptz | |
 
-## Database Schema
+`flight_plan` steps use these keys:
 
-**Bookings** (customers + missions):
-```javascript
+```json
 {
-  // Customer bookings
-  customerName, email, phone, message
-  serviceType, packageType, eventDate
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed'
-  
-  // Mission bookings (from drone-gigs)
-  missionId, source: 'zeitview', payout
-  travelDistance, autoAccepted: true
+  "name": "Roof overview",
+  "instructions": "Orbit the structure once",
+  "shot_type": "orbit",
+  "altitude": 120,
+  "angle": 45,
+  "count": 1,
+  "required": true
 }
 ```
 
-## Production Deployment
+`shot_type` is `photo`, `video`, `orbit`, `panorama`, or `grid/mapping` when the listing says so. Omit altitude, angle, or count when the listing does not give them. `required` is a boolean.
 
-**Environment Variables:**
-```env
-NEXTAUTH_URL=https://yourdomain.com
-NEXTAUTH_SECRET=production-secret-here
-ADMIN_EMAILS=your-email@domain.com
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/sleepysquid-drones
+Service role has full write access. Authenticated dashboard admins can `SELECT` and `UPDATE` (notes and tags). Anon has no grant and no policy, so the public key cannot read listings or raw email.
+
+## Commands
+
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run check:rls
+node scripts/test-admin-login.js
 ```
 
-**Google OAuth Setup:**
-- Add `https://yourdomain.com/api/auth/callback/google` to authorized redirect URIs
-- Update authorized origins with your domain
-
-## Common Issues
-
-**Admin login fails:**
-- Check `NEXTAUTH_URL` matches your domain exactly
-- Verify your email is in `ADMIN_EMAILS`
-- Ensure Google OAuth is configured correctly
-
-**Database connection:**
-- Verify `MONGODB_URI` is correct
-- Check MongoDB server is running
-- Ensure network access for remote databases
-
-**Mission integration:**
-- Both apps must use same `MONGODB_URI`
-- Check drone-gigs logs for integration errors
-- Verify Zeitview credentials in drone-gigs
-
-## File Structure
+## Layout
 
 ```
-├── components/
-│   ├── home/          # Public website components
-│   ├── admin/         # Admin dashboard components
-│   └── layout/        # Shared components
-├── pages/
-│   ├── index.js       # Homepage
-│   ├── admin/         # Admin pages
-│   └── api/           # API endpoints
-├── models/            # Database models
-├── libs/              # Utilities and configs
-└── scripts/           # Helper scripts
+├── components/     # Public site, dashboard, listings
+├── pages/api/      # Next.js API routes (service role after session checks)
+├── libs/db/        # Supabase query helpers
+├── supabase/migrations/
+└── scripts/check-rls.js
 ```
 
-## Tech Stack
+## Stack
 
-- **Framework:** Next.js 14
-- **Database:** MongoDB with Mongoose
-- **Auth:** NextAuth.js with Google OAuth
-- **Styling:** Tailwind CSS
-- **Security:** Rate limiting, input validation, secure sessions
-
----
-
-**That's it.** Everything you need to run, develop, and deploy your drone services platform.
+- Next.js 14, React 18, Tailwind
+- Supabase Postgres (`@supabase/supabase-js`)
+- NextAuth JWT (Google and credentials)

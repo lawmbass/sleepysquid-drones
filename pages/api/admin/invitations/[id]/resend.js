@@ -1,8 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
 import { adminConfig } from '@/libs/adminConfig';
-import connectMongo from '@/libs/mongoose';
-import Invitation from '@/models/Invitation';
+import { findInvitationById, updateInvitation } from '@/libs/db/invitations';
 import { sendEmail } from '@/libs/mailgun';
 import config from '@/config';
 
@@ -33,13 +32,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
     const { id } = req.query;
 
     // Find the invitation
-    const invitation = await Invitation.findById(id);
+    const invitation = await findInvitationById(id);
     
     if (!invitation) {
       return res.status(404).json({
@@ -57,10 +53,14 @@ export default async function handler(req, res) {
     }
 
     // Update invitation timestamps
-    invitation.invitedAt = new Date();
-    invitation.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-    invitation.invitedBy = session.user.email;
-    await invitation.save();
+    const updatedInvitation = await updateInvitation(invitation.id, {
+      invitedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      invitedBy: session.user.email,
+    });
+    invitation.invitedAt = updatedInvitation.invitedAt;
+    invitation.expiresAt = updatedInvitation.expiresAt;
+    invitation.invitedBy = updatedInvitation.invitedBy;
 
     // Generate the invitation link
     const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;

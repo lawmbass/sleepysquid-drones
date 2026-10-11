@@ -1,10 +1,9 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
 import { adminConfig } from '@/libs/adminConfig';
-import connectMongo from '@/libs/mongoose';
+import { createInvitation, findPendingInvitationByEmail, updateInvitation } from '@/libs/db/invitations';
 import { sendEmail } from '@/libs/mailgun';
 import config from '@/config';
-import Invitation from '@/models/Invitation';
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -32,9 +31,6 @@ export default async function handler(req, res) {
         message: 'Admin access required' 
       });
     }
-
-    // Connect to database
-    await connectMongo();
 
     return handleSendInvitation(req, res, session);
   } catch (error) {
@@ -97,23 +93,21 @@ async function handleSendInvitation(req, res, session) {
     }
 
     // Check if invitation already exists for this email
-    const existingInvitation = await Invitation.findOne({ 
-      email: email.toLowerCase(),
-      status: 'pending'
-    });
+    const existingInvitation = await findPendingInvitationByEmail(email);
     
     if (existingInvitation) {
       // Update existing invitation instead of creating new one
-      existingInvitation.name = name;
-      existingInvitation.company = company;
-      existingInvitation.phone = phone;
-      existingInvitation.role = assignedRole;
-      existingInvitation.hasAccess = hasAccess || false;
-      existingInvitation.invitedBy = session.user.email;
-      existingInvitation.invitedAt = new Date();
-      existingInvitation.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      
-      await existingInvitation.save();
+      const refreshedInvitation = await updateInvitation(existingInvitation.id, {
+        name,
+        company,
+        phone,
+        role: assignedRole,
+        hasAccess: hasAccess || false,
+        invitedBy: session.user.email,
+        invitedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+      existingInvitation.token = refreshedInvitation.token;
       
       // Generate the invitation link
       const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;
@@ -138,7 +132,7 @@ async function handleSendInvitation(req, res, session) {
     const invitationToken = generateInvitationToken();
     
     // Create and save invitation to database
-    const invitation = new Invitation({
+    const invitation = await createInvitation({
       email: email.toLowerCase(),
       name,
       company,
@@ -147,11 +141,9 @@ async function handleSendInvitation(req, res, session) {
       hasAccess: hasAccess || false,
       invitedBy: session.user.email,
       token: invitationToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     });
-
-    await invitation.save();
-    console.log('Invitation saved to database:', invitation._id);
+    console.log('Invitation saved to database:', invitation.id);
 
     // Generate the invitation link
     const baseUrl = process.env.NEXTAUTH_URL || `https://${config.domainName}`;

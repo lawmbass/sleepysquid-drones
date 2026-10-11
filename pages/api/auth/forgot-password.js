@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 import { 
   validateEmail, 
   generatePasswordResetToken,
@@ -47,20 +46,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Find user by email (include password reset fields)
-    const user = await User.findOne({ email: sanitizedEmail })
-      .select('+passwordReset.token +passwordReset.expires +passwordReset.requestedAt');
+    const user = await findUserByEmail(sanitizedEmail, { includeSecrets: true });
 
     // Always return success message to prevent email enumeration
     // But only send email if user exists
     if (user) {
-      // Check if user has a password (OAuth-only users can't reset password)
-      const userWithPassword = await User.findById(user._id).select('+password');
-      
-      if (!userWithPassword.password) {
+      if (!user.password) {
         // OAuth-only user - don't send reset email
         await recordAuthAttempt(clientIP);
         return res.status(200).json({
@@ -82,14 +73,13 @@ export default async function handler(req, res) {
       // Generate password reset token
       const passwordReset = generatePasswordResetToken(1); // 1 hour expiration
 
-      // Update user with password reset token
-      user.passwordReset = {
-        token: passwordReset.token,
-        expires: passwordReset.expires,
-        requestedAt: passwordReset.requestedAt
-      };
-
-      await user.save();
+      await patchUser(user.id, {
+        passwordReset: {
+          token: passwordReset.token,
+          expires: passwordReset.expires,
+          requestedAt: passwordReset.requestedAt
+        }
+      });
 
       // Send password reset email
       try {
