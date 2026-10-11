@@ -1,7 +1,7 @@
-import connectMongo from '@/libs/mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
-import Promo from '@/models/Promo';
+import { deletePromo, findOverlappingPromo, findPromoById, updatePromo } from '@/libs/db/promos';
+import { isUuid } from '@/libs/db/shared';
 
 export default async function handler(req, res) {
   // Check authentication and admin access
@@ -24,7 +24,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Promo ID is required' });
   }
 
-  await connectMongo();
+  if (!isUuid(id)) {
+    return res.status(400).json({ error: 'Promo ID is not valid' });
+  }
 
   switch (req.method) {
     case 'GET':
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
 
 async function handleGetPromo(req, res, id) {
   try {
-    const promo = await Promo.findById(id).populate('createdBy', 'name email');
+    const promo = await findPromoById(id);
     
     if (!promo) {
       return res.status(404).json({ error: 'Promo not found' });
@@ -49,7 +51,7 @@ async function handleGetPromo(req, res, id) {
     return res.status(200).json({
       data: {
         promo: {
-          id: promo._id,
+          id: promo.id,
           name: promo.name,
           description: promo.description,
           discountPercentage: promo.discountPercentage,
@@ -76,7 +78,7 @@ async function handleUpdatePromo(req, res, id) {
   try {
     const { name, description, discountPercentage, startDate, endDate, isActive } = req.body;
 
-    const promo = await Promo.findById(id);
+    const promo = await findPromoById(id);
     if (!promo) {
       return res.status(404).json({ error: 'Promo not found' });
     }
@@ -112,7 +114,7 @@ async function handleUpdatePromo(req, res, id) {
     // If we're updating dates or isActive, check for overlaps
     if ((startDate !== undefined || endDate !== undefined || isActive !== undefined) && isActive !== false) {
       // Get current promo to use existing dates if not being updated
-      const currentPromo = await Promo.findById(id);
+      const currentPromo = promo;
       if (!currentPromo) {
         return res.status(404).json({ error: 'Promo not found' });
       }
@@ -123,16 +125,11 @@ async function handleUpdatePromo(req, res, id) {
       
       if (willBeActive) {
         // Check for overlapping active promos (excluding current promo)
-        const overlappingPromo = await Promo.findOne({
-          _id: { $ne: id },
-          isActive: true,
-          $or: [
-            {
-              startDate: { $lte: effectiveEnd },
-              endDate: { $gte: effectiveStart }
-            }
-          ]
-        });
+        const overlappingPromo = await findOverlappingPromo(
+          new Date(effectiveStart).toISOString(),
+          new Date(effectiveEnd).toISOString(),
+          id
+        );
 
         if (overlappingPromo) {
           return res.status(400).json({
@@ -152,16 +149,16 @@ async function handleUpdatePromo(req, res, id) {
     if (endDate !== undefined) updateFields.endDate = new Date(endDate);
     if (isActive !== undefined) updateFields.isActive = isActive;
 
-    const updatedPromo = await Promo.findByIdAndUpdate(
-      id,
-      updateFields,
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name email');
+    const updatedPromo = await updatePromo(id, {
+      ...updateFields,
+      startDate: updateFields.startDate ? new Date(updateFields.startDate).toISOString() : undefined,
+      endDate: updateFields.endDate ? new Date(updateFields.endDate).toISOString() : undefined,
+    });
 
     return res.status(200).json({
       data: {
         promo: {
-          id: updatedPromo._id,
+          id: updatedPromo.id,
           name: updatedPromo.name,
           description: updatedPromo.description,
           discountPercentage: updatedPromo.discountPercentage,
@@ -187,12 +184,12 @@ async function handleUpdatePromo(req, res, id) {
 
 async function handleDeletePromo(req, res, id) {
   try {
-    const promo = await Promo.findById(id);
+    const promo = await findPromoById(id);
     if (!promo) {
       return res.status(404).json({ error: 'Promo not found' });
     }
 
-    await Promo.findByIdAndDelete(id);
+    await deletePromo(id);
 
     return res.status(200).json({
       message: 'Promo deleted successfully'

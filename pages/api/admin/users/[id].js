@@ -1,6 +1,5 @@
-import connectMongo from "@/libs/mongoose";
-import mongoose from "mongoose";
-import User from "@/models/User";
+import { deleteUser, findUserByEmailExcluding, findUserById, patchUser } from "@/libs/db/users";
+import { deleteOAuthAccountsForUser } from "@/libs/db/accounts";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -66,9 +65,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
-    await connectMongo();
-
     const { id } = req.query;
 
     if (req.method === 'GET') {
@@ -94,7 +90,7 @@ export default async function handler(req, res) {
 
 async function handleGetUser(req, res, id) {
   try {
-    const user = await User.findById(id).lean();
+    const user = await findUserById(id);
     
     if (!user) {
       return res.status(404).json({
@@ -121,7 +117,7 @@ async function handleGetUser(req, res, id) {
 
 async function handleUpdateUser(req, res, id, session) {
   try {
-    const user = await User.findById(id);
+    const user = await findUserById(id);
     
     if (!user) {
       return res.status(404).json({
@@ -156,10 +152,7 @@ async function handleUpdateUser(req, res, id, session) {
       updates.email = updates.email.toLowerCase();
       
       // Check if new email already exists
-      const existingUser = await User.findOne({ 
-        email: updates.email,
-        _id: { $ne: id }
-      });
+      const existingUser = await findUserByEmailExcluding(updates.email, id);
       
       if (existingUser) {
         return res.status(409).json({
@@ -199,26 +192,31 @@ async function handleUpdateUser(req, res, id, session) {
         });
       }
 
-      // Set metadata for role change tracking
-      user._roleChangedBy = session.user.email;
-      user._roleChangeReason = `Role changed from ${user.role} to ${updates.role} via admin panel`;
+      updates.pushRoleHistory = {
+        role: updates.role,
+        changedBy: session.user.email,
+        changedAt: new Date().toISOString(),
+        reason: `Role changed from ${user.role} to ${updates.role} via admin panel`,
+      };
     }
 
-    // Handle access changes with tracking
     if (updates.hasAccess !== undefined && updates.hasAccess !== user.hasAccess) {
-      // Set metadata for access change tracking
-      user._accessChangedBy = session.user.email;
-      user._accessChangeReason = `Access ${updates.hasAccess ? 'granted' : 'revoked'} via admin panel`;
+      updates.pushAccessHistory = {
+        hasAccess: updates.hasAccess,
+        changedBy: session.user.email,
+        changedAt: new Date().toISOString(),
+        reason: `Access ${updates.hasAccess ? 'granted' : 'revoked'} via admin panel`,
+        action: updates.hasAccess ? 'activated' : 'deactivated',
+      };
     }
 
-    // Update user
-    Object.assign(user, updates);
-    await user.save();
+    const savedUser = await patchUser(id, updates);
+    Object.assign(user, savedUser);
 
     return res.status(200).json({
       success: true,
       data: {
-        user: user.toObject()
+        user
       },
       message: 'User updated successfully'
     });
@@ -234,7 +232,7 @@ async function handleUpdateUser(req, res, id, session) {
 
 async function handleDeleteUser(req, res, id, session) {
   try {
-    const user = await User.findById(id);
+    const user = await findUserById(id);
     
     if (!user) {
       return res.status(404).json({
@@ -260,31 +258,13 @@ async function handleDeleteUser(req, res, id, session) {
       });
     }
 
-    // Clean up related NextAuth collections
     try {
-      // Delete from accounts collection (OAuth provider accounts)
-      await mongoose.connection.collection('accounts').deleteMany({ 
-        userId: user._id 
-      });
-      
-      // Delete from sessions collection
-      await mongoose.connection.collection('sessions').deleteMany({ 
-        userId: user._id 
-      });
-      
-      // Delete from verification_tokens collection if any
-      await mongoose.connection.collection('verification_tokens').deleteMany({ 
-        identifier: user.email 
-      });
-
-      console.log(`Cleaned up NextAuth collections for user ${user.email}`);
+      await deleteOAuthAccountsForUser(user.id);
     } catch (cleanupError) {
-      console.error('Error cleaning up NextAuth collections:', cleanupError);
-      // Continue with user deletion even if cleanup fails
+      console.error('Error cleaning up OAuth accounts:', cleanupError);
     }
 
-    // Delete the user
-    await User.findByIdAndDelete(id);
+    await deleteUser(id);
 
     return res.status(200).json({
       success: true,

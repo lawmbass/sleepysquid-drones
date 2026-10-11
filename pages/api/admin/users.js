@@ -1,6 +1,5 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
-import Invitation from "@/models/Invitation";
+import { countUsers, createUser, findUserByEmail, listUsers, userAccessAndRoleStats } from "@/libs/db/users";
+import { countPendingInvitations, listPendingInvitations, pendingInvitationRoleCounts } from "@/libs/db/invitations";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -66,9 +65,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Connect to MongoDB
-    await connectMongo();
-
     if (req.method === 'GET') {
       return handleGetUsers(req, res);
     } else if (req.method === 'POST') {
@@ -100,46 +96,20 @@ async function handleGetUsers(req, res) {
       sort = '-createdAt'
     } = req.query;
 
-    // Build filter object
-    const filter = {};
-    
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { company: { $regex: search, $options: 'i' } }
-      ];
-    }
-    
-    if (hasAccess !== undefined) {
-      filter.hasAccess = hasAccess === 'true';
-    }
-
     // Calculate pagination
     const limitNum = parseInt(limit);
     const pageNum = parseInt(page);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get users with pagination
-    const users = await User.find(filter)
-      .sort(sort)
-      .limit(limitNum)
-      .skip(skip)
-      .lean();
+    const { users } = await listUsers({
+      search,
+      hasAccess,
+      sort,
+      limit: 1000,
+      offset: 0,
+    });
 
-    // Get pending invitations only
-    const invitationFilter = { status: 'pending' };
-    if (search) {
-      invitationFilter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { company: { $regex: search, $options: 'i' } }
-      ];
-    }
-    
-    const invitations = await Invitation.find(invitationFilter)
-      .sort(sort)
-      .lean();
+    const invitations = await listPendingInvitations({ search, sort });
 
     // Mark invitations as such and add status
     const formattedInvitations = invitations.map(invitation => ({
@@ -178,67 +148,17 @@ async function handleGetUsers(req, res) {
     const paginatedItems = allItems.slice(skip, skip + limitNum);
 
     // Get total count for pagination (users + invitations)
-    const totalCount = await User.countDocuments(filter);
-    const totalInvitations = await Invitation.countDocuments(invitationFilter);
+    const totalCount = await countUsers({ search, hasAccess });
+    const totalInvitations = await countPendingInvitations({ search });
     const combinedCount = totalCount + totalInvitations;
     const totalPages = Math.ceil(combinedCount / limitNum);
 
-    // Get user statistics
-    const stats = await User.aggregate([
-      {
-        $group: {
-          _id: '$hasAccess',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Get role distribution from database
-    const roleDistribution = await User.aggregate([
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const roleStats = {
-      admin: 0,
-      client: 0,
-      pilot: 0,
-      user: 0
-    };
-
-    roleDistribution.forEach(({ _id, count }) => {
-              if (_id && Object.prototype.hasOwnProperty.call(roleStats, _id)) {
-        roleStats[_id] = count;
-      }
-    });
-
-    // Get invitation statistics
-    const invitationStats = await Invitation.aggregate([
-      { $match: { status: 'pending' } },
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    const invitationRoleStats = {
-      admin: 0,
-      client: 0,
-      pilot: 0,
-      user: 0
-    };
-
-    invitationStats.forEach(({ _id, count }) => {
-              if (_id && Object.prototype.hasOwnProperty.call(invitationRoleStats, _id)) {
-        invitationRoleStats[_id] = count;
-      }
-    });
+    const { access, roles: roleStats } = await userAccessAndRoleStats();
+    const invitationRoleStats = await pendingInvitationRoleCounts();
+    const stats = [
+      { _id: true, count: access.withAccess },
+      { _id: false, count: access.withoutAccess },
+    ];
 
     const formattedStats = {
       total: combinedCount,
@@ -324,7 +244,7 @@ async function handleCreateUser(req, res) {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await findUserByEmail(email.toLowerCase());
     if (existingUser) {
       return res.status(409).json({
         error: 'User already exists',
@@ -332,26 +252,25 @@ async function handleCreateUser(req, res) {
       });
     }
 
-    // Create new user
-    const user = new User({
+    const user = await createUser({
       name,
       email: email.toLowerCase(),
       company,
       phone,
       hasAccess: hasAccess || false,
-      role: assignedRole
+      role: assignedRole,
+      roleHistory: [{
+        role: assignedRole,
+        changedBy: session.user.email,
+        changedAt: new Date().toISOString(),
+        reason: `Initial role assignment: ${assignedRole}`,
+      }],
     });
-
-    // Set metadata for role tracking
-    user._roleChangedBy = session.user.email;
-    user._roleChangeReason = `Initial role assignment: ${assignedRole}`;
-
-    await user.save();
 
     return res.status(201).json({
       success: true,
       data: {
-        user: user.toObject()
+        user
       },
       message: 'User created successfully'
     });

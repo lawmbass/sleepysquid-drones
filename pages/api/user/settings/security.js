@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 import { 
   hashPassword, 
   comparePassword, 
@@ -25,11 +24,7 @@ export default async function handler(req, res) {
     // Get client IP for rate limiting
     // const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database (include password field)
-    const user = await User.findOne({ email: session.user.email }).select('+password');
+    const user = await findUserByEmail(session.user.email, { includeSecrets: true });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -112,12 +107,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Update user security settings
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    const updatedUser = await patchUser(user.id, updateData);
 
     // Return success response (don't include sensitive data)
     const wasInitialPasswordSetup = passwordChanged && !user.password;

@@ -1,5 +1,5 @@
-import connectMongo from "@/libs/mongoose";
-import Booking from "@/models/Booking";
+import { deleteBooking, findCustomerBooking, listAllBookings, listBookings, updateBooking } from "@/libs/db/bookings";
+import { isUuid } from "@/libs/db/shared";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 
@@ -21,10 +21,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      // Connect to MongoDB
-      await connectMongo();
-
-      // Extract query parameters
       const { 
         status, 
         limit = 20, 
@@ -32,52 +28,30 @@ export default async function handler(req, res) {
         sort = '-createdAt'
       } = req.query;
 
-      // Build filter object for user's bookings only
-      const filter = { 
-        email: session.user.email.toLowerCase(),
-        $or: [
-          { source: 'customer' }, // Explicit customer bookings
-          { source: { $exists: false } }, // Legacy bookings without source field
-          { source: null } // Bookings with null source
-        ]
+      const filters = {
+        emailExact: session.user.email.toLowerCase(),
+        customerOnly: true,
+        status: status || undefined,
       };
-      
-      if (status) filter.status = status;
 
-      // Calculate pagination
       const limitNum = parseInt(limit);
       const pageNum = parseInt(page);
       const skip = (pageNum - 1) * limitNum;
 
-      // Get user's bookings with pagination
-      const bookings = await Booking.find(filter)
-        .sort(sort)
-        .limit(limitNum)
-        .skip(skip)
-        .lean();
-
-      // Get total count for pagination
-      const totalCount = await Booking.countDocuments(filter);
+      const { bookings, count: totalCount } = await listBookings(filters, {
+        sort,
+        limit: limitNum,
+        offset: skip,
+      });
       const totalPages = Math.ceil(totalCount / limitNum);
 
-      // Get user's booking statistics
-      const stats = await Booking.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            totalValue: { $sum: { $ifNull: ['$finalPrice', '$estimatedPrice'] } }
-          }
+      const allForStats = await listAllBookings(filters);
+      const processedStats = allForStats.reduce((acc, booking) => {
+        if (!acc[booking.status]) {
+          acc[booking.status] = { count: 0, totalValue: 0 };
         }
-      ]);
-
-      // Process stats
-      const processedStats = stats.reduce((acc, stat) => {
-        acc[stat._id] = {
-          count: stat.count,
-          totalValue: stat.totalValue || 0
-        };
+        acc[booking.status].count += 1;
+        acc[booking.status].totalValue += Number(booking.finalPrice ?? booking.estimatedPrice ?? 0) || 0;
         return acc;
       }, {});
 
@@ -107,9 +81,6 @@ export default async function handler(req, res) {
     }
   } else if (req.method === 'PUT') {
     try {
-      // Connect to MongoDB
-      await connectMongo();
-
       const { id, ...updateData } = req.body;
       
       if (!id) {
@@ -119,16 +90,14 @@ export default async function handler(req, res) {
         });
       }
 
-      // Find the job and verify ownership
-      const job = await Booking.findOne({
-        _id: id,
-        email: session.user.email.toLowerCase(),
-        $or: [
-          { source: 'customer' }, // Explicit customer bookings
-          { source: { $exists: false } }, // Legacy bookings without source field
-          { source: null } // Bookings with null source
-        ]
-      });
+      if (!isUuid(id)) {
+        return res.status(400).json({
+          error: 'Invalid job ID',
+          message: 'Job ID is not valid'
+        });
+      }
+
+      const job = await findCustomerBooking(id, session.user.email);
 
       if (!job) {
         return res.status(404).json({
@@ -190,12 +159,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Update the job
-      const updatedJob = await Booking.findByIdAndUpdate(
-        id,
-        { ...sanitizedUpdates, updatedAt: new Date() },
-        { new: true, runValidators: true }
-      );
+      const updatedJob = await updateBooking(id, sanitizedUpdates);
 
       res.status(200).json({
         success: true,
@@ -221,9 +185,6 @@ export default async function handler(req, res) {
     }
   } else if (req.method === 'DELETE') {
     try {
-      // Connect to MongoDB
-      await connectMongo();
-
       const { id } = req.body;
       
       if (!id) {
@@ -233,16 +194,14 @@ export default async function handler(req, res) {
         });
       }
 
-      // Find the job and verify ownership
-      const job = await Booking.findOne({
-        _id: id,
-        email: session.user.email.toLowerCase(),
-        $or: [
-          { source: 'customer' }, // Explicit customer bookings
-          { source: { $exists: false } }, // Legacy bookings without source field
-          { source: null } // Bookings with null source
-        ]
-      });
+      if (!isUuid(id)) {
+        return res.status(400).json({
+          error: 'Invalid job ID',
+          message: 'Job ID is not valid'
+        });
+      }
+
+      const job = await findCustomerBooking(id, session.user.email);
 
       if (!job) {
         return res.status(404).json({
@@ -259,8 +218,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Delete the job
-      await Booking.findByIdAndDelete(id);
+      await deleteBooking(id);
 
       res.status(200).json({
         success: true,

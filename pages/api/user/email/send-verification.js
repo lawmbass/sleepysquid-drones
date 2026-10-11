@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 import { sendEmail } from "@/libs/mailgun";
 import config from "@/config";
 import crypto from "crypto";
@@ -19,11 +18,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database
-    const user = await User.findOne({ email: session.user.email });
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -40,10 +35,12 @@ export default async function handler(req, res) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Update user with verification token
-    await User.findByIdAndUpdate(user._id, {
-      'emailVerification.token': verificationToken,
-      'emailVerification.expires': verificationExpires
+    await patchUser(user.id, {
+      emailVerification: {
+        verified: false,
+        token: verificationToken,
+        expires: verificationExpires
+      }
     });
 
     // Create verification link with proper validation

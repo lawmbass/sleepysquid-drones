@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByPasswordResetToken, patchUser } from "@/libs/db/users";
 import { 
   hashPassword, 
   validatePassword, 
@@ -50,13 +49,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Find user by password reset token (include password reset fields)
-    const user = await User.findOne({ 
-      'passwordReset.token': sanitizedToken 
-    }).select('+passwordReset.token +passwordReset.expires +password');
+    const user = await findUserByPasswordResetToken(sanitizedToken);
 
     if (!user || !user.passwordReset || !user.passwordReset.token) {
       await recordAuthAttempt(clientIP);
@@ -76,11 +69,10 @@ export default async function handler(req, res) {
     // Hash the new password
     const hashedPassword = await hashPassword(sanitizedPassword);
 
-    // Update user password and clear reset token
-    user.password = hashedPassword;
-    user.passwordReset = undefined;
-
-    await user.save();
+    await patchUser(user.id, {
+      password: hashedPassword,
+      passwordReset: null,
+    });
 
     // Record successful attempt
     await recordAuthAttempt(clientIP);
@@ -94,7 +86,7 @@ export default async function handler(req, res) {
     console.error('Password reset error:', error);
     
     // Handle specific MongoDB errors
-    if (error.name === 'MongoServerError' || error.name === 'MongoError') {
+    if (error.name === 'DbError') {
       return res.status(500).json({ 
         message: 'Database error occurred. Please try again in a few moments.' 
       });

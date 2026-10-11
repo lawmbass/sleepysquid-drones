@@ -502,8 +502,8 @@ The SleepySquid Drones Team
  */
 export const shouldSendEmailNotification = async (email, notificationType = 'emailNotifications') => {
   try {
-    const User = (await import("@/models/User")).default;
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const { findUserByEmail } = await import("@/libs/db/users");
+    const user = await findUserByEmail(email.toLowerCase());
     
     if (!user) {
       // For non-registered users, always send booking confirmations

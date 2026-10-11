@@ -1,5 +1,4 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmailExcluding, findUserByPendingEmailToken, patchUser } from "@/libs/db/users";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,15 +12,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Verification token is required' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Find user with this pending email verification token
-    // Explicitly select pendingEmailChange field since it's marked with select: false
-    const user = await User.findOne({
-      'pendingEmailChange.token': token,
-      'pendingEmailChange.expires': { $gt: new Date() }
-    }).select('+pendingEmailChange.email +pendingEmailChange.token +pendingEmailChange.expires');
+    const user = await findUserByPendingEmailToken(token);
 
     if (!user) {
       return res.status(400).json({ 
@@ -46,11 +37,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if the new email is already in use by another user (race condition prevention)
-    const existingUser = await User.findOne({ 
-      email: newEmailAddress,
-      _id: { $ne: user._id } // Exclude current user
-    });
+    const existingUser = await findUserByEmailExcluding(newEmailAddress, user.id);
 
     if (existingUser) {
       return res.status(400).json({ 
@@ -58,27 +45,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // Use atomic update to prevent race conditions
-    // IMPORTANT: Preserve the user's hasAccess status during email change
-    
-    const updateResult = await User.findOneAndUpdate(
-      {
-        _id: user._id,
-        'pendingEmailChange.token': token,
-        'pendingEmailChange.expires': { $gt: new Date() },
-        'pendingEmailChange.email': newEmailAddress // Ensure pendingEmail hasn't changed
-      },
-      {
-        email: newEmailAddress,
-        'emailVerification.verified': true,
-        // Preserve existing hasAccess status - don't let it reset to false
-        hasAccess: user.hasAccess,
-        $unset: {
-          pendingEmailChange: 1
-        }
-      },
-      { new: true }
-    );
+    const stillPending = await findUserByPendingEmailToken(token);
+    if (!stillPending || stillPending.pendingEmailChange?.email !== newEmailAddress) {
+      return res.status(400).json({
+        message: 'Email change verification failed. The token may have been used or expired.'
+      });
+    }
+
+    const updateResult = await patchUser(user.id, {
+      email: newEmailAddress,
+      emailVerification: { verified: true, token: null, expires: null },
+      hasAccess: user.hasAccess,
+      pendingEmailChange: null,
+    });
     
     if (!updateResult) {
       return res.status(400).json({ 

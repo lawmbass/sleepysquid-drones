@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 
 export default async function handler(req, res) {
   if (req.method !== 'PUT') {
@@ -15,11 +14,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database
-    const user = await User.findOne({ email: session.user.email });
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -35,28 +30,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // Update user profile (excluding email)
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      {
-        $set: {
-          name: name || user.name,
-          // Add additional fields to the User model as needed
-          ...(phone && { phone }),
-          ...(company && { company }),
-          ...(bio && { bio }),
-          ...(location && { location }),
-          ...(website && { website })
-        }
-      },
-      { new: true, runValidators: true }
-    );
+    const updatedUser = await patchUser(user.id, {
+      name: name || user.name,
+      ...(phone && { phone }),
+      ...(company && { company }),
+      ...(bio && { bio }),
+      ...(location && { location }),
+      ...(website && { website })
+    });
 
     // Return success response
     res.status(200).json({
       message: 'Profile updated successfully',
       user: {
-        id: updatedUser._id,
+        id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
         phone: updatedUser.phone,

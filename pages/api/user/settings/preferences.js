@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
 
 export default async function handler(req, res) {
   if (req.method !== 'PUT') {
@@ -15,11 +14,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database
-    const user = await User.findOne({ email: session.user.email });
+    const user = await findUserByEmail(session.user.email);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -44,22 +39,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Invalid currency' });
     }
 
-    // Update user preferences
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      {
-        $set: {
-          preferences: {
-            theme: theme || user.preferences?.theme || 'light',
-            language: language || user.preferences?.language || 'en',
-            timezone: timezone || user.preferences?.timezone || 'UTC',
-            dateFormat: dateFormat || user.preferences?.dateFormat || 'MM/DD/YYYY',
-            currency: currency || user.preferences?.currency || 'USD'
-          }
-        }
-      },
-      { new: true, runValidators: true }
-    );
+    const updatedUser = await patchUser(user.id, {
+      preferences: {
+        theme: theme || user.preferences?.theme || 'light',
+        language: language || user.preferences?.language || 'en',
+        timezone: timezone || user.preferences?.timezone || 'UTC',
+        dateFormat: dateFormat || user.preferences?.dateFormat || 'MM/DD/YYYY',
+        currency: currency || user.preferences?.currency || 'USD'
+      }
+    });
 
     // Return success response
     res.status(200).json({

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { findUserByEmail } from "@/libs/db/users";
+import { findOAuthAccountByUserId } from "@/libs/db/accounts";
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,22 +15,12 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Get user from database with all settings
-    // Explicitly select email verification fields and password since they're marked with select: false
-    const user = await User.findOne({ email: session.user.email })
-      .select('+emailVerification +pendingEmailChange +password');
+    const user = await findUserByEmail(session.user.email, { includeSecrets: true });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if user has OAuth accounts (is an OAuth-only user)
-    const mongoose = (await import('mongoose')).default;
-    const oauthAccounts = await mongoose.connection.collection('accounts').findOne({
-      userId: user._id
-    });
+    const oauthAccounts = await findOAuthAccountByUserId(user.id);
 
     // Return user settings data
     res.status(200).json({

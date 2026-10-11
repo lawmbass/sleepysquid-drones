@@ -154,49 +154,8 @@ export function sanitizeInput(input) {
  */
 export async function checkRateLimit(identifier, maxAttempts = 5, windowMinutes = 15) {
   try {
-    const connectMongo = (await import('./mongoose')).default;
-    const mongoose = (await import('mongoose')).default;
-    
-    await connectMongo();
-    
-    // Use a dedicated collection for rate limiting
-    const rateLimitCollection = mongoose.connection.collection('rateLimit');
-    
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - (windowMinutes * 60 * 1000));
-    
-    // Clean up old attempts outside the time window
-    await rateLimitCollection.deleteMany({
-      identifier,
-      timestamp: { $lt: windowStart }
-    });
-    
-    // Count recent attempts within the time window
-    const recentAttempts = await rateLimitCollection.countDocuments({
-      identifier,
-      timestamp: { $gte: windowStart }
-    });
-    
-    const isLimited = recentAttempts >= maxAttempts;
-    const remainingAttempts = Math.max(0, maxAttempts - recentAttempts);
-    
-    // Get the earliest attempt to calculate reset time
-    let resetTime = null;
-    if (recentAttempts > 0) {
-      const earliestAttempt = await rateLimitCollection.findOne(
-        { identifier, timestamp: { $gte: windowStart } },
-        { sort: { timestamp: 1 } }
-      );
-      if (earliestAttempt) {
-        resetTime = new Date(earliestAttempt.timestamp.getTime() + (windowMinutes * 60 * 1000));
-      }
-    }
-    
-    return {
-      isLimited,
-      remainingAttempts,
-      resetTime
-    };
+    const { checkAuthRateLimit } = await import('./db/rateLimit');
+    return await checkAuthRateLimit(identifier, maxAttempts, windowMinutes);
   } catch (error) {
     console.error('Rate limit check failed:', error);
     // Fail open - allow the attempt if rate limiting fails
@@ -214,25 +173,8 @@ export async function checkRateLimit(identifier, maxAttempts = 5, windowMinutes 
  */
 export async function recordAuthAttempt(identifier) {
   try {
-    const connectMongo = (await import('./mongoose')).default;
-    const mongoose = (await import('mongoose')).default;
-    
-    await connectMongo();
-    
-    // Use a dedicated collection for rate limiting
-    const rateLimitCollection = mongoose.connection.collection('rateLimit');
-    
-    await rateLimitCollection.insertOne({
-      identifier,
-      timestamp: new Date()
-    });
-    
-    // Optional: Clean up very old records to prevent collection growth
-    // Keep records for a maximum of 24 hours
-    const cleanupTime = new Date(Date.now() - (24 * 60 * 60 * 1000));
-    await rateLimitCollection.deleteMany({
-      timestamp: { $lt: cleanupTime }
-    });
+    const { recordAuthRateLimit } = await import('./db/rateLimit');
+    await recordAuthRateLimit(identifier);
   } catch (error) {
     console.error('Failed to record auth attempt:', error);
     // Non-critical error - continue execution

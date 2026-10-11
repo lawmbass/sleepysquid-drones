@@ -1,25 +1,22 @@
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import config from "@/config";
-import connectMongo from "./mongo";
 import bcrypt from "bcryptjs";
+import config from "@/config";
+import { findUserByEmail } from "@/libs/db/users";
+import { findRecentAcceptedInvitation } from "@/libs/db/invitations";
+import { upsertGoogleUser } from "@/libs/auth/oauthUser";
 
 export const authOptions = {
-  // Set any random key in .env.local
   secret: process.env.NEXTAUTH_SECRET,
-  
-  // Set the base URL for NextAuth
   url: process.env.NEXTAUTH_URL || `https://${config.domainName}`,
-  
+
   providers: [
-    // Credentials provider for username/password authentication
     CredentialsProvider({
       id: "credentials",
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -27,40 +24,25 @@ export const authOptions = {
         }
 
         try {
-          const connectMongo = (await import('./mongoose')).default;
-          const User = (await import('../models/User')).default;
-          
-          await connectMongo();
-          
-          // Find user by email (include password field)
-          const user = await User.findOne({ 
-            email: credentials.email.toLowerCase() 
-          }).select('+password');
-          
-          if (!user) {
+          const user = await findUserByEmail(credentials.email.toLowerCase(), {
+            includeSecrets: true,
+          });
+
+          if (!user?.password) {
             return null;
           }
 
-          // Check if user has a password (might be OAuth-only user)
-          if (!user.password) {
-            return null;
-          }
-
-          // Verify password
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-          
           if (!isPasswordValid) {
             return null;
           }
 
-          // Check if email is verified
           if (!user.emailVerification?.verified) {
             throw new Error("EmailNotVerified");
           }
 
-          // Return user object (exclude password)
           return {
-            id: user._id.toString(),
+            id: user.id,
             email: user.email,
             name: user.name,
             image: user.image,
@@ -68,24 +50,23 @@ export const authOptions = {
             hasAccess: user.hasAccess,
           };
         } catch (error) {
-          console.error('Credentials authorization error:', error);
+          console.error("Credentials authorization error:", error);
           if (error.message === "EmailNotVerified") {
             throw error;
           }
           return null;
         }
-      }
+      },
     }),
     GoogleProvider({
-      // Follow the "Login with Google" tutorial to get your credentials
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
       authorization: {
         params: {
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
-        }
+          response_type: "code",
+        },
       },
       async profile(profile) {
         return {
@@ -98,84 +79,31 @@ export const authOptions = {
       },
     }),
   ],
-  // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
-  // Requires a MongoDB database. Set MONOGODB_URI env variable.
-  // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
-  // New users will be saved in Database (MongoDB Atlas). Each user (model) has some fields like name, email, image, etc..
-  // Requires a MongoDB database. Set MONOGODB_URI env variable.
-  // Learn more about the model type: https://next-auth.js.org/v3/adapters/models
-  ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
-    async signIn({ user, account, profile, credentials }) {
-      // Basic validation for OAuth providers
-      if (account?.provider === 'google' && profile?.email) {
+    async signIn({ account, profile }) {
+      if (account?.provider === "google" && profile?.email) {
         try {
-          const connectMongo = (await import('./mongoose')).default;
-          const User = (await import('../models/User')).default;
-          
-          await connectMongo();
-          
-          // Check if user exists - but don't modify user object or manually link accounts
-          // Let NextAuth's adapter handle account creation/linking naturally
-          const existingUser = await User.findOne({ 
-            email: profile.email.toLowerCase() 
+          await upsertGoogleUser({
+            email: profile.email,
+            name: profile.given_name || profile.name,
+            image: profile.picture,
+            providerAccountId: account.providerAccountId || profile.sub,
           });
-          
-          if (existingUser) {
-            console.log(`Found existing user for ${profile.email} - letting NextAuth adapter handle linking`);
-            
-            // If the existing user doesn't have email verified but Google account is verified, mark as verified
-            // This is the only database operation we should do here - updating user verification status
-            if (!existingUser.emailVerification?.verified) {
-              await User.updateOne(
-                { _id: existingUser._id },
-                { 
-                  $set: { 
-                    'emailVerification.verified': true,
-                    hasAccess: true // Grant access since Google email is verified
-                  },
-                  $push: {
-                    accessHistory: {
-                      hasAccess: true,
-                      changedBy: 'system',
-                      changedAt: new Date(),
-                      reason: 'Google account verification',
-                      action: 'activated'
-                    }
-                  }
-                }
-              );
-              console.log(`✅ Marked email as verified for user ${profile.email} via Google verification`);
-            }
-          } else {
-            console.log(`New OAuth user ${profile.email} - will be created by NextAuth adapter`);
-          }
-          
           return true;
         } catch (error) {
-          console.error('Error in signIn callback:', error);
-          // Allow sign-in to proceed even if verification update fails
-          return true;
+          console.error("Error in signIn callback:", error);
+          return false;
         }
       }
-      
-      // Handle credentials sign-in
-      if (account?.provider === 'credentials') {
-        // Additional validation for credentials users can be added here
-        return true;
-      }
-      
-      // Allow sign-in to proceed normally
+
       return true;
     },
     async redirect({ url, baseUrl }) {
-      // Handle relative URLs
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
-      
-      // Handle same-origin URLs
+
       try {
         const urlObj = new URL(url);
         const baseUrlObj = new URL(baseUrl);
@@ -183,207 +111,85 @@ export const authOptions = {
           return url;
         }
       } catch (error) {
-        console.error('Invalid URL in redirect:', url);
+        console.error("Invalid URL in redirect:", url);
       }
-      
-      // Default fallback - return to home page
+
       return baseUrl;
     },
     session: async ({ session, token }) => {
       if (session?.user) {
-        session.user.id = token.sub;
         session.user.email = token.email || session.user.email;
-        
-        // Add admin status to session (server-side check)
+
         try {
-          const { adminConfig } = await import('./adminConfig');
-          const { userRoles } = await import('./userRoles');
-          
+          const { adminConfig } = await import("./adminConfig");
+          const { userRoles } = await import("./userRoles");
+
           session.user.isAdmin = adminConfig.isAdmin(session.user.email);
-          
-          // For new users who might have just accepted an invitation,
-          // ensure we get the most up-to-date role from the database
-          const connectMongo = (await import('./mongoose')).default;
-          const User = (await import('../models/User')).default;
-          
-          await connectMongo();
-          
-          // Check if user has an accepted invitation that was just processed
-          const Invitation = (await import('../models/Invitation')).default;
-          const recentInvitation = await Invitation.findOne({
-            email: session.user.email.toLowerCase(),
-            status: 'accepted',
-            acceptedAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Within last 5 minutes
-          });
-          
-          // Get user data from database to check access status
-          const user = await User.findOne({ email: session.user.email.toLowerCase() });
-          
-                    // Get user role and access data
+
+          const recentInvitation = await findRecentAcceptedInvitation(
+            session.user.email,
+            new Date(Date.now() - 5 * 60 * 1000).toISOString()
+          );
+
+          const user = await findUserByEmail(session.user.email);
           if (user) {
-            session.user.role = user.role || 'client'; 
+            session.user.id = user.id;
+            session.user.role = user.role || "client";
             session.user.hasAccess = user.hasAccess || false;
+            session.user.name = user.name || session.user.name;
+            session.user.image = user.image || session.user.image;
           } else {
-            // No user found, set defaults
-            session.user.role = 'client';
+            session.user.id = token.userId || token.sub;
+            session.user.role = "client";
             session.user.hasAccess = false;
           }
-          
+
           if (recentInvitation) {
-            // For users with recently accepted invitations, get role directly from database
-            console.log(`Recent invitation found for ${session.user.email}, fetching role directly from database`);
-            // Role and access were already set above, just clear cache
             userRoles.clearCache();
-          } else {
-            // Use cached role lookup for other users (if not already set above)
-            if (!session.user.role) {
-              session.user.role = await userRoles.getUserRole(session.user.email);
-            }
-            if (session.user.hasAccess === undefined) {
-              const currentUser = await User.findOne({ email: session.user.email.toLowerCase() });
-              session.user.hasAccess = currentUser?.hasAccess || false;
-            }
           }
-          
-          // Add permissions based on role
+
           session.user.permissions = await userRoles.getUserPermissions(session.user.email);
-          
-          // Add debug logging for user access (production safe)
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`User ${session.user.email}: Admin=${session.user.isAdmin}, Role=${session.user.role}, HasAccess=${session.user.hasAccess}`);
+
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              `User ${session.user.email}: Admin=${session.user.isAdmin}, Role=${session.user.role}, HasAccess=${session.user.hasAccess}`
+            );
           }
         } catch (error) {
-          console.error('Error checking user status:', error);
-          session.user.isAdmin = false; // Fail safe
-          session.user.role = 'client'; // Default role
+          console.error("Error checking user status:", error);
+          session.user.isAdmin = false;
+          session.user.role = "client";
           session.user.permissions = [];
         }
       }
       return session;
     },
     jwt: async ({ token, account, profile, user }) => {
-      if (account && profile) {
+      if (profile?.email) {
         token.email = profile.email;
       }
-      if (user) {
+      if (user?.email) {
         token.email = user.email;
+      }
+      if (user?.id) {
+        token.userId = user.id;
+      }
+      if (account?.providerAccountId) {
+        token.providerAccountId = account.providerAccountId;
       }
       return token;
     },
   },
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   theme: {
     brandColor: config.colors.main,
-    // Remove the logo reference since it doesn't exist and causes 404 errors
-    // logo: `https://${config.domainName}/logoAndName.png`,
   },
   pages: {
-    signIn: '/login', // Updated to use the new generic login page
-    error: '/api/auth/error',
+    signIn: "/login",
+    error: "/api/auth/error",
   },
-  debug: process.env.NODE_ENV === 'development',
-  
-  // Add custom error handling
-  events: {
-    async signIn(message) {
-      console.log('Sign in event:', message);
-    },
-    async signOut(message) {
-      console.log('Sign out event:', message);
-    },
-    async createUser(message) {
-      console.log('User created:', message.user.email);
-      
-      // Process invitation and email verification immediately after user creation
-      try {
-        const connectMongo = (await import('./mongoose')).default;
-        const User = (await import('../models/User')).default;
-        const Invitation = (await import('../models/Invitation')).default;
-        
-        await connectMongo();
-        
-        // Find the user that was just created by NextAuth
-        const newUser = await User.findOne({ email: message.user.email.toLowerCase() });
-        
-        if (newUser) {
-          // Mark OAuth users as email verified (Google, etc. have already verified the email)
-          // NextAuth only creates users through OAuth providers in this setup
-          newUser.emailVerification = {
-            verified: true
-          };
-          console.log(`Marked OAuth user ${message.user.email} as email verified`);
-          
-          // Check if there's a pending invitation for this email
-          const invitation = await Invitation.findOne({ 
-            email: message.user.email.toLowerCase(),
-            status: 'pending'
-          });
-          
-          if (invitation) {
-            console.log(`Processing invitation for new user ${message.user.email}`);
-            
-            // Update user with invitation data
-            newUser.role = invitation.role;
-            newUser.hasAccess = invitation.hasAccess;
-            newUser.company = invitation.company || newUser.company;
-            newUser.phone = invitation.phone || newUser.phone;
-            newUser.name = invitation.name || newUser.name;
-            
-            // Add to role history
-            if (!newUser.roleHistory) {
-              newUser.roleHistory = [];
-            }
-            newUser.roleHistory.push({
-              role: invitation.role,
-              changedAt: new Date(),
-              changedBy: invitation.invitedBy,
-              reason: 'Initial role assignment from invitation'
-            });
-            
-            // Mark invitation as accepted
-            invitation.status = 'accepted';
-            invitation.acceptedAt = new Date();
-            await invitation.save();
-            
-            console.log(`Invitation accepted for new user ${message.user.email}`);
-          } else {
-            // No invitation found - this is a new OAuth user signing up directly
-            // Grant access by default for OAuth users since they've authenticated with a trusted provider
-            console.log(`No invitation found for new OAuth user ${message.user.email} - granting default access`);
-            newUser.hasAccess = true;
-            newUser.role = newUser.role || 'client'; // Ensure role is set
-            
-            // Add to access history for tracking
-            if (!newUser.accessHistory) {
-              newUser.accessHistory = [];
-            }
-            newUser.accessHistory.push({
-              hasAccess: true,
-              changedAt: new Date(),
-              changedBy: 'system',
-              reason: 'Auto-granted access for OAuth user',
-              action: 'created'
-            });
-          }
-          
-          await newUser.save();
-          console.log(`Updated new user ${message.user.email} - emailVerification.verified: true, role: ${newUser.role}`);
-        }
-      } catch (error) {
-        console.error('Error processing new user in createUser event:', error);
-      }
-    },
-    async linkAccount(message) {
-      console.log('Account linked:', message);
-    },
-    async session(message) {
-      // Only log in development to avoid spam
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Session active:', message.session.user.email);
-      }
-    },
-  },
+  debug: process.env.NODE_ENV === "development",
 };

@@ -1,5 +1,5 @@
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
+import { createUser, findUserByEmail } from "@/libs/db/users";
+import { isUniqueViolation } from "@/libs/db/shared";
 import { 
   hashPassword, 
   validatePassword, 
@@ -62,11 +62,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Connect to database
-    await connectMongo();
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: sanitizedEmail });
+    const existingUser = await findUserByEmail(sanitizedEmail);
     if (existingUser) {
       await recordAuthAttempt(clientIP);
       return res.status(400).json({ 
@@ -80,8 +76,7 @@ export default async function handler(req, res) {
     // Generate email verification token
     const emailVerification = generateEmailVerificationToken();
 
-    // Create new user
-    const newUser = new User({
+    await createUser({
       name: sanitizedName || null,
       email: sanitizedEmail,
       password: hashedPassword,
@@ -91,17 +86,15 @@ export default async function handler(req, res) {
         expires: emailVerification.expires
       },
       role: 'client',
-      hasAccess: false, // Require email verification before access
+      hasAccess: false,
       accessHistory: [{
         hasAccess: false,
         changedBy: 'system',
-        changedAt: new Date(),
+        changedAt: new Date().toISOString(),
         reason: 'Account created - pending email verification',
         action: 'created'
       }]
     });
-
-    await newUser.save();
 
     // Send verification email
     try {
@@ -132,7 +125,7 @@ export default async function handler(req, res) {
     console.error('Signup error:', error);
     
     // Handle specific MongoDB errors
-    if (error.code === 11000) {
+    if (isUniqueViolation(error)) {
       return res.status(400).json({ 
         message: 'An account with this email already exists' 
       });

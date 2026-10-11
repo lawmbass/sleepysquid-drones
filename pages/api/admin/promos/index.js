@@ -1,7 +1,7 @@
-import connectMongo from '@/libs/mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
-import Promo from '@/models/Promo';
+import { createPromo, findOverlappingPromo, listPromos } from '@/libs/db/promos';
+import { findUserByEmail } from '@/libs/db/users';
 
 export default async function handler(req, res) {
   // Check authentication and admin access
@@ -18,8 +18,6 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Forbidden - Admin access required' });
   }
 
-  await connectMongo();
-
   switch (req.method) {
     case 'GET':
       return handleGetPromos(req, res);
@@ -34,44 +32,12 @@ async function handleGetPromos(req, res) {
   try {
     const { page = 1, limit = 20, status } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    let query = {};
-    if (status === 'active') {
-      const now = new Date();
-      query = {
-        isActive: true,
-        startDate: { $lte: now },
-        endDate: { $gte: now }
-      };
-    } else if (status === 'inactive') {
-      query = { isActive: false };
-    } else if (status === 'expired') {
-      const now = new Date();
-      query = {
-        isActive: true,
-        endDate: { $lt: now }
-      };
-    } else if (status === 'upcoming') {
-      const now = new Date();
-      query = {
-        isActive: true,
-        startDate: { $gt: now }
-      };
-    }
-
-    const promos = await Promo.find(query)
-      .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Promo.countDocuments(query);
-
-    // Map _id to id for frontend consistency
-    const mappedPromos = promos.map(promo => ({
-      ...promo.toObject(),
-      id: promo._id.toString()
-    }));
+    const { promos, count: total } = await listPromos({
+      status,
+      limit: parseInt(limit),
+      offset: skip,
+    });
+    const mappedPromos = promos;
 
     return res.status(200).json({
       data: {
@@ -123,15 +89,7 @@ async function handleCreatePromo(req, res, user) {
     }
 
     // Check for overlapping active promos
-    const overlappingPromo = await Promo.findOne({
-      isActive: true,
-      $or: [
-        {
-          startDate: { $lte: end },
-          endDate: { $gte: start }
-        }
-      ]
-    });
+    const overlappingPromo = await findOverlappingPromo(start.toISOString(), end.toISOString());
 
     if (overlappingPromo) {
       return res.status(400).json({
@@ -140,32 +98,21 @@ async function handleCreatePromo(req, res, user) {
       });
     }
 
-    // Handle different user ID formats from NextAuth session
-    let createdBy;
-    if (user._id) {
-      createdBy = user._id;
-    } else if (user.id) {
-      createdBy = user.id;
-    } else {
-      // If no ID available, use email as fallback (not ideal but prevents errors)
-      createdBy = user.email;
-    }
-
-    const promo = new Promo({
+    const dbUser = user.email ? await findUserByEmail(user.email) : null;
+    const promo = await createPromo({
       name,
       description,
       discountPercentage,
-      startDate: start,
-      endDate: end,
-      createdBy
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      createdBy: dbUser?.id || null,
+      createdByEmail: user.email,
     });
-
-    await promo.save();
 
     return res.status(201).json({
       data: {
         promo: {
-          id: promo._id,
+          id: promo.id,
           name: promo.name,
           description: promo.description,
           discountPercentage: promo.discountPercentage,

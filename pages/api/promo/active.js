@@ -1,40 +1,37 @@
-import connectMongo from '@/libs/mongoose';
-import Promo from '@/models/Promo';
+import { getActivePromo } from "@/libs/db/promos";
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    await connectMongo();
-    
-    const activePromo = await Promo.getActivePromo();
-    
+    const activePromo = await getActivePromo();
+
     if (!activePromo) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         hasActivePromo: false,
-        promo: null 
+        promo: null,
       });
     }
 
     return res.status(200).json({
       hasActivePromo: true,
       promo: {
-        id: activePromo._id,
+        id: activePromo.id,
         name: activePromo.name,
         description: activePromo.description,
         discountPercentage: activePromo.discountPercentage,
         startDate: activePromo.startDate,
         endDate: activePromo.endDate,
-        isCurrentlyActive: activePromo.isCurrentlyActive
-      }
+        isCurrentlyActive: activePromo.isCurrentlyActive,
+      },
     });
   } catch (error) {
-    console.error('Error fetching active promo:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: 'Failed to fetch active promo'
+    console.error("Error fetching active promo:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch active promo",
     });
   }
 }
