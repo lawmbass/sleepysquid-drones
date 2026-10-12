@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { blurProps } from './marketingImageBlur';
 
 const HeroSection = () => {
   return (
@@ -21,12 +22,14 @@ const HeroSection = () => {
         
         {/* If using an image instead of video: */}
         <Image 
-          src="https://images.unsplash.com/photo-1506947411487-a56738267384?q=80&w=2670&auto=format&fit=crop"
+          src="/images/hero-drone.jpg"
           alt="Drone flying over landscape"
           fill
           sizes="100vw"
+          quality={75}
           className="object-cover"
           priority
+          {...blurProps('/images/hero-drone.jpg')}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60 dark:from-gray-900/70 dark:via-gray-900/50 dark:to-gray-900/70"></div>
       </div>
