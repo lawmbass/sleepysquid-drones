@@ -62,8 +62,10 @@ Users live in `public.users`. Google accounts are linked in `public.oauth_accoun
 
 ### Admin rules
 
-- API admin routes return 401 with no session, then 403 unless `adminConfig.isAdmin` is true: the email ends with `@sleepysquid.com` **and** is listed in `ADMIN_EMAILS`.
+- An email is an admin when it is listed in `ADMIN_EMAILS` or it ends with `@sleepysquid.com` (case-insensitive). Account creation and every sign-in store `role = admin` for those addresses.
+- The dashboard uses that same check, plus a stored `admin` role. API admin routes return 401 with no session, then 403 unless `adminConfig.isAdmin` is true.
 - Middleware lets any `@sleepysquid.com` address into dashboard pages even when `hasAccess` is false. Other users with `hasAccess` false go to `/access-denied`.
+- A non-admin who opens an admin section (`bookings`, `listings`, `promos`, `analytics`, `users`) is sent back to `/dashboard`.
 - Protected pages: `/dashboard`, `/admin`, `/profile`, `/settings`. `/` matches exactly, so it no longer treats every path as public. `/api/*` is never redirected to login; handlers keep returning 401.
 
 `public.is_dashboard_admin()` is true when a Supabase JWT email ends with `@sleepysquid.com` or is in `admin_allowlist` (starts empty). NextAuth does not issue Supabase JWTs, so the website uses the service role after its own session check. The RLS policies are what a direct PostgREST client would hit.
@@ -97,6 +99,7 @@ Authorized redirect URIs:
 
 - Bookings, mission analytics, promos, users
 - **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
+- Revenue and mission analytics add booking totals to accepted `mission_listings` that have no `booking_id`, so a gig is not counted twice when the booking row exists
 
 ## drone-gigs
 

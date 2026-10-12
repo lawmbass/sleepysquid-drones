@@ -36,15 +36,17 @@ export const adminConfig = {
     return getAllowedEmails();
   },
   
-  // Check if an email is authorized for admin access
+  // Check if an email is authorized for admin access.
+  // True when the address is listed in ADMIN_EMAILS, or it ends in @sleepysquid.com.
   isAdmin: (email) => {
     if (!email) return false;
-    
-    // Only allow sleepysquid emails to be admins
-    const isSleepySquidEmail = email.toLowerCase().endsWith('@sleepysquid.com');
-    if (!isSleepySquidEmail) return false;
-    
-    return getAllowedEmails().includes(email);
+
+    const normalized = String(email).trim().toLowerCase();
+    if (!normalized) return false;
+
+    if (normalized.endsWith("@sleepysquid.com")) return true;
+
+    return getAllowedEmails().some((entry) => entry.toLowerCase() === normalized);
   },
   
   // Get all allowed admin emails

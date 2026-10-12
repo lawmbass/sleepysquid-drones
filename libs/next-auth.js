@@ -5,6 +5,7 @@ import config from "@/config";
 import { findUserByEmail } from "@/libs/db/users";
 import { findRecentAcceptedInvitation } from "@/libs/db/invitations";
 import { upsertGoogleUser } from "@/libs/auth/oauthUser";
+import { ensureAdminRole } from "@/libs/auth/adminRole";
 
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -41,13 +42,15 @@ export const authOptions = {
             throw new Error("EmailNotVerified");
           }
 
+          const stored = await ensureAdminRole(user);
+
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-            hasAccess: user.hasAccess,
+            id: stored.id,
+            email: stored.email,
+            name: stored.name,
+            image: stored.image,
+            role: stored.role,
+            hasAccess: stored.hasAccess,
           };
         } catch (error) {
           console.error("Credentials authorization error:", error);
@@ -131,16 +134,23 @@ export const authOptions = {
             new Date(Date.now() - 5 * 60 * 1000).toISOString()
           );
 
-          const user = await findUserByEmail(session.user.email);
+          let user = await findUserByEmail(session.user.email);
+          if (user && session.user.isAdmin && user.role !== "admin") {
+            try {
+              user = await ensureAdminRole(user);
+            } catch (persistError) {
+              console.error("Failed to persist admin role:", persistError);
+            }
+          }
           if (user) {
             session.user.id = user.id;
-            session.user.role = user.role || "client";
+            session.user.role = session.user.isAdmin ? "admin" : (user.role || "client");
             session.user.hasAccess = user.hasAccess || false;
             session.user.name = user.name || session.user.name;
             session.user.image = user.image || session.user.image;
           } else {
             session.user.id = token.userId || token.sub;
-            session.user.role = "client";
+            session.user.role = session.user.isAdmin ? "admin" : "client";
             session.user.hasAccess = false;
           }
 

@@ -10,6 +10,7 @@ import {
   sanitizeInput
 } from "@/libs/auth-utils";
 import { sendEmailVerification } from "@/libs/emailService";
+import { ADMIN_ROLE_REASON, roleForNewUser } from "@/libs/auth/adminRole";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
     // Generate email verification token
     const emailVerification = generateEmailVerificationToken();
 
+    const role = roleForNewUser(sanitizedEmail);
     await createUser({
       name: sanitizedName || null,
       email: sanitizedEmail,
@@ -85,7 +87,15 @@ export default async function handler(req, res) {
         token: emailVerification.token,
         expires: emailVerification.expires
       },
-      role: 'client',
+      role,
+      roleHistory: role === "admin"
+        ? [{
+          role: "admin",
+          changedAt: new Date().toISOString(),
+          changedBy: "system",
+          reason: ADMIN_ROLE_REASON,
+        }]
+        : [],
       hasAccess: false,
       accessHistory: [{
         hasAccess: false,
