@@ -1,5 +1,6 @@
 import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from "@/libs/db/shared";
 import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
+import { scheduledFlightLongPast } from "@/libs/jobs";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -118,7 +119,9 @@ async function attachBookingStatus(listings) {
 
 function withWorkComplete(listing, { keepDetail = false } = {}) {
   const bookingStatus = listing.bookingStatus ?? null;
-  const workComplete = listingWorkComplete(listing) || bookingWorkComplete(bookingStatus);
+  const workComplete = listingWorkComplete(listing)
+    || scheduledFlightLongPast(listing)
+    || bookingWorkComplete(bookingStatus);
   if (keepDetail) return { ...listing, bookingStatus, workComplete };
   const { rawDetail, ...rest } = listing;
   return { ...rest, bookingStatus, workComplete };

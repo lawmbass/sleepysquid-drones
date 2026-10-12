@@ -170,13 +170,13 @@ Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and th
 | `admin_notes` | text | Admin only. Default `''`, max 2000. Bot must not overwrite. |
 | `tags` | jsonb | Admin only. Array of strings (`have skills`, `need equipment X`). Bot must not overwrite. |
 | `cancel_status` | text | Admin only. Null, `cancel_requested`, `reschedule_requested`, or `cancelled`. Bot must not send it. |
-
-Cancel gig is hidden when the linked booking `status` is `completed`, when `cancel_status` is `cancelled`, or when a status-like field is `completed`, `flown`, `uploaded`, or `completed-mission` (listing `status`, a tag, or `raw_detail` keys such as `status`, `mission_status`, or `backfill`). Page HTML is not scanned. The completed-mission backfill stored those rows as `status = accepted` with no booking, and that value is not a completion mark. Listing `status` is still only `seen`, `accepted`, `declined_by_filter`, `expired`, or `unavailable`. Undo stays available for a cancel mark until the gig is completed or flown. An unlinked listing shown as a completed job is not treated as completed just because the job list labels it that way.
 | `cancel_reason` | text | Admin only. Reason in the pilot email. Bot must not send it. |
 | `cancel_requested_at` | timestamptz | Admin only. When the cancel or reschedule draft was marked requested. |
 | `cancelled_at` | timestamptz | Admin only. When Zeitview confirmed the cancel. |
 | `equipment_search` | text | Generated from equipment and certifications. Do not write it. |
 | `created_at`, `updated_at` | timestamptz | |
+
+Cancel gig is hidden when the linked booking `status` is `completed`, when `cancel_status` is `cancelled`, when a real flight time from `listingSchedule()` (`raw_detail`, page HTML, or page text, not `last_seen`, the due window, or the deadline) is more than 12 hours in the past, or when a status-like field is `completed`, `flown`, or `uploaded`. The completed-mission backfill (`backfill-completed.js`) stored rows as `status = accepted` with no booking. That status alone is not a mark. A `raw_detail` `source`, `origin`, `url`, or similar field whose value contains `completed` (for example `completed-missions` or `backfill-completed.js`) is. Page HTML is not scanned for that word. Undo stays available until the gig is finished. An unlinked listing is not finished just because the job list labels it completed.
 
 `flight_plan` steps use these keys:
 

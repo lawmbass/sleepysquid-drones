@@ -5,7 +5,9 @@ import { adminConfig } from "@/libs/adminConfig";
 import { findListingById, updateListingCancel } from "@/libs/db/listings";
 import { findBookingById, updateBooking } from "@/libs/db/bookings";
 import { isUuid } from "@/libs/db/shared";
-import { bookingWorkComplete, cancelGigVisibility, listingWorkComplete } from "@/libs/gigComplete";
+import { cancelGigVisibility } from "@/libs/cancelGig";
+import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
+import { scheduledFlightLongPast } from "@/libs/jobs";
 
 const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
@@ -139,7 +141,9 @@ export default async function handler(req, res) {
       }
     }
     listing.bookingStatus = bookingStatus;
-    listing.workComplete = listingWorkComplete(listing) || bookingWorkComplete(bookingStatus);
+    listing.workComplete = listingWorkComplete(listing)
+      || scheduledFlightLongPast(listing)
+      || bookingWorkComplete(bookingStatus);
 
     return res.status(200).json({
       success: true,

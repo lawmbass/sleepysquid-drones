@@ -369,6 +369,18 @@ export function listingSchedule(listing) {
   return emptySchedule(seen, seen ? "last_seen" : null);
 }
 
+const REAL_FLIGHT_SOURCES = new Set(["raw_detail", "page_html", "page_text"]);
+const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+
+export function scheduledFlightLongPast(listing, now = new Date()) {
+  const schedule = listingSchedule(listing);
+  if (!REAL_FLIGHT_SOURCES.has(schedule?.scheduleSource) || !schedule.date) return false;
+  const flightMs = new Date(schedule.date).getTime();
+  const nowMs = new Date(now).getTime();
+  if (Number.isNaN(flightMs) || Number.isNaN(nowMs)) return false;
+  return nowMs - flightMs > TWELVE_HOURS_MS;
+}
+
 function clockIsSet(value) {
   if (!value) return false;
   const date = new Date(value);
@@ -414,7 +426,7 @@ export function listingToJob(listing) {
     scheduleSource: schedule.scheduleSource,
     listingId: listing.id,
     listingStatus: listing.status || null,
-    workComplete: listingWorkComplete(listing),
+    workComplete: listingWorkComplete(listing) || scheduledFlightLongPast(listing),
     cancelStatus: listing.cancelStatus || null,
     cancelReason: listing.cancelReason || "",
     location: text(listing.address) || "Address not listed",
@@ -473,7 +485,7 @@ export function mergeJobs(bookings, listings, linkedListings = []) {
       job.cancelStatus = flag.cancelStatus || null;
       job.cancelReason = flag.cancelReason || "";
     }
-    job.workComplete = listingWorkComplete(flag) || booking.status === "completed";
+    job.workComplete = listingWorkComplete(flag) || scheduledFlightLongPast(flag) || booking.status === "completed";
     jobs.push(job);
   }
 

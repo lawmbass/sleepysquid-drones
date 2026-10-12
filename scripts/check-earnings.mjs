@@ -361,4 +361,58 @@ assert.equal(cancelGigVisibility({ listing: backfill }).showCancel, true);
 assert.equal(listingToJob(flownListing).workComplete, true);
 assert.equal(mergeJobs([], [backfill, flownListing], []).length, 2);
 
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { source: "completed-missions" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { origin: "backfill-completed.js" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { url: "https://pilot.dronebase.com/pilots/completed/DBM1" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { source: "zeitview", url: "https://pilot.dronebase.com/missions/DBM1" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { status: "incomplete" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { html: "<a href=\"https://pilot.dronebase.com/completed/DBM1\">page</a>" } },
+}).showCancel, true);
+
+const pastPage = {
+  ...openGig,
+  rawDetail: {
+    html: "<div class=\"mission-date\">05/27/2025</div><div class=\"mission-time\">02:30PM</div>",
+  },
+};
+const pastSchedule = listingSchedule(pastPage);
+assert.equal(pastSchedule.scheduleSource, "page_html");
+assert.equal(pastSchedule.date, "2025-05-27T18:30:00.000Z");
+const flightMs = new Date(pastSchedule.date).getTime();
+const twelveHours = 12 * 60 * 60 * 1000;
+assert.equal(cancelGigVisibility({ listing: pastPage, now: new Date(flightMs + twelveHours) }).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: pastPage, now: new Date(flightMs + twelveHours + 1) }).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...pastPage, cancelStatus: "cancel_requested" },
+  now: new Date(flightMs + twelveHours + 1),
+}).showUndo, false);
+assert.equal(cancelGigVisibility({
+  listing: pastPage,
+  now: new Date("2025-05-26T18:30:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, lastSeenAt: "2020-01-01T00:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, deadline: "2020-01-01T15:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, dueWindowStart: "2020-01-01T15:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(listingToJob(pastPage).workComplete, true);
+
 console.log("Admin role and unlinked earnings checks passed.");

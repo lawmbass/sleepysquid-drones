@@ -2,12 +2,14 @@
  * Whether a Zeitview gig is finished, so Cancel gig stays hidden.
  *
  * The bot's listing status check is still seen, accepted, declined_by_filter,
- * expired, or unavailable. The completed-mission backfill wrote status
- * "accepted" and no booking row, so that status alone is not a completion
- * mark. Completion is a linked booking status of completed, or a status-like
- * field (listing status, raw_detail status / mission_status / backfill, or a
- * tag) whose value is completed, flown, uploaded, or completed-mission.
- * Page HTML and email text are ignored so instructions do not count.
+ * expired, or unavailable. The completed-mission backfill
+ * (lawmbass/drone-gigs backfill-completed.js) wrote status "accepted" and no
+ * booking row. That status alone is not a mark. A raw_detail source, origin,
+ * url, or similar field whose value contains "completed" is, as is a
+ * status-like value of completed, flown, or uploaded. Page HTML and email
+ * text are ignored. A real flight time more than 12 hours past is handled
+ * beside listingSchedule(), and last_seen, the due window, and the deadline
+ * do not count as that flight time.
  */
 
 const COMPLETION_VALUES = new Set([
@@ -35,6 +37,26 @@ const STATUS_KEYS = new Set([
   "state",
   "gigstatus",
   "listingstatus",
+]);
+
+const ORIGIN_KEYS = new Set([
+  "source",
+  "origin",
+  "backfill",
+  "backfillsource",
+  "backfillorigin",
+  "importedfrom",
+  "importsource",
+  "from",
+  "url",
+  "pageurl",
+  "href",
+  "link",
+  "path",
+  "script",
+  "file",
+  "filename",
+  "importer",
 ]);
 
 const SKIP_KEYS = new Set([
@@ -66,6 +88,13 @@ function isCompletionValue(value) {
   return normalized.length > 0 && COMPLETION_VALUES.has(normalized);
 }
 
+function mentionsCompleted(value) {
+  if (typeof value !== "string") return false;
+  const text = value.trim();
+  if (!text || text.length > 500) return false;
+  return /(^|[^a-z])completed([^a-z]|$)/i.test(text);
+}
+
 function keyName(key) {
   return String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -90,7 +119,8 @@ function detailHasCompletion(detail, depth) {
   for (const [key, value] of Object.entries(detail)) {
     const name = keyName(key);
     if (SKIP_KEYS.has(name)) continue;
-    if (STATUS_KEYS.has(name) && isCompletionValue(value)) return true;
+    if ((STATUS_KEYS.has(name) || ORIGIN_KEYS.has(name)) && (isCompletionValue(value) || mentionsCompleted(value))) return true;
+    if (name.includes("completed") && (value === true || mentionsCompleted(value))) return true;
     if (value && typeof value === "object" && detailHasCompletion(value, depth + 1)) return true;
   }
   return false;
@@ -98,8 +128,9 @@ function detailHasCompletion(detail, depth) {
 
 export function listingWorkComplete(listing) {
   if (!listing) return false;
-  if (isCompletionValue(listing.status)) return true;
-  if (Array.isArray(listing.tags) && listing.tags.some((tag) => isCompletionValue(tag))) return true;
+  if (isCompletionValue(listing.status) || mentionsCompleted(listing.status)) return true;
+  if (mentionsCompleted(listing.source) && token(listing.source) !== "zeitview") return true;
+  if (Array.isArray(listing.tags) && listing.tags.some((tag) => isCompletionValue(tag) || mentionsCompleted(tag))) return true;
   return detailHasCompletion(listing.rawDetail ?? listing.raw_detail, 0);
 }
 
