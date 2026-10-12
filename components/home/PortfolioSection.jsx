@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
+import { blurProps } from './marketingImageBlur';
 
 const portfolioItems = [
   {
@@ -531,12 +532,12 @@ const PortfolioSection = () => {
                               src={currentImageSrc}
                               alt={selectedItem.gallery[galleryIndex].caption}
                               fill
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                              sizes="(max-width: 928px) calc(100vw - 2rem), 896px"
                               className={`object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                               onLoad={() => setImageLoaded(currentImageSrc)}
                               onError={() => setImageError(currentImageSrc)}
                               quality={85}
-                              priority
+                              {...blurProps(currentImageSrc)}
                             />
                             {/* Overlayed caption */}
                             {loaded && (
@@ -572,7 +573,9 @@ const PortfolioSection = () => {
                               width={64}
                               height={48}
                               sizes="64px"
+                              quality={60}
                               className={`w-16 h-12 object-cover rounded transition-all duration-200 ${galleryIndex === idx ? 'ring-2 ring-blue-500 scale-105' : 'hover:scale-105'}`}
+                              {...blurProps(img.src)}
                             />
                           </button>
                         ))}
@@ -614,12 +617,12 @@ const PortfolioSection = () => {
                             src={currentImageSrc}
                             alt={selectedItem.title}
                             fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                            sizes="(max-width: 928px) calc(100vw - 2rem), 896px"
                             className={`object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                             onLoad={() => setImageLoaded(currentImageSrc)}
                             onError={() => setImageError(currentImageSrc)}
                             quality={85}
-                            priority
+                            {...blurProps(currentImageSrc)}
                           />
                         </>
                       );
@@ -690,7 +693,7 @@ const PortfolioItem = ({ item, variants, onClick }) => {
           src={item.image} 
           alt={item.title} 
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1024px) calc(50vw - 2rem), 360px"
           className={`object-cover transition-all duration-500 group-hover:scale-110 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
@@ -698,6 +701,7 @@ const PortfolioItem = ({ item, variants, onClick }) => {
           onError={() => setImageError(true)}
           quality={75}
           loading="lazy"
+          {...blurProps(item.image)}
         />
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">

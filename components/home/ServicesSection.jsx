@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCamera, FiMap, FiHome, FiActivity, FiSearch } from 'react-icons/fi';
 import Image from 'next/image';
+import { blurProps } from './marketingImageBlur';
 
 const services = [
   {
@@ -11,7 +12,7 @@ const services = [
     serviceId: 'aerial-media',
     description: 'High-quality photos and videos from unique aerial perspectives for real estate, events, and marketing.',
     icon: <FiCamera className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1534996858221-380b92700493?q=80&w=2671&auto=format&fit=crop'
+    image: '/images/service-aerial-photography.jpg'
   },
   {
     id: 2,
@@ -19,7 +20,7 @@ const services = [
     serviceId: 'mapping-surveying',
     description: 'Precise aerial mapping and 3D modeling for construction, agriculture, and land development.',
     icon: <FiMap className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?q=80&w=2574&auto=format&fit=crop'
+    image: '/images/service-mapping.jpg'
   },
   {
     id: 3,
@@ -27,7 +28,7 @@ const services = [
     serviceId: 'real-estate',
     description: 'Comprehensive aerial property tours showcasing homes and commercial properties from every angle.',
     icon: <FiHome className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2670&auto=format&fit=crop'
+    image: '/images/service-real-estate.jpg'
   },
   {
     id: 4,
@@ -35,7 +36,7 @@ const services = [
     serviceId: 'inspection',
     description: 'Safe and efficient inspections of roofs, towers, power lines, and hard-to-reach infrastructure.',
     icon: <FiSearch className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1591588582259-e675bd2e6088?q=80&w=2670&auto=format&fit=crop'
+    image: '/images/service-inspection.jpg'
   },
   {
     id: 5,
@@ -43,7 +44,7 @@ const services = [
     serviceId: 'event-coverage',
     description: 'Dynamic aerial documentation of weddings, sports events, festivals, and special occasions.',
     icon: <FiActivity className="text-4xl text-blue-500" />,
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2670&auto=format&fit=crop'
+    image: '/images/service-events.jpg'
   }
 ];
 
@@ -116,8 +117,11 @@ const ServiceCard = ({ service, variants, onServiceSelect }) => {
           src={service.image} 
           alt={service.title} 
           fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          sizes="(max-width: 768px) calc(100vw - 2rem), (max-width: 1024px) calc(50vw - 2rem), 480px"
+          quality={75}
           className="object-cover transition-transform duration-500 hover:scale-110"
+          loading="lazy"
+          {...blurProps(service.image)}
         />
       </div>
       <div className="p-6">
