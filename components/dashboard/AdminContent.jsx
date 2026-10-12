@@ -19,6 +19,7 @@ export default function AdminContent({ user, onUpdate }) {
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({});
   const [missionStats, setMissionStats] = useState(null);
+  const [recentJobs, setRecentJobs] = useState([]);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({
     status: '',
@@ -66,6 +67,7 @@ export default function AdminContent({ user, onUpdate }) {
       setBookings(data.bookings || []);
       setStats(data.stats || {});
       setMissionStats(data.missionStats || null);
+      setRecentJobs(data.recentJobs || []);
       setPagination(data.pagination || {});
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -159,8 +161,8 @@ export default function AdminContent({ user, onUpdate }) {
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white">Recent Bookings</h2>
               </div>
               <BookingsList 
-                bookings={bookings.slice(0, 5)} 
-                pagination={pagination}
+                bookings={recentJobs.length ? recentJobs : bookings.slice(0, 5)} 
+                pagination={{ totalPages: 1 }}
                 onUpdateBooking={updateBooking}
                 onDeleteBooking={onDeleteBooking}
                 loading={loading}

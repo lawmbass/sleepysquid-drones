@@ -1,6 +1,6 @@
-import { displayValue, listAllBookings, listBookings } from "@/libs/db/bookings";
-import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
-import { selectUnlinkedEarnings } from "@/libs/earnings";
+import { listBookings } from "@/libs/db/bookings";
+import { loadJobs } from "@/libs/db/jobs";
+import { summarizeJobs } from "@/libs/jobs";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -101,56 +101,13 @@ export default async function handler(req, res) {
     });
     const totalPages = Math.ceil(totalCount / limitNum);
 
-    const allBookings = await listAllBookings({});
-    const unlinkedMissions = selectUnlinkedEarnings(await listUnlinkedAcceptedListings());
-    const stats = {};
-    const processedSourceStats = {};
-    const missions = [];
+    const overview = summarizeJobs(await loadJobs());
 
-    for (const booking of allBookings) {
-      const value = displayValue(booking);
-      if (!stats[booking.status]) stats[booking.status] = { count: 0, totalValue: 0 };
-      stats[booking.status].count += 1;
-      stats[booking.status].totalValue += value;
-
-      const sourceKey = booking.source || "customer";
-      if (!processedSourceStats[sourceKey]) processedSourceStats[sourceKey] = { count: 0, totalValue: 0 };
-      processedSourceStats[sourceKey].count += 1;
-      processedSourceStats[sourceKey].totalValue += value;
-
-      if (booking.source && booking.source !== "customer") missions.push(booking);
-    }
-
-    const unlinkedPayout = unlinkedMissions.reduce((sum, mission) => sum + (mission.payout || 0), 0);
-    stats.unlinkedAccepted = { count: 0, totalValue: unlinkedPayout };
-    for (const mission of unlinkedMissions) {
-      missions.push(mission);
-      const sourceKey = mission.source || "zeitview";
-      if (!processedSourceStats[sourceKey]) processedSourceStats[sourceKey] = { count: 0, totalValue: 0 };
-      processedSourceStats[sourceKey].totalValue += mission.payout || 0;
-    }
-
-    const payouts = missions.map((booking) => booking.payout).filter((value) => value != null);
-    const distances = missions.map((booking) => booking.travelDistance).filter((value) => value != null);
-    const times = missions.map((booking) => booking.travelTime).filter((value) => value != null);
-    const average = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-
-    const processedMissionStats = {
-      totalMissions: missions.length,
-      totalPayout: payouts.reduce((sum, value) => sum + value, 0),
-      avgPayout: average(payouts),
-      avgTravelDistance: average(distances),
-      avgTravelTime: average(times),
-    };
-
-    // Calculate customer bookings count
-    const customerBookingsCount = processedSourceStats.customer?.count || 0;
-
-    // Return bookings with metadata
     res.status(200).json({
       success: true,
       data: {
         bookings,
+        recentJobs: overview.recentJobs,
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -159,11 +116,18 @@ export default async function handler(req, res) {
           hasPrevPage: pageNum > 1
         },
         stats: {
-          ...stats,
-          customerBookings: customerBookingsCount
+          ...overview.stats,
+          customerBookings: overview.customerBookings,
+          totalRevenue: overview.totalRevenue,
+          averageJobValue: overview.averageJobValue,
+          upcomingJobs: overview.upcomingCount,
+          conversionRate: overview.conversionRate,
         },
-        missionStats: processedMissionStats,
-        sourceStats: processedSourceStats,
+        missionStats: overview.missionStats,
+        sourceStats: overview.sourceStats,
+        topServices: overview.topServices,
+        revenueByMonth: overview.revenueByMonth,
+        upcomingJobs: overview.upcomingJobs,
         filters: {
           status,
           service,

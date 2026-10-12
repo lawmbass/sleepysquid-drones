@@ -1,6 +1,5 @@
-import { listAllBookings } from "@/libs/db/bookings";
-import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
-import { selectUnlinkedEarnings } from "@/libs/earnings";
+import { loadJobs } from "@/libs/db/jobs";
+import { filterJobs, summarizeAnalytics } from "@/libs/jobs";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -98,185 +97,25 @@ export default async function handler(req, res) {
       filters.endDate = endDateTime.toISOString();
     }
 
-    const bookingMissions = await listAllBookings({
-      missionsOnly: true,
+    const jobs = filterJobs(await loadJobs(), {
       source: filters.source,
       status: filters.status,
       dateFrom: filters.startDate,
       dateTo: filters.endDate,
     });
-    const unlinkedMissions = selectUnlinkedEarnings(await listUnlinkedAcceptedListings(), {
-      source: filters.source,
-      status: filters.status,
-      dateFrom: filters.startDate,
-      dateTo: filters.endDate,
-    });
-    const missions = [...bookingMissions, ...unlinkedMissions];
+    const report = summarizeAnalytics(jobs);
 
-    const statusCounts = {};
-    let totalPayout = 0;
-    let payoutCount = 0;
-    let travelDistanceSum = 0;
-    let travelDistanceCount = 0;
-    let travelTimeSum = 0;
-    let travelTimeCount = 0;
-    const processedSourceBreakdown = {};
-    const timeMap = new Map();
-    const buckets = new Map([
-      [0, { _id: 0, count: 0, totalPayout: 0 }],
-      [10, { _id: 10, count: 0, totalPayout: 0 }],
-      [25, { _id: 25, count: 0, totalPayout: 0 }],
-      [50, { _id: 50, count: 0, totalPayout: 0 }],
-      ["100+", { _id: "100+", count: 0, totalPayout: 0 }],
-    ]);
-    const efficiency = {
-      totalMissions: missions.length,
-      completedMissions: 0,
-      cancelledMissions: 0,
-      inProgressMissions: 0,
-      totalRevenue: 0,
-      totalTravelDistance: 0,
-      totalTravelTime: 0,
-      minPayout: null,
-      maxPayout: null,
-      minTravelDistance: null,
-      maxTravelDistance: null,
-    };
-
-    for (const mission of missions) {
-      statusCounts[mission.status] = (statusCounts[mission.status] || 0) + 1;
-      if (mission.payout != null) {
-        totalPayout += mission.payout;
-        payoutCount += 1;
-        efficiency.totalRevenue += mission.payout;
-        efficiency.minPayout = efficiency.minPayout == null ? mission.payout : Math.min(efficiency.minPayout, mission.payout);
-        efficiency.maxPayout = efficiency.maxPayout == null ? mission.payout : Math.max(efficiency.maxPayout, mission.payout);
-      }
-      if (mission.travelDistance != null) {
-        travelDistanceSum += mission.travelDistance;
-        travelDistanceCount += 1;
-        efficiency.totalTravelDistance += mission.travelDistance;
-        efficiency.minTravelDistance = efficiency.minTravelDistance == null ? mission.travelDistance : Math.min(efficiency.minTravelDistance, mission.travelDistance);
-        efficiency.maxTravelDistance = efficiency.maxTravelDistance == null ? mission.travelDistance : Math.max(efficiency.maxTravelDistance, mission.travelDistance);
-        const boundary = mission.travelDistance < 10 ? 0 : mission.travelDistance < 25 ? 10 : mission.travelDistance < 50 ? 25 : mission.travelDistance < 100 ? 50 : "100+";
-        const bucket = buckets.get(boundary);
-        bucket.count += 1;
-        bucket.totalPayout += mission.payout || 0;
-      }
-      if (mission.travelTime != null) {
-        travelTimeSum += mission.travelTime;
-        travelTimeCount += 1;
-        efficiency.totalTravelTime += mission.travelTime;
-      }
-      if (mission.status === "completed") efficiency.completedMissions += 1;
-      if (mission.status === "cancelled") efficiency.cancelledMissions += 1;
-      if (mission.status === "in-progress") efficiency.inProgressMissions += 1;
-
-      if (!processedSourceBreakdown[mission.source]) {
-        processedSourceBreakdown[mission.source] = {
-          count: 0,
-          totalPayout: 0,
-          payoutCount: 0,
-          distanceSum: 0,
-          distanceCount: 0,
-          timeSum: 0,
-          timeCount: 0,
-          statusCounts: {},
-        };
-      }
-      const sourceRow = processedSourceBreakdown[mission.source];
-      sourceRow.count += 1;
-      sourceRow.statusCounts[mission.status] = (sourceRow.statusCounts[mission.status] || 0) + 1;
-      if (mission.payout != null) {
-        sourceRow.totalPayout += mission.payout;
-        sourceRow.payoutCount += 1;
-      }
-      if (mission.travelDistance != null) {
-        sourceRow.distanceSum += mission.travelDistance;
-        sourceRow.distanceCount += 1;
-      }
-      if (mission.travelTime != null) {
-        sourceRow.timeSum += mission.travelTime;
-        sourceRow.timeCount += 1;
-      }
-
-      if (mission.acceptedAt) {
-        const accepted = new Date(mission.acceptedAt);
-        const key = `${accepted.getUTCFullYear()}-${accepted.getUTCMonth() + 1}-${accepted.getUTCDate()}`;
-        if (!timeMap.has(key)) {
-          timeMap.set(key, {
-            _id: {
-              year: accepted.getUTCFullYear(),
-              month: accepted.getUTCMonth() + 1,
-              day: accepted.getUTCDate(),
-            },
-            count: 0,
-            totalPayout: 0,
-            payoutCount: 0,
-          });
-        }
-        const day = timeMap.get(key);
-        day.count += 1;
-        if (mission.payout != null) {
-          day.totalPayout += mission.payout;
-          day.payoutCount += 1;
-        }
-      }
-    }
-
-    const analytics = {
-      totalMissions: missions.length,
-      totalPayout,
-      avgPayout: payoutCount ? totalPayout / payoutCount : 0,
-      avgTravelDistance: travelDistanceCount ? travelDistanceSum / travelDistanceCount : 0,
-      avgTravelTime: travelTimeCount ? travelTimeSum / travelTimeCount : 0,
-      statusCounts,
-    };
-
-    for (const sourceRow of Object.values(processedSourceBreakdown)) {
-      sourceRow.avgPayout = sourceRow.payoutCount ? sourceRow.totalPayout / sourceRow.payoutCount : 0;
-      sourceRow.avgTravelDistance = sourceRow.distanceCount ? sourceRow.distanceSum / sourceRow.distanceCount : 0;
-      sourceRow.avgTravelTime = sourceRow.timeCount ? sourceRow.timeSum / sourceRow.timeCount : 0;
-    }
-
-    const timeBasedAnalytics = [...timeMap.values()]
-      .map((day) => ({
-        _id: day._id,
-        count: day.count,
-        totalPayout: day.totalPayout,
-        avgPayout: day.payoutCount ? day.totalPayout / day.payoutCount : 0,
-      }))
-      .sort((a, b) => a._id.year - b._id.year || a._id.month - b._id.month || a._id.day - b._id.day);
-
-    const locationInsights = [...buckets.values()]
-      .filter((bucket) => bucket.count > 0)
-      .map((bucket) => ({
-        ...bucket,
-        avgPayout: bucket.count ? bucket.totalPayout / bucket.count : 0,
-      }));
-
-    const completionRate = efficiency.totalMissions > 0
-      ? (efficiency.completedMissions / efficiency.totalMissions * 100).toFixed(2)
-      : 0;
-
-    const revenuePerMile = efficiency.totalTravelDistance > 0
-      ? (efficiency.totalRevenue / efficiency.totalTravelDistance).toFixed(2)
-      : 0;
-
-    // Return comprehensive analytics
     res.status(200).json({
       success: true,
       data: {
-        summary: {
-          ...analytics,
-          totalRevenue: efficiency.totalRevenue,
-          completionRate: parseFloat(completionRate),
-          revenuePerMile: parseFloat(revenuePerMile)
-        },
-        sourceBreakdown: processedSourceBreakdown,
-        timeBasedAnalytics,
-        performanceMetrics: efficiency,
-        locationInsights,
+        summary: report.summary,
+        sourceBreakdown: report.sourceBreakdown,
+        timeBasedAnalytics: report.timeBasedAnalytics,
+        revenueByMonth: report.revenueByMonth,
+        topServices: report.topServices,
+        upcomingJobs: report.upcomingJobs,
+        performanceMetrics: report.performanceMetrics,
+        locationInsights: report.locationInsights,
         filters: {
           startDate: filters.startDate,
           endDate: filters.endDate,

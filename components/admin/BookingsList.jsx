@@ -52,7 +52,10 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -123,7 +126,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
         <div className="flex items-start">
           <FiMapPin className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
           <span className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-            {booking.location.length > 50 ? `${booking.location.substring(0, 50)}...` : booking.location}
+            {(booking.location || "").length > 50 ? `${booking.location.substring(0, 50)}...` : (booking.location || "—")}
           </span>
         </div>
         <div className="flex items-center">
@@ -337,9 +340,9 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
 
                         <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                           <FiMapPin className="h-3 w-3 mr-1" />
-                          {booking.location.length > 30 
+                          {(booking.location || "").length > 30 
                             ? `${booking.location.substring(0, 30)}...` 
-                            : booking.location
+                            : (booking.location || "—")
                           }
                         </div>
                       </td>

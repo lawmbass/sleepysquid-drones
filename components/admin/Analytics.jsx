@@ -199,6 +199,18 @@ export default function Analytics() {
               {formatNumber(performanceMetrics.cancelledMissions || 0)}
             </span>
           </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Confirmed</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              {formatNumber(performanceMetrics.confirmedMissions || 0)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Pending</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              {formatNumber(performanceMetrics.pendingMissions || 0)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -220,7 +232,7 @@ export default function Analytics() {
           </div>
           <div>
             <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-              {formatCurrency((performanceMetrics.totalRevenue || 0) / (performanceMetrics.totalMissions || 1))}
+              {formatCurrency(summary.averageJobValue)}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-300">Average</p>
           </div>
@@ -511,6 +523,18 @@ export default function Analytics() {
                 {formatNumber(performanceMetrics.cancelledMissions || 0)}
               </span>
             </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-300">Confirmed</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {formatNumber(performanceMetrics.confirmedMissions || 0)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-300">Pending</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {formatNumber(performanceMetrics.pendingMissions || 0)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -576,7 +600,7 @@ export default function Analytics() {
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {formatCurrency((performanceMetrics.totalRevenue || 0) / (performanceMetrics.totalMissions || 1))}
+              {formatCurrency(summary.averageJobValue)}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-300">Average Payout</p>
           </div>
@@ -625,7 +649,8 @@ export default function Analytics() {
     );
   }
 
-  const { summary, sourceBreakdown, locationInsights, performanceMetrics } = analytics;
+  const { summary, sourceBreakdown, locationInsights, performanceMetrics, revenueByMonth, topServices, upcomingJobs } = analytics;
+  const monthName = (month) => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month - 1] || month;
 
   return (
     <div className="space-y-6">
@@ -641,6 +666,60 @@ export default function Analytics() {
         locationInsights={locationInsights} 
         performanceMetrics={performanceMetrics} 
       />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Revenue by month</h3>
+          {(revenueByMonth || []).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No dated jobs in this range.</p>
+          ) : (
+            <ul className="space-y-2">
+              {revenueByMonth.map((month) => (
+                <li key={`${month.year}-${month.month}`} className="flex justify-between text-sm text-gray-800 dark:text-gray-100">
+                  <span>{monthName(month.month)} {month.year}</span>
+                  <span>{formatCurrency(month.totalValue)} · {month.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Top services</h3>
+          {(topServices || []).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No services in this range.</p>
+          ) : (
+            <ul className="space-y-2">
+              {topServices.map((service) => (
+                <li key={service.service} className="flex justify-between text-sm text-gray-800 dark:text-gray-100">
+                  <span className="truncate pr-3">{service.service}</span>
+                  <span>{formatCurrency(service.totalValue)} · {service.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Upcoming and conversion</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Conversion is completed jobs divided by every job in this range. Average job value uses jobs that have a payout or price.
+          </p>
+          <p className="text-sm text-gray-800 dark:text-gray-100">Upcoming: {summary.upcomingJobs || 0}</p>
+          <p className="text-sm text-gray-800 dark:text-gray-100">Conversion: {summary.conversionRate || 0}%</p>
+          <p className="text-sm text-gray-800 dark:text-gray-100 mb-3">Average job value: {formatCurrency(summary.averageJobValue)}</p>
+          {(upcomingJobs || []).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming jobs.</p>
+          ) : (
+            <ul className="space-y-2">
+              {upcomingJobs.map((job) => (
+                <li key={job.id} className="text-sm text-gray-800 dark:text-gray-100">
+                  <span className="font-medium">{job.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400"> · {job.service} · {job.date ? new Date(job.date).toLocaleDateString() : "No date"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

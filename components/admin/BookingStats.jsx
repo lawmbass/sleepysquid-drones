@@ -57,6 +57,24 @@ export default function BookingStats({ stats, missionStats, user }) {
       icon: FiDollarSign,
       color: 'bg-purple-500',
     },
+    {
+      name: 'Average Job Value',
+      value: Math.round(stats.averageJobValue || 0).toLocaleString(),
+      icon: FiDollarSign,
+      color: 'bg-violet-500',
+    },
+    {
+      name: 'Upcoming',
+      value: stats.upcomingJobs || 0,
+      icon: FiClock,
+      color: 'bg-sky-500',
+    },
+    {
+      name: 'Conversion',
+      value: `${Math.round(stats.conversionRate || 0)}%`,
+      icon: FiCheckCircle,
+      color: 'bg-lime-600',
+    },
   ];
 
   // Add mission-specific stats if available
@@ -136,6 +154,11 @@ export default function BookingStats({ stats, missionStats, user }) {
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
                 <span className="text-gray-600 dark:text-gray-300">Confirmed</span>
                 <span className="ml-1 font-medium dark:text-gray-200">{stats.confirmed?.count || 0}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-1"></div>
+                <span className="text-gray-600 dark:text-gray-300">Completed</span>
+                <span className="ml-1 font-medium dark:text-gray-200">{stats.completed?.count || 0}</span>
               </div>
             </div>
           </div>

@@ -65,6 +65,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (booking.unlinkedListing) return;
     setIsSubmitting(true);
     setError('');
 
@@ -371,10 +372,16 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               </div>
             </div>
 
+            {booking.unlinkedListing && (
+              <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+                This completed Zeitview job comes from a mission listing and is not a separate booking row.
+              </p>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
               {/* Delete button - full width on mobile, left-aligned on desktop */}
-              <button
+              {!booking.unlinkedListing && <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -391,7 +398,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                     Delete Booking
                   </>
                 )}
-              </button>
+              </button>}
               
               {/* Cancel and Save buttons - stacked on mobile, side by side on desktop */}
               <div className="flex flex-col sm:flex-row gap-3 sm:space-x-3 sm:gap-0">
@@ -402,7 +409,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 >
                   Cancel
                 </button>
-                <button
+                {!booking.unlinkedListing && <button
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
@@ -418,7 +425,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                       Save Changes
                     </>
                   )}
-                </button>
+                </button>}
               </div>
             </div>
           </form>
