@@ -4,7 +4,8 @@
  * A job is a booking row, plus an accepted mission_listings row whose
  * booking_id is null. Those listings are completed Zeitview jobs:
  * service from mission type, then the client or partner, then the source;
- * date from the deadline, then the due window, then last seen;
+ * date from the scraped flight date (raw_detail schedule), then the due
+ * window, then the deadline, and last seen only when none of those exist;
  * location from the address; amount from the payout.
  *
  * A listing with booking_id set is already the booking row. It is not added again.
@@ -20,14 +21,221 @@ export function jobAmount(job) {
   return Number.isFinite(price) ? price : 0;
 }
 
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function scheduleResult(iso, { hasTime, wallClock, source }) {
+  return { date: iso, hasFlightTime: hasTime, wallClock, scheduleSource: source };
+}
+
+function emptySchedule(date, source) {
+  return { date: date || null, hasFlightTime: false, wallClock: false, scheduleSource: date ? source : null };
+}
+
+/**
+ * A portal schedule time such as "08/28/2024 3:00 PM" has no timezone.
+ * Keep the clock as written (stored as UTC components) so the dashboard
+ * shows 3:00 PM instead of shifting it to the viewer's offset.
+ */
+export function parseScheduleText(value) {
+  if (value == null || value === "") return null;
+  const text = String(value).trim();
+  const us = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})\s*(AM|PM))?\b/i);
+  if (us) {
+    const month = Number(us[1]);
+    const day = Number(us[2]);
+    const year = Number(us[3]);
+    let hour = 0;
+    let minute = 0;
+    const hasTime = us[4] != null;
+    if (hasTime) {
+      hour = Number(us[4]);
+      minute = Number(us[5]);
+      const ampm = us[6].toUpperCase();
+      if (ampm === "PM" && hour < 12) hour += 12;
+      if (ampm === "AM" && hour === 12) hour = 0;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+    return scheduleResult(
+      `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00.000Z`,
+      { hasTime, wallClock: true, source: "raw_detail" }
+    );
+  }
+
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/);
+  if (!iso) return null;
+  const year = Number(iso[1]);
+  const month = Number(iso[2]);
+  const day = Number(iso[3]);
+  const hasTime = iso[4] != null;
+  const hour = hasTime ? Number(iso[4]) : 0;
+  const minute = hasTime ? Number(iso[5]) : 0;
+  if (iso[6]) {
+    const date = new Date(text.includes(" ") ? text.replace(" ", "T") : text);
+    if (Number.isNaN(date.getTime())) return null;
+    return scheduleResult(date.toISOString(), { hasTime, wallClock: false, source: "raw_detail" });
+  }
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+  return scheduleResult(
+    `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00.000Z`,
+    { hasTime, wallClock: true, source: "raw_detail" }
+  );
+}
+
+const LABELED_FLIGHT = /flight\s+date\s+and\s+time[\s\S]{0,80}?(\d{1,2}\/\d{1,2}\/\d{4}(?:\s+\d{1,2}:\d{2}\s*(?:AM|PM))?)/i;
+
+function flightFromText(value) {
+  if (typeof value !== "string" || !value) return null;
+  const labeled = value.match(LABELED_FLIGHT);
+  if (!labeled) return null;
+  return parseScheduleText(labeled[1]);
+}
+
+function keyName(key) {
+  return String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function scheduleFromObject(schedule) {
+  if (!schedule || typeof schedule !== "object" || Array.isArray(schedule)) return null;
+  const directKeys = [
+    "flightDateAndTime",
+    "flight_date_and_time",
+    "flightDateTime",
+    "flight_date_time",
+    "flightDate",
+    "flight_date",
+    "scheduledAt",
+    "scheduled_at",
+    "scheduledFor",
+    "scheduled_for",
+    "dateTime",
+    "datetime",
+    "when",
+    "start",
+  ];
+  for (const key of directKeys) {
+    const parsed = parseScheduleText(schedule[key]);
+    if (parsed) return parsed;
+  }
+  const datePart = schedule.date || schedule.flight_date || schedule.flightDate || schedule.day;
+  const timePart = schedule.time || schedule.flight_time || schedule.flightTime;
+  if (datePart && timePart) {
+    const combined = parseScheduleText(`${datePart} ${timePart}`);
+    if (combined) return { ...combined, hasFlightTime: true };
+  }
+  return parseScheduleText(schedule.date);
+}
+
+const FLIGHT_KEY = /^(flightdateandtime|flightdatetime|flightdate|scheduledat|scheduledfor|schedule)$/;
+
+function flightFromDetail(detail, depth = 0) {
+  if (detail == null || depth > 8) return null;
+  if (typeof detail === "string") {
+    const labeled = flightFromText(detail);
+    if (labeled) return labeled;
+    const trimmed = detail.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        return flightFromDetail(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+  if (Array.isArray(detail)) {
+    for (const item of detail) {
+      const found = flightFromDetail(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof detail !== "object") return null;
+
+  const parsedBlock = detail.parsed && typeof detail.parsed === "object" ? detail.parsed : null;
+  const schedule = scheduleFromObject(detail.schedule) || scheduleFromObject(parsedBlock?.schedule);
+  if (schedule) return schedule;
+
+  for (const [key, value] of Object.entries(detail)) {
+    const name = keyName(key);
+    if (name === "parsed" && value && typeof value === "object") {
+      const fromParsed = scheduleFromObject(value.schedule) || flightFromDetail(value, depth + 1);
+      if (fromParsed) return fromParsed;
+    }
+    if (!FLIGHT_KEY.test(name)) continue;
+    if (typeof value === "string" || typeof value === "number") {
+      const parsed = parseScheduleText(value);
+      if (parsed) return parsed;
+    }
+    if (value && typeof value === "object") {
+      const fromSchedule = scheduleFromObject(value) || flightFromDetail(value, depth + 1);
+      if (fromSchedule) return fromSchedule;
+    }
+  }
+
+  for (const value of Object.values(detail)) {
+    if (typeof value === "string") {
+      const labeled = flightFromText(value);
+      if (labeled) return labeled;
+      const trimmed = value.trim();
+      if ((trimmed.startsWith("{") || trimmed.startsWith("[")) && trimmed.length < 500000) {
+        try {
+          const found = flightFromDetail(JSON.parse(trimmed), depth + 1);
+          if (found) return found;
+        } catch {
+          // Not JSON. The labeled-text scan above is the only string match.
+        }
+      }
+    } else if (value && typeof value === "object") {
+      const found = flightFromDetail(value, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function listingSchedule(listing) {
+  if (!listing) return emptySchedule(null, null);
+  const scraped = flightFromDetail(listing.rawDetail);
+  if (scraped?.date) return scraped;
+  if (listing.dueWindowStart) {
+    return {
+      date: listing.dueWindowStart,
+      hasFlightTime: clockIsSet(listing.dueWindowStart),
+      wallClock: false,
+      scheduleSource: "due_window",
+    };
+  }
+  if (listing.deadline) {
+    return {
+      date: listing.deadline,
+      hasFlightTime: clockIsSet(listing.deadline),
+      wallClock: false,
+      scheduleSource: "deadline",
+    };
+  }
+  if (listing.dueWindowEnd) {
+    return {
+      date: listing.dueWindowEnd,
+      hasFlightTime: clockIsSet(listing.dueWindowEnd),
+      wallClock: false,
+      scheduleSource: "due_window",
+    };
+  }
+  const seen = listing.lastSeenAt || listing.firstSeenAt || null;
+  return emptySchedule(seen, seen ? "last_seen" : null);
+}
+
+function clockIsSet(value) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0;
+}
+
 export function listingEventDate(listing) {
-  if (!listing) return null;
-  return listing.deadline
-    || listing.dueWindowEnd
-    || listing.dueWindowStart
-    || listing.lastSeenAt
-    || listing.firstSeenAt
-    || null;
+  return listingSchedule(listing).date;
 }
 
 function text(value) {
@@ -40,7 +248,8 @@ export function listingService(listing) {
 }
 
 export function listingToJob(listing) {
-  const when = listingEventDate(listing);
+  const schedule = listingSchedule(listing);
+  const when = schedule.date;
   const payout = listing?.payout == null || listing.payout === "" ? null : Number(listing.payout);
   const amount = Number.isFinite(payout) ? payout : 0;
   const seen = listing?.firstSeenAt || listing?.lastSeenAt || when;
@@ -56,8 +265,11 @@ export function listingToJob(listing) {
     travelDistance: numberOrNull(listing.travelDistance),
     travelTime: numberOrNull(listing.travelTime),
     duration: numberOrNull(listing.estimatedOnSiteMinutes),
-    acceptedAt: when,
+    acceptedAt: null,
     date: when,
+    hasFlightTime: schedule.hasFlightTime,
+    wallClock: schedule.wallClock,
+    scheduleSource: schedule.scheduleSource,
     location: text(listing.address) || "Address not listed",
     details: text(listing.title),
     name: text(listing.title) || text(listing.clientName) || "Zeitview mission",
@@ -230,7 +442,7 @@ export function summarizeJobs(jobs, { now = new Date() } = {}) {
     revenueByMonth: [...months.values()].sort((left, right) => left.year - right.year || left.month - right.month),
     upcomingCount: upcomingJobs.length,
     upcomingJobs: upcomingJobs.slice(0, 5),
-    recentJobs: [...list].sort(byDateDesc).slice(0, 5),
+    recentJobs: [...list].sort(byDateDesc),
     statusCounts: Object.fromEntries(Object.entries(stats).map(([status, row]) => [status, row.count])),
   };
 }

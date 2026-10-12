@@ -126,13 +126,30 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString, options = {}) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      ...options,
     });
   };
+
+  const formatTime = (dateString, options = {}) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      ...options,
+    });
+  };
+
+  const clockOptions = booking?.wallClock ? { timeZone: "UTC" } : {};
 
   if (!isOpen) return null;
 
@@ -239,7 +256,10 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 )}
                 <div className="flex items-center">
                   <FiCalendar className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">
+                    {formatDate(booking.date, clockOptions)}
+                    {booking.hasFlightTime ? ` · ${formatTime(booking.date, clockOptions)}` : ""}
+                  </span>
                 </div>
 
               </div>

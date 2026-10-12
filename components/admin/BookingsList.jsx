@@ -21,14 +21,18 @@ const serviceLabels = {
 };
 
 export default function BookingsList({ bookings = [], pagination = {}, loading, onPageChange, onUpdateBooking, onDeleteBooking }) {
-  // Provide default pagination values
+  // The header count is the shared list on screen when the caller did not
+  // pass a positive total. A bookings-table total of 0 must not sit above
+  // Zeitview job cards.
+  const listedCount = bookings.length;
+  const suppliedCount = Number(pagination.totalCount);
   const paginationDefaults = {
     currentPage: 1,
     totalPages: 1,
-    totalCount: 0,
     hasPrevPage: false,
     hasNextPage: false,
-    ...pagination
+    ...pagination,
+    totalCount: suppliedCount > 0 ? suppliedCount : listedCount,
   };
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,21 +55,28 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
     return success;
   };
 
-  const formatDate = (dateString) => {
+  const formatOptions = (booking) => (booking?.wallClock ? { timeZone: "UTC" } : {});
+
+  const formatDate = (dateString, booking) => {
     if (!dateString) return "—";
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return "—";
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      ...formatOptions(booking),
     });
   };
 
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+  const formatTime = (dateString, booking) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      ...formatOptions(booking),
     });
   };
 
@@ -114,10 +125,13 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
         </div>
         <div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Event Date</div>
-          <div className="text-sm font-medium text-gray-900 flex items-center">
+          <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
             <FiCalendar className="h-3 w-3 mr-1" />
-            {formatDate(booking.date)}
+            {formatDate(booking.date, booking)}
           </div>
+          {booking.hasFlightTime && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatTime(booking.date, booking)}</div>
+          )}
         </div>
       </div>
 
@@ -166,11 +180,16 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
         )}
       </div>
 
-      {/* Created date */}
       <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Created: {formatDate(booking.createdAt)}</span>
-          <span>{formatTime(booking.createdAt)}</span>
+          {booking.unlinkedListing ? (
+            <span>{booking.hasFlightTime ? `Flight time ${formatTime(booking.date, booking)}` : "Flight time not listed"}</span>
+          ) : (
+            <>
+              <span>Created: {formatDate(booking.createdAt)}</span>
+              <span>{formatTime(booking.createdAt)}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -277,7 +296,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                       Travel Info
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Created
+                      Created / flight
                     </th>
                   </tr>
                 </thead>
@@ -335,8 +354,13 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white flex items-center">
                           <FiCalendar className="h-3 w-3 mr-1" />
-                          {formatDate(booking.date)}
+                          {formatDate(booking.date, booking)}
                         </div>
+                        {booking.hasFlightTime && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatTime(booking.date, booking)}
+                          </div>
+                        )}
 
                         <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                           <FiMapPin className="h-3 w-3 mr-1" />
@@ -388,8 +412,14 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <div>{formatDate(booking.createdAt)}</div>
-                        <div>{formatTime(booking.createdAt)}</div>
+                        {booking.unlinkedListing ? (
+                          <div>{booking.hasFlightTime ? formatTime(booking.date, booking) : "Flight time not listed"}</div>
+                        ) : (
+                          <>
+                            <div>{formatDate(booking.createdAt)}</div>
+                            <div>{formatTime(booking.createdAt)}</div>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}

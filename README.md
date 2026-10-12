@@ -99,7 +99,7 @@ Authorized redirect URIs:
 
 - Bookings, mission analytics, promos, users
 - **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
-- Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again.
+- Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again. The recent-jobs count is the length of that list. A listing's job date is the scraped flight date in `raw_detail` (schedule / parsed schedule / "flight date and time"), then `due_window_start`, then `deadline`, then `due_window_end`. `last_seen_at` is used only when none of those exist.
 
 ## drone-gigs
 

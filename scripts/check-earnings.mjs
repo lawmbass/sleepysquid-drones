@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
-const { mergeJobs, summarizeJobs, summarizeAnalytics } = await import("../libs/jobs.js");
+const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob } = await import("../libs/jobs.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 
 const linked = {
@@ -98,6 +98,60 @@ assert.equal(summary.missionStats.totalMissions, 2);
 assert.equal(summary.missionStats.totalPayout, 650);
 assert.equal(summary.upcomingCount, 1);
 assert.equal(summary.recentJobs[0].id, "booking-2");
+assert.equal(summary.recentJobs.length, summary.totalJobs);
+
+const laPlata = listingToJob({
+  id: "la-plata",
+  status: "accepted",
+  source: "zeitview",
+  payout: 150,
+  address: "La Plata",
+  title: "La Plata",
+  externalMissionId: "DBM5272171280",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: { schedule: { flight_date_and_time: "08/28/2024 3:00 PM" } },
+});
+assert.equal(laPlata.date, "2024-08-28T15:00:00.000Z");
+assert.equal(laPlata.hasFlightTime, true);
+assert.equal(laPlata.wallClock, true);
+assert.equal(laPlata.scheduleSource, "raw_detail");
+
+const deale = listingToJob({
+  id: "deale",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  deadline: "2026-10-11T23:00:00.000Z",
+  rawDetail: { parsed: { schedule: "09/12/2024 10:30 AM" } },
+});
+assert.equal(deale.date, "2024-09-12T10:30:00.000Z");
+assert.equal(deale.hasFlightTime, true);
+
+const centreville = listingToJob({
+  id: "centreville",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: {
+    page: "<section>Schedule</section><div>Flight date and time</div><div>05/27/2025 2:30 PM</div>",
+  },
+});
+assert.equal(centreville.date, "2025-05-27T14:30:00.000Z");
+
+const seenOnly = listingToJob({
+  id: "seen-only",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: { title: "No schedule stored" },
+});
+assert.equal(seenOnly.date, "2026-10-11T23:00:00.000Z");
+assert.equal(seenOnly.hasFlightTime, false);
+assert.equal(seenOnly.scheduleSource, "last_seen");
+
+const windowed = listingToJob({
+  id: "windowed",
+  dueWindowStart: "2025-05-27T18:30:00.000Z",
+  deadline: "2025-06-01T00:00:00.000Z",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+});
+assert.equal(windowed.scheduleSource, "due_window");
+assert.equal(windowed.date, "2025-05-27T18:30:00.000Z");
+assert.equal(windowed.hasFlightTime, true);
 const thermal = jobs.find((job) => job.id === "listing-open");
 assert.equal(thermal.service, "thermal");
 assert.equal(thermal.location, "1 Main St");
