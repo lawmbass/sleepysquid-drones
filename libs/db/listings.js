@@ -111,7 +111,7 @@ export async function listUnlinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at")
+      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail")
       .eq("status", "accepted")
       .is("booking_id", null)
   );

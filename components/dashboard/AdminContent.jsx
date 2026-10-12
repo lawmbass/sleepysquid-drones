@@ -161,8 +161,8 @@ export default function AdminContent({ user, onUpdate }) {
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white">Recent Bookings</h2>
               </div>
               <BookingsList 
-                bookings={recentJobs.length ? recentJobs : bookings.slice(0, 5)} 
-                pagination={{ totalPages: 1 }}
+                bookings={recentJobs}
+                pagination={{ totalPages: 1, totalCount: recentJobs.length, currentPage: 1 }}
                 onUpdateBooking={updateBooking}
                 onDeleteBooking={onDeleteBooking}
                 loading={loading}
