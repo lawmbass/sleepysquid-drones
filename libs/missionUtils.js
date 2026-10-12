@@ -1,4 +1,6 @@
 import { listAllBookings } from "@/libs/db/bookings";
+import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
+import { selectUnlinkedEarnings } from "@/libs/earnings";
 
 /**
  * Get mission analytics for non-customer bookings.
@@ -13,6 +15,13 @@ export async function getMissionAnalytics(filters = {}) {
     dateFrom: filters.startDate,
     dateTo: filters.endDate,
   });
+  const unlinked = selectUnlinkedEarnings(await listUnlinkedAcceptedListings(), {
+    source: filters.source,
+    status: filters.status,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+  });
+  const missions = [...bookings, ...unlinked];
 
   const statusCounts = {};
   let totalPayout = 0;
@@ -22,7 +31,7 @@ export async function getMissionAnalytics(filters = {}) {
   let travelTimeSum = 0;
   let travelTimeCount = 0;
 
-  for (const booking of bookings) {
+  for (const booking of missions) {
     statusCounts[booking.status] = (statusCounts[booking.status] || 0) + 1;
     if (booking.payout != null) {
       totalPayout += booking.payout;
@@ -39,7 +48,7 @@ export async function getMissionAnalytics(filters = {}) {
   }
 
   return {
-    totalMissions: bookings.length,
+    totalMissions: missions.length,
     totalPayout,
     avgPayout: payoutCount ? totalPayout / payoutCount : 0,
     avgTravelDistance: travelDistanceCount ? travelDistanceSum / travelDistanceCount : 0,

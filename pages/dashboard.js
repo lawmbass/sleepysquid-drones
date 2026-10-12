@@ -7,15 +7,18 @@ import AdminContent from '@/components/dashboard/AdminContent';
 import ClientContent from '@/components/dashboard/ClientContent';
 import PilotContent from '@/components/dashboard/PilotContent';
 import DefaultContent from '@/components/dashboard/DefaultContent';
-// Removed adminConfig import as it's no longer needed
+
+const ADMIN_SECTIONS = ['bookings', 'listings', 'promos', 'analytics', 'users'];
 
 export default function Dashboard() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  // Check if user is admin (backward compatibility)
-  // const isAdmin = session?.user?.isAdmin || adminConfig.isAdmin(session?.user?.email);
+  const requestedSection = Array.isArray(router.query.section)
+    ? router.query.section[0]
+    : router.query.section;
+  const isDashboardAdmin = Boolean(session?.user?.isAdmin) || session?.user?.role === 'admin';
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,6 +36,14 @@ export default function Dashboard() {
       setLoading(false);
     }
   }, [status, router, session]);
+
+  useEffect(() => {
+    if (!router.isReady || status !== 'authenticated') return;
+    if (isDashboardAdmin) return;
+    if (requestedSection && ADMIN_SECTIONS.includes(requestedSection)) {
+      router.replace('/dashboard');
+    }
+  }, [router, status, isDashboardAdmin, requestedSection]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
@@ -55,8 +66,19 @@ export default function Dashboard() {
     return null;
   }
 
-  // Get user role
-  const userRole = session.user.role || 'client';
+  if (!isDashboardAdmin && requestedSection && ADMIN_SECTIONS.includes(requestedSection)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin when the email matches ADMIN_EMAILS or @sleepysquid.com, or the stored role is admin.
+  const userRole = isDashboardAdmin ? 'admin' : (session.user.role || 'client');
 
   // Handle user data updates
   const handleUserUpdate = async (updatedUser) => {

@@ -1,4 +1,6 @@
 import { listAllBookings } from "@/libs/db/bookings";
+import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
+import { selectUnlinkedEarnings } from "@/libs/earnings";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -96,13 +98,20 @@ export default async function handler(req, res) {
       filters.endDate = endDateTime.toISOString();
     }
 
-    const missions = await listAllBookings({
+    const bookingMissions = await listAllBookings({
       missionsOnly: true,
       source: filters.source,
       status: filters.status,
       dateFrom: filters.startDate,
       dateTo: filters.endDate,
     });
+    const unlinkedMissions = selectUnlinkedEarnings(await listUnlinkedAcceptedListings(), {
+      source: filters.source,
+      status: filters.status,
+      dateFrom: filters.startDate,
+      dateTo: filters.endDate,
+    });
+    const missions = [...bookingMissions, ...unlinkedMissions];
 
     const statusCounts = {};
     let totalPayout = 0;
@@ -260,6 +269,7 @@ export default async function handler(req, res) {
       data: {
         summary: {
           ...analytics,
+          totalRevenue: efficiency.totalRevenue,
           completionRate: parseFloat(completionRate),
           revenuePerMile: parseFloat(revenuePerMile)
         },

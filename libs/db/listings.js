@@ -107,6 +107,17 @@ export async function listListings(filters = {}, { sort = "-lastSeenAt", limit =
   };
 }
 
+export async function listUnlinkedAcceptedListings() {
+  const rows = await fetchAll(() =>
+    db()
+      .from("mission_listings")
+      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id")
+      .eq("status", "accepted")
+      .is("booking_id", null)
+  );
+  return rows.map(mapListing);
+}
+
 export async function findListingById(id) {
   if (!isUuid(id)) return null;
   const { data, error } = await db().from("mission_listings").select("*").eq("id", id).maybeSingle();

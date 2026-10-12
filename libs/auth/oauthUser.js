@@ -1,6 +1,7 @@
 import { createUser, findUserByEmail, patchUser } from "@/libs/db/users";
 import { upsertOAuthAccount } from "@/libs/db/accounts";
 import { findPendingInvitationByEmail, updateInvitation } from "@/libs/db/invitations";
+import { ADMIN_ROLE_REASON, ensureAdminRole, roleForNewUser } from "@/libs/auth/adminRole";
 
 /**
  * Persist a Google sign-in. NextAuth uses JWT sessions, so this replaces
@@ -12,11 +13,20 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
   let created = false;
 
   if (!user) {
+    const role = roleForNewUser(normalized);
     user = await createUser({
       email: normalized,
       name: name || null,
       image: image || null,
-      role: "client",
+      role,
+      roleHistory: role === "admin"
+        ? [{
+          role: "admin",
+          changedAt: new Date().toISOString(),
+          changedBy: "system",
+          reason: ADMIN_ROLE_REASON,
+        }]
+        : [],
       hasAccess: true,
       emailVerification: { verified: true },
       accessHistory: [
@@ -78,5 +88,6 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
     }
   }
 
-  return findUserByEmail(normalized);
+  const latest = await findUserByEmail(normalized);
+  return ensureAdminRole(latest);
 }

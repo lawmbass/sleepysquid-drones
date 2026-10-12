@@ -18,6 +18,7 @@ export default function AdminContent({ user, onUpdate }) {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({});
+  const [missionStats, setMissionStats] = useState(null);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({
     status: '',
@@ -64,6 +65,7 @@ export default function AdminContent({ user, onUpdate }) {
       const data = response_data.data || response_data;
       setBookings(data.bookings || []);
       setStats(data.stats || {});
+      setMissionStats(data.missionStats || null);
       setPagination(data.pagination || {});
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -150,7 +152,7 @@ export default function AdminContent({ user, onUpdate }) {
               <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
             </div>
             
-            <BookingStats stats={stats} user={user} />
+            <BookingStats stats={stats} missionStats={missionStats} user={user} />
             
             <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">

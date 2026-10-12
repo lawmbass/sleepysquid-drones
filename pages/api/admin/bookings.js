@@ -1,4 +1,6 @@
 import { displayValue, listAllBookings, listBookings } from "@/libs/db/bookings";
+import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
+import { selectUnlinkedEarnings } from "@/libs/earnings";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -100,6 +102,7 @@ export default async function handler(req, res) {
     const totalPages = Math.ceil(totalCount / limitNum);
 
     const allBookings = await listAllBookings({});
+    const unlinkedMissions = selectUnlinkedEarnings(await listUnlinkedAcceptedListings());
     const stats = {};
     const processedSourceStats = {};
     const missions = [];
@@ -116,6 +119,15 @@ export default async function handler(req, res) {
       processedSourceStats[sourceKey].totalValue += value;
 
       if (booking.source && booking.source !== "customer") missions.push(booking);
+    }
+
+    const unlinkedPayout = unlinkedMissions.reduce((sum, mission) => sum + (mission.payout || 0), 0);
+    stats.unlinkedAccepted = { count: 0, totalValue: unlinkedPayout };
+    for (const mission of unlinkedMissions) {
+      missions.push(mission);
+      const sourceKey = mission.source || "zeitview";
+      if (!processedSourceStats[sourceKey]) processedSourceStats[sourceKey] = { count: 0, totalValue: 0 };
+      processedSourceStats[sourceKey].totalValue += mission.payout || 0;
     }
 
     const payouts = missions.map((booking) => booking.payout).filter((value) => value != null);
