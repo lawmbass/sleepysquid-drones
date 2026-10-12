@@ -11,6 +11,8 @@
  * location from the address; amount from the payout.
  *
  * A listing with booking_id set is already the booking row. It is not added again.
+ * A listing whose cancel_status is cancelled is left out of this list, and so
+ * is a booking linked to that listing. Cancel-requested gigs stay in.
  */
 
 export function jobAmount(job) {
@@ -408,6 +410,9 @@ export function listingToJob(listing) {
     hasFlightTime: schedule.hasFlightTime,
     wallClock: schedule.wallClock,
     scheduleSource: schedule.scheduleSource,
+    listingId: listing.id,
+    cancelStatus: listing.cancelStatus || null,
+    cancelReason: listing.cancelReason || "",
     location: text(listing.address) || "Address not listed",
     details: text(listing.title),
     name: text(listing.title) || text(listing.clientName) || "Zeitview mission",
@@ -446,10 +451,29 @@ export function bookingToJob(booking) {
   };
 }
 
-export function mergeJobs(bookings, listings) {
-  const jobs = (bookings || []).filter(Boolean).map(bookingToJob);
+export function mergeJobs(bookings, listings, linkedListings = []) {
+  const flagByBooking = new Map();
+  for (const listing of linkedListings || []) {
+    if (listing?.bookingId) flagByBooking.set(listing.bookingId, listing);
+  }
+
+  const jobs = [];
+  for (const booking of bookings || []) {
+    if (!booking) continue;
+    const flag = flagByBooking.get(booking.id);
+    if (flag?.cancelStatus === "cancelled") continue;
+    const job = bookingToJob(booking);
+    if (flag) {
+      job.listingId = flag.id;
+      job.cancelStatus = flag.cancelStatus || null;
+      job.cancelReason = flag.cancelReason || "";
+    }
+    jobs.push(job);
+  }
+
   for (const listing of listings || []) {
     if (!listing || listing.status !== "accepted" || listing.bookingId) continue;
+    if (listing.cancelStatus === "cancelled") continue;
     jobs.push(listingToJob(listing));
   }
   return jobs;

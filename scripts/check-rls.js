@@ -13,13 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const migrationPath = path.join(
-  __dirname,
-  "..",
-  "supabase",
-  "migrations",
-  "20261011120000_initial_schema.sql"
-);
+const migrationsDir = path.join(__dirname, "..", "supabase", "migrations");
 
 function fail(message) {
   console.error(`RLS check failed: ${message}`);
@@ -207,11 +201,16 @@ async function liveChecks() {
 }
 
 async function main() {
-  if (!fs.existsSync(migrationPath)) {
-    fail(`missing ${migrationPath}`);
+  if (!fs.existsSync(migrationsDir)) {
+    fail(`missing ${migrationsDir}`);
     return;
   }
-  const sql = fs.readFileSync(migrationPath, "utf8");
+  const files = fs.readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
+  if (files.length === 0) {
+    fail("no SQL migrations found");
+    return;
+  }
+  const sql = files.map((name) => fs.readFileSync(path.join(migrationsDir, name), "utf8")).join("\n");
   staticChecks(sql);
   if (process.exitCode) return;
   await liveChecks();

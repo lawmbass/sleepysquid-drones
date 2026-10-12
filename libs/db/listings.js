@@ -34,6 +34,10 @@ export function mapListing(row) {
     bookingId: row.booking_id,
     adminNotes: row.admin_notes || "",
     tags: row.tags || [],
+    cancelStatus: row.cancel_status || null,
+    cancelReason: row.cancel_reason || "",
+    cancelRequestedAt: row.cancel_requested_at || null,
+    cancelledAt: row.cancelled_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -66,6 +70,10 @@ const LIST_COLUMNS = [
   "booking_id",
   "admin_notes",
   "tags",
+  "cancel_status",
+  "cancel_reason",
+  "cancel_requested_at",
+  "cancelled_at",
   "created_at",
   "updated_at",
 ].join(", ");
@@ -111,7 +119,7 @@ export async function listUnlinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail")
+      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .is("booking_id", null)
   );
@@ -121,6 +129,33 @@ export async function listUnlinkedAcceptedListings() {
 export async function findListingById(id) {
   if (!isUuid(id)) return null;
   const { data, error } = await db().from("mission_listings").select("*").eq("id", id).maybeSingle();
+  assertNoError(error);
+  return mapListing(data);
+}
+
+export async function listLinkedAcceptedListings() {
+  const rows = await fetchAll(() =>
+    db()
+      .from("mission_listings")
+      .select("id, booking_id, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
+      .eq("status", "accepted")
+      .not("booking_id", "is", null)
+  );
+  return rows.map(mapListing);
+}
+
+export async function updateListingCancel(id, { cancelStatus, cancelReason, cancelRequestedAt, cancelledAt }) {
+  const { data, error } = await db()
+    .from("mission_listings")
+    .update({
+      cancel_status: cancelStatus,
+      cancel_reason: cancelReason,
+      cancel_requested_at: cancelRequestedAt,
+      cancelled_at: cancelledAt,
+    })
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
   assertNoError(error);
   return mapListing(data);
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
+import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -21,7 +22,7 @@ const serviceLabels = {
   'custom': 'Custom Project'
 };
 
-export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDelete }) {
+export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDelete, onGigUpdated }) {
   const [formData, setFormData] = useState({
     status: booking.status,
     estimatedPrice: booking.estimatedPrice || '',
@@ -391,6 +392,16 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 )}
               </div>
             </div>
+
+            {(booking.source === "zeitview" || booking.unlinkedListing) && (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <CancelStatusBadge status={booking.cancelStatus} />
+                <CancelGigButton
+                  listingId={booking.listingId || (booking.unlinkedListing ? booking.id : null)}
+                  onUpdated={onGigUpdated}
+                />
+              </div>
+            )}
 
             {booking.unlinkedListing && (
               <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">

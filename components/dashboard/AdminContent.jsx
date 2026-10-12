@@ -165,6 +165,7 @@ export default function AdminContent({ user, onUpdate }) {
                 pagination={{ totalPages: 1, totalCount: recentJobs.length, currentPage: 1 }}
                 onUpdateBooking={updateBooking}
                 onDeleteBooking={onDeleteBooking}
+                onGigUpdated={fetchBookings}
                 loading={loading}
                 error={error}
               />
@@ -190,6 +191,7 @@ export default function AdminContent({ user, onUpdate }) {
               pagination={pagination}
               onUpdateBooking={updateBooking}
               onDeleteBooking={onDeleteBooking}
+              onGigUpdated={fetchBookings}
               onPageChange={handlePageChange}
               loading={loading}
               error={error}

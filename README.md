@@ -99,7 +99,7 @@ Authorized redirect URIs:
 
 - Bookings, mission analytics, promos, users
 - **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
-- Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again. The recent-jobs count is the length of that list. A listing's job date is the scraped flight date in `raw_detail` (schedule / parsed schedule / "flight date and time"), then `.mission-date` plus `.mission-time` in `raw_detail.html`, then an unlabeled `MM/DD/YYYY` and `HH:MMAM` in `raw_detail.text` (the pair just before "You must arrive on time"), then `due_window_start`, then `deadline`, then `due_window_end`. Page times with no zone are US Eastern. `last_seen_at` is used only when none of those exist.
+- Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again. The recent-jobs count is the length of that list. A listing's job date is the scraped flight date in `raw_detail` (schedule / parsed schedule / "flight date and time"), then `.mission-date` plus `.mission-time` in `raw_detail.html`, then an unlabeled `MM/DD/YYYY` and `HH:MMAM` in `raw_detail.text` (the pair just before "You must arrive on time"), then `due_window_start`, then `deadline`, then `due_window_end`. Page times with no zone are US Eastern. `last_seen_at` is used only when none of those exist. A listing with `cancel_status = cancelled`, and a booking linked to that listing, is left out of this list. Cancel-requested gigs stay in.
 
 ## drone-gigs
 
@@ -138,7 +138,7 @@ Bot insert example: `source: 'zeitview'`, `service`, `mission_id`, `payout`, `lo
 
 One row per mission. Unique on `(source, external_mission_id)` (`mission_listings_source_external_unique`). Upsert with `onConflict: 'source,external_mission_id'`.
 
-Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and the descriptive fields. **Do not send `admin_notes` or `tags` on update.** Those are for the dashboard. When a mission is accepted, set `status` to `accepted` and `booking_id` to the `bookings.id` you just inserted.
+Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and the descriptive fields. **Do not send `admin_notes`, `tags`, `cancel_status`, `cancel_reason`, `cancel_requested_at`, or `cancelled_at`.** Those belong to the dashboard. Supabase upsert writes only the keys in the payload, so leaving them out leaves the stored values alone. When a mission is accepted, set `status` to `accepted` and `booking_id` to the `bookings.id` you just inserted.
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -169,6 +169,10 @@ Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and th
 | `booking_id` | uuid | FK to `bookings.id`, `ON DELETE SET NULL`. Set when accepted. |
 | `admin_notes` | text | Admin only. Default `''`, max 2000. Bot must not overwrite. |
 | `tags` | jsonb | Admin only. Array of strings (`have skills`, `need equipment X`). Bot must not overwrite. |
+| `cancel_status` | text | Admin only. Null, `cancel_requested`, `reschedule_requested`, or `cancelled`. Bot must not send it. |
+| `cancel_reason` | text | Admin only. Reason in the pilot email. Bot must not send it. |
+| `cancel_requested_at` | timestamptz | Admin only. When the cancel or reschedule draft was marked requested. |
+| `cancelled_at` | timestamptz | Admin only. When Zeitview confirmed the cancel. |
 | `equipment_search` | text | Generated from equipment and certifications. Do not write it. |
 | `created_at`, `updated_at` | timestamptz | |
 

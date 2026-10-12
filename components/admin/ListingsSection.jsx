@@ -7,6 +7,7 @@ import {
   FiCheck,
   FiX,
 } from "react-icons/fi";
+import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -360,9 +361,18 @@ export default function ListingsSection() {
                       <div className="text-xs text-gray-500 dark:text-gray-400">{listing.address || listing.source}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
-                        {statusLabel(listing.status)}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
+                          {statusLabel(listing.status)}
+                        </span>
+                        <CancelStatusBadge status={listing.cancelStatus} />
+                        {listing.status === "accepted" && (
+                          <CancelGigButton
+                            listingId={listing.id}
+                            onUpdated={() => fetchListings()}
+                          />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{listing.missionType || "—"}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{money(listing.payout)}</td>
@@ -432,6 +442,16 @@ export default function ListingsSection() {
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[detail.status] || STATUS_STYLES.seen}`}>
                     {statusLabel(detail.status)}
                   </span>
+                  <CancelStatusBadge status={detail.cancelStatus} />
+                  {detail.status === "accepted" && (
+                    <CancelGigButton
+                      listingId={detail.id}
+                      onUpdated={(listing) => {
+                        setDetail(listing);
+                        fetchListings();
+                      }}
+                    />
+                  )}
                   {detail.declineReason && (
                     <span className="inline-flex rounded-full bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200">
                       {detail.declineReason}
