@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   buildCancelDraft,
+  cancelGigVisibility,
   flightWarning,
   flightWarningMessage,
   gmailComposeUrl,
@@ -29,24 +30,53 @@ export function CancelStatusBadge({ status }) {
   );
 }
 
-export function CancelGigButton({ listingId, onUpdated, className = "" }) {
+export function CancelGigButton({
+  listingId,
+  listing,
+  bookingStatus,
+  unlinkedListing = false,
+  workComplete,
+  onUpdated,
+  className = "",
+}) {
   const [open, setOpen] = useState(false);
-  if (!listingId) return null;
+  const id = listingId || listing?.id;
+  const actions = cancelGigVisibility({
+    listing: listing || { id, status: "accepted", cancelStatus: null },
+    bookingStatus,
+    unlinkedListing,
+    workComplete,
+  });
+  if (!id || (!actions.showCancel && !actions.showUndo)) return null;
   return (
     <>
-      <button
-        type="button"
-        className={`inline-flex items-center rounded-md border border-red-300 dark:border-red-700 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/30 ${className}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen(true);
-        }}
-      >
-        Cancel gig
-      </button>
+      {actions.showCancel && (
+        <button
+          type="button"
+          className={`inline-flex items-center rounded-md border border-red-300 dark:border-red-700 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/30 ${className}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          Cancel gig
+        </button>
+      )}
+      {actions.showUndo && !actions.showCancel && (
+        <button
+          type="button"
+          className={`inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1 text-xs font-medium text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 ${className}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}
+        >
+          Undo
+        </button>
+      )}
       {open && (
         <CancelGigModal
-          listingId={listingId}
+          listingId={id}
           onClose={() => setOpen(false)}
           onUpdated={onUpdated}
         />
@@ -101,6 +131,9 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
     })
     : null;
   const reasonReady = reason.trim().length > 0;
+  const actions = listing
+    ? cancelGigVisibility({ listing, bookingStatus: listing.bookingStatus })
+    : { showCancel: false, showUndo: false, workComplete: false };
 
   useEffect(() => {
     setDraftOpened(false);
@@ -164,10 +197,14 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
       >
         <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cancel gig</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Zeitview has no cancel button. This opens a draft to {listing ? "pilots@dronebase.com" : "DroneBase"} from lawmbass1@gmail.com. The site does not send it.
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {listing && !actions.showCancel ? (actions.showUndo ? "Undo cancel" : "Gig completed") : "Cancel gig"}
+            </h2>
+            {(!listing || actions.showCancel) && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Zeitview has no cancel button. This opens a draft to {listing ? "pilots@dronebase.com" : "DroneBase"} from lawmbass1@gmail.com. The site does not send it.
+              </p>
+            )}
           </div>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white" aria-label="Close">
             ×
@@ -177,7 +214,29 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
         <div className="p-5 space-y-4">
           {loadError && <p className="text-sm text-red-600">{loadError}</p>}
           {!listing && !loadError && <p className="text-sm text-gray-500 dark:text-gray-400">Loading gig…</p>}
-          {listing && (
+          {listing && !actions.showCancel && !actions.showUndo && (
+            <p className="text-sm text-gray-700 dark:text-gray-200">
+              This gig is completed, so Cancel gig is closed.
+            </p>
+          )}
+          {listing && actions.showUndo && !actions.showCancel && (
+            <div className="space-y-3">
+              <CancelStatusBadge status={listing.cancelStatus} />
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                The cancellation mark is still on this gig. Undo removes it. The site does not send email.
+              </p>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => mark("undo")}
+                className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50"
+              >
+                Undo
+              </button>
+              {message && <p className="text-sm text-gray-700 dark:text-gray-200">{message}</p>}
+            </div>
+          )}
+          {listing && actions.showCancel && (
             <>
               <div className="flex flex-wrap gap-2">
                 <CancelStatusBadge status={listing.cancelStatus} />

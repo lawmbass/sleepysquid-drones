@@ -1,4 +1,5 @@
 import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from "@/libs/db/shared";
+import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -101,16 +102,39 @@ function applyListingFilters(query, filters = {}) {
   return query;
 }
 
+async function attachBookingStatus(listings) {
+  const ids = [...new Set(listings.map((listing) => listing?.bookingId).filter(Boolean))];
+  if (!ids.length) {
+    return listings.map((listing) => ({ ...listing, bookingStatus: null }));
+  }
+  const { data, error } = await db().from("bookings").select("id, status").in("id", ids);
+  assertNoError(error);
+  const byId = new Map((data || []).map((row) => [row.id, row.status]));
+  return listings.map((listing) => ({
+    ...listing,
+    bookingStatus: listing.bookingId ? byId.get(listing.bookingId) || null : null,
+  }));
+}
+
+function withWorkComplete(listing, { keepDetail = false } = {}) {
+  const bookingStatus = listing.bookingStatus ?? null;
+  const workComplete = listingWorkComplete(listing) || bookingWorkComplete(bookingStatus);
+  if (keepDetail) return { ...listing, bookingStatus, workComplete };
+  const { rawDetail, ...rest } = listing;
+  return { ...rest, bookingStatus, workComplete };
+}
+
 export async function listListings(filters = {}, { sort = "-lastSeenAt", limit = 25, offset = 0 } = {}) {
-  let query = db().from("mission_listings").select(LIST_COLUMNS, { count: "exact" });
+  let query = db().from("mission_listings").select(`${LIST_COLUMNS}, raw_detail`, { count: "exact" });
   query = applyListingFilters(query, filters);
   const { column, ascending } = parseSort(sort, "last_seen_at");
   const from = Number(offset) || 0;
   const size = Number(limit) || 25;
   const { data, error, count } = await query.order(column, { ascending }).range(from, from + size - 1);
   assertNoError(error);
+  const listings = await attachBookingStatus((data || []).map(mapListing));
   return {
-    listings: (data || []).map(mapListing),
+    listings: listings.map((listing) => withWorkComplete(listing)),
     count: count || 0,
   };
 }
@@ -130,14 +154,17 @@ export async function findListingById(id) {
   if (!isUuid(id)) return null;
   const { data, error } = await db().from("mission_listings").select("*").eq("id", id).maybeSingle();
   assertNoError(error);
-  return mapListing(data);
+  const listing = mapListing(data);
+  if (!listing) return null;
+  const [withStatus] = await attachBookingStatus([listing]);
+  return withWorkComplete(withStatus, { keepDetail: true });
 }
 
 export async function listLinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, booking_id, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
+      .select("id, booking_id, status, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .not("booking_id", "is", null)
   );

@@ -15,6 +15,8 @@
  * is a booking linked to that listing. Cancel-requested gigs stay in.
  */
 
+import { listingWorkComplete } from "./gigComplete.js";
+
 export function jobAmount(job) {
   if (!job) return 0;
   if (job.payout != null && job.payout !== "") {
@@ -411,6 +413,8 @@ export function listingToJob(listing) {
     wallClock: schedule.wallClock,
     scheduleSource: schedule.scheduleSource,
     listingId: listing.id,
+    listingStatus: listing.status || null,
+    workComplete: listingWorkComplete(listing),
     cancelStatus: listing.cancelStatus || null,
     cancelReason: listing.cancelReason || "",
     location: text(listing.address) || "Address not listed",
@@ -465,9 +469,11 @@ export function mergeJobs(bookings, listings, linkedListings = []) {
     const job = bookingToJob(booking);
     if (flag) {
       job.listingId = flag.id;
+      job.listingStatus = flag.status || null;
       job.cancelStatus = flag.cancelStatus || null;
       job.cancelReason = flag.cancelReason || "";
     }
+    job.workComplete = listingWorkComplete(flag) || booking.status === "completed";
     jobs.push(job);
   }
 

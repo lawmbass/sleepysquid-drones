@@ -369,6 +369,9 @@ export default function ListingsSection() {
                         {listing.status === "accepted" && (
                           <CancelGigButton
                             listingId={listing.id}
+                            listing={listing}
+                            bookingStatus={listing.bookingStatus}
+                            workComplete={listing.workComplete}
                             onUpdated={() => fetchListings()}
                           />
                         )}
@@ -446,6 +449,9 @@ export default function ListingsSection() {
                   {detail.status === "accepted" && (
                     <CancelGigButton
                       listingId={detail.id}
+                      listing={detail}
+                      bookingStatus={detail.bookingStatus}
+                      workComplete={detail.workComplete}
                       onUpdated={(listing) => {
                         setDetail(listing);
                         fetchListings();

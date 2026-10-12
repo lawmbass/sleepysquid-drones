@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
 const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule } = await import("../libs/jobs.js");
-const { buildCancelDraft, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
+const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 
 const linked = {
@@ -324,5 +324,41 @@ assert.equal(cancelJobs.find((job) => job.id === "asked").cancelStatus, "cancel_
 const cancelSummary = summarizeJobs(cancelJobs, { now: new Date("2026-01-01T00:00:00.000Z") });
 assert.equal(cancelSummary.totalRevenue, 225);
 assert.equal(cancelSummary.totalJobs, 3);
+
+const openGig = { id: "open-gig", status: "accepted", cancelStatus: null };
+assert.equal(cancelGigVisibility({ listing: openGig }).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: openGig }).showUndo, false);
+assert.equal(cancelGigVisibility({ listing: openGig, bookingStatus: "completed" }).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, cancelStatus: "cancel_requested" },
+  bookingStatus: "completed",
+}).showUndo, false);
+for (const status of ["completed", "flown", "uploaded"]) {
+  assert.equal(cancelGigVisibility({ listing: { ...openGig, status } }).showCancel, false, status);
+}
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { backfill: "completed-mission" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { parsed: { mission_status: "Assets uploaded" } } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { html: "upload assets when completed", status: "accepted" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: { ...openGig, cancelStatus: "cancelled" } }).showCancel, false);
+assert.equal(cancelGigVisibility({ listing: { ...openGig, cancelStatus: "cancelled" } }).showUndo, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, cancelStatus: "cancelled", rawDetail: { status: "flown" } },
+}).showUndo, false);
+assert.equal(cancelGigVisibility({
+  listing: openGig,
+  bookingStatus: "completed",
+  unlinkedListing: true,
+}).showCancel, true);
+const backfill = { id: "backfill", status: "accepted", bookingId: null, payout: 80, source: "zeitview" };
+const flownListing = { ...backfill, id: "flown-listing", rawDetail: { status: "flown" } };
+assert.equal(cancelGigVisibility({ listing: backfill }).showCancel, true);
+assert.equal(listingToJob(flownListing).workComplete, true);
+assert.equal(mergeJobs([], [backfill, flownListing], []).length, 2);
 
 console.log("Admin role and unlinked earnings checks passed.");

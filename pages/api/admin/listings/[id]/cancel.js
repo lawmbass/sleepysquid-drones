@@ -5,6 +5,7 @@ import { adminConfig } from "@/libs/adminConfig";
 import { findListingById, updateListingCancel } from "@/libs/db/listings";
 import { findBookingById, updateBooking } from "@/libs/db/bookings";
 import { isUuid } from "@/libs/db/shared";
+import { bookingWorkComplete, cancelGigVisibility, listingWorkComplete } from "@/libs/gigComplete";
 
 const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
@@ -63,6 +64,24 @@ export default async function handler(req, res) {
     }
 
     const action = req.body?.action;
+    const linkedBooking = existing.bookingId ? await findBookingById(existing.bookingId) : null;
+    const visibility = cancelGigVisibility({
+      listing: existing,
+      bookingStatus: linkedBooking?.status,
+    });
+    if ((action === "request" || action === "confirm") && !visibility.showCancel) {
+      return res.status(400).json({
+        error: "Gig completed",
+        message: "This gig is completed, so it can't be cancelled from here",
+      });
+    }
+    if (action === "undo" && !visibility.showUndo) {
+      return res.status(400).json({
+        error: "Gig completed",
+        message: "This gig is completed, so the cancellation mark can't be removed",
+      });
+    }
+
     const now = new Date().toISOString();
     let fields;
 
@@ -108,17 +127,19 @@ export default async function handler(req, res) {
 
     const listing = await updateListingCancel(id, fields);
 
-    if (existing.bookingId && (action === "confirm" || action === "undo")) {
-      const booking = await findBookingById(existing.bookingId);
-      if (booking) {
-        if (action === "confirm" && booking.status !== "cancelled") {
-          await updateBooking(booking.id, { status: "cancelled" });
-        }
-        if (action === "undo" && booking.status === "cancelled") {
-          await updateBooking(booking.id, { status: "confirmed" });
-        }
+    let bookingStatus = linkedBooking?.status || null;
+    if (existing.bookingId && (action === "confirm" || action === "undo") && linkedBooking) {
+      if (action === "confirm" && linkedBooking.status !== "cancelled") {
+        await updateBooking(linkedBooking.id, { status: "cancelled" });
+        bookingStatus = "cancelled";
+      }
+      if (action === "undo" && linkedBooking.status === "cancelled") {
+        await updateBooking(linkedBooking.id, { status: "confirmed" });
+        bookingStatus = "confirmed";
       }
     }
+    listing.bookingStatus = bookingStatus;
+    listing.workComplete = listingWorkComplete(listing) || bookingWorkComplete(bookingStatus);
 
     return res.status(200).json({
       success: true,

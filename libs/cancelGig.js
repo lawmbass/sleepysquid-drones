@@ -5,6 +5,8 @@
 
 import { listingSchedule } from "./jobs.js";
 
+export { cancelGigVisibility, listingWorkComplete, bookingWorkComplete } from "./gigComplete.js";
+
 export const PILOT_EMAIL = "pilots@dronebase.com";
 export const GMAIL_ACCOUNT = "lawmbass1@gmail.com";
 export const PILOT_NAME = "Lawrence Bass";

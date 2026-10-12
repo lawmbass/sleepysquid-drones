@@ -193,7 +193,18 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
             </>
           )}
           {(booking.listingId || booking.unlinkedListing) && (
-            <CancelGigButton listingId={booking.listingId || booking.id} onUpdated={onGigUpdated} />
+            <CancelGigButton
+              listingId={booking.listingId || booking.id}
+              listing={{
+                id: booking.listingId || booking.id,
+                status: booking.listingStatus || "accepted",
+                cancelStatus: booking.cancelStatus || null,
+              }}
+              bookingStatus={booking.status}
+              unlinkedListing={Boolean(booking.unlinkedListing)}
+              workComplete={booking.workComplete}
+              onUpdated={onGigUpdated}
+            />
           )}
         </div>
       </div>
@@ -382,7 +393,18 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                             {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
                           </span>
                           {(booking.listingId || booking.unlinkedListing) && (
-                            <CancelGigButton listingId={booking.listingId || booking.id} onUpdated={onGigUpdated} />
+                            <CancelGigButton
+                              listingId={booking.listingId || booking.id}
+                              listing={{
+                                id: booking.listingId || booking.id,
+                                status: booking.listingStatus || "accepted",
+                                cancelStatus: booking.cancelStatus || null,
+                              }}
+                              bookingStatus={booking.status}
+                              unlinkedListing={Boolean(booking.unlinkedListing)}
+                              workComplete={booking.workComplete}
+                              onUpdated={onGigUpdated}
+                            />
                           )}
                         </div>
                       </td>
