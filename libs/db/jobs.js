@@ -1,11 +1,12 @@
 import { listAllBookings } from "@/libs/db/bookings";
-import { listUnlinkedAcceptedListings } from "@/libs/db/listings";
+import { listLinkedAcceptedListings, listUnlinkedAcceptedListings } from "@/libs/db/listings";
 import { mergeJobs } from "@/libs/jobs";
 
 export async function loadJobs() {
-  const [bookings, listings] = await Promise.all([
+  const [bookings, listings, linkedListings] = await Promise.all([
     listAllBookings({}),
     listUnlinkedAcceptedListings(),
+    listLinkedAcceptedListings(),
   ]);
-  return mergeJobs(bookings, listings);
+  return mergeJobs(bookings, listings, linkedListings);
 }

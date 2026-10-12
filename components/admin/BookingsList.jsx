@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNavigation, FiUser } from 'react-icons/fi';
 import BookingModal from './BookingModal';
+import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -20,7 +21,7 @@ const serviceLabels = {
   'custom': 'Custom Project'
 };
 
-export default function BookingsList({ bookings = [], pagination = {}, loading, onPageChange, onUpdateBooking, onDeleteBooking }) {
+export default function BookingsList({ bookings = [], pagination = {}, loading, onPageChange, onUpdateBooking, onDeleteBooking, onGigUpdated }) {
   // The header count is the shared list on screen when the caller did not
   // pass a positive total. A bookings-table total of 0 must not sit above
   // Zeitview job cards.
@@ -99,6 +100,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                 {booking.source === 'zeitview' ? 'ZV' : booking.source?.toUpperCase() || ''}
               </span>
             )}
+            <CancelStatusBadge status={booking.cancelStatus} />
           </div>
           {booking.missionId && (
             <div className="flex items-center mt-1">
@@ -181,7 +183,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
       </div>
 
       <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
           {booking.unlinkedListing ? (
             <span>{booking.hasFlightTime ? `Flight time ${formatTime(booking.date, booking)}` : "Flight time not listed"}</span>
           ) : (
@@ -189,6 +191,20 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               <span>Created: {formatDate(booking.createdAt)}</span>
               <span>{formatTime(booking.createdAt)}</span>
             </>
+          )}
+          {(booking.listingId || booking.unlinkedListing) && (
+            <CancelGigButton
+              listingId={booking.listingId || booking.id}
+              listing={{
+                id: booking.listingId || booking.id,
+                status: booking.listingStatus || "accepted",
+                cancelStatus: booking.cancelStatus || null,
+              }}
+              bookingStatus={booking.status}
+              unlinkedListing={Boolean(booking.unlinkedListing)}
+              workComplete={booking.workComplete}
+              onUpdated={onGigUpdated}
+            />
           )}
         </div>
       </div>
@@ -321,6 +337,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                                    booking.source?.toUpperCase() || ''}
                                 </span>
                               )}
+                              <span className="ml-2"><CancelStatusBadge status={booking.cancelStatus} /></span>
                             </div>
                             {booking.missionId && (
                               <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
@@ -371,9 +388,25 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
-                        </span>
+                        <div className="flex flex-col items-start gap-2">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
+                            {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
+                          </span>
+                          {(booking.listingId || booking.unlinkedListing) && (
+                            <CancelGigButton
+                              listingId={booking.listingId || booking.id}
+                              listing={{
+                                id: booking.listingId || booking.id,
+                                status: booking.listingStatus || "accepted",
+                                cancelStatus: booking.cancelStatus || null,
+                              }}
+                              bookingStatus={booking.status}
+                              unlinkedListing={Boolean(booking.unlinkedListing)}
+                              workComplete={booking.workComplete}
+                              onUpdated={onGigUpdated}
+                            />
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white flex items-center">
@@ -526,6 +559,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
           onClose={handleCloseModal}
           onUpdate={handleUpdateBooking}
           onDelete={onDeleteBooking}
+          onGigUpdated={onGigUpdated}
         />
       )}
     </>

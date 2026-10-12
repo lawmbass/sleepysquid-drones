@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
-const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob } = await import("../libs/jobs.js");
+const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule } = await import("../libs/jobs.js");
+const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 
 const linked = {
@@ -238,5 +239,180 @@ assert.equal(adminConfig.isAdmin("other@sleepysquid.com"), true);
 assert.equal(adminConfig.isAdmin("pilot@example.com"), true);
 assert.equal(adminConfig.isAdmin("guest@example.com"), false);
 assert.equal(adminConfig.isAdmin(""), false);
+
+const pageListing = {
+  rawDetail: {
+    html: `<div class="mission-scheduling"><div class="mission-date">05/27/2025</div><div class="mission-time">02:30PM</div></div>`,
+  },
+};
+const pageSchedule = listingSchedule(pageListing);
+assert.equal(pageSchedule.date, "2025-05-27T18:30:00.000Z");
+assert.equal(flightWarning(pageSchedule, new Date("2025-05-26T18:30:00.000Z")).level, "ok");
+assert.equal(flightWarning(pageSchedule, new Date("2025-05-26T18:30:00.001Z")).level, "soon");
+assert.equal(flightWarning(pageSchedule, new Date("2025-05-27T18:30:00.000Z")).level, "soon");
+assert.equal(flightWarning(pageSchedule, new Date("2025-05-27T18:30:00.001Z")).level, "past");
+
+const draft = buildCancelDraft({
+  intent: "cancel",
+  missionId: "DBM5272171280",
+  address: "La Plata",
+  schedule: pageSchedule,
+  reason: "Weather",
+});
+assert.equal(draft.to, "pilots@dronebase.com");
+assert.equal(draft.subject, "Cancel mission DBM5272171280 – La Plata");
+assert.match(draft.body, /Mission: DBM5272171280/);
+assert.match(draft.body, /Address: La Plata/);
+assert.match(draft.body, /2:30 PM ET/);
+assert.match(draft.body, /Reason: Weather/);
+assert.match(draft.body, /Thanks, Lawrence Bass/);
+const gmail = gmailComposeUrl(draft);
+assert.ok(gmail.startsWith("https://mail.google.com/mail/?"));
+assert.ok(gmail.includes("authuser=lawmbass1%40gmail.com"));
+assert.ok(gmail.includes("view=cm"));
+assert.ok(gmail.includes("fs=1"));
+assert.ok(gmail.includes("to=pilots%40dronebase.com"));
+assert.ok(gmail.includes(`su=${encodeURIComponent(draft.subject)}`));
+assert.ok(gmail.includes(`body=${encodeURIComponent(draft.body)}`));
+const mail = mailtoUrl(draft);
+assert.ok(mail.startsWith("mailto:pilots@dronebase.com?"));
+assert.ok(mail.includes(encodeURIComponent(draft.subject)));
+const reschedule = buildCancelDraft({
+  intent: "reschedule",
+  missionId: "DBM1",
+  address: "Deale",
+  schedule: pageSchedule,
+  reason: "Conflict",
+});
+assert.equal(reschedule.subject, "Reschedule mission DBM1 – Deale");
+
+const kept = { id: "kept", status: "accepted", bookingId: null, payout: 50, source: "zeitview" };
+const asked = {
+  id: "asked",
+  status: "accepted",
+  bookingId: null,
+  payout: 75,
+  source: "zeitview",
+  cancelStatus: "cancel_requested",
+};
+const dropped = {
+  id: "dropped",
+  status: "accepted",
+  bookingId: null,
+  payout: 999,
+  source: "zeitview",
+  cancelStatus: "cancelled",
+};
+const linkedBooking = {
+  id: "booking-linked",
+  source: "zeitview",
+  status: "completed",
+  payout: 400,
+  service: "inspection",
+  date: "2026-04-01T00:00:00.000Z",
+  location: "Linked site",
+  name: "Linked gig",
+};
+const cancelJobs = mergeJobs(
+  [linkedBooking, customer],
+  [kept, asked, dropped],
+  [{ id: "flag-linked", bookingId: "booking-linked", cancelStatus: "cancelled" }]
+);
+assert.equal(cancelJobs.some((job) => job.id === "dropped"), false);
+assert.equal(cancelJobs.some((job) => job.id === "booking-linked"), false);
+assert.equal(cancelJobs.find((job) => job.id === "asked").cancelStatus, "cancel_requested");
+const cancelSummary = summarizeJobs(cancelJobs, { now: new Date("2026-01-01T00:00:00.000Z") });
+assert.equal(cancelSummary.totalRevenue, 225);
+assert.equal(cancelSummary.totalJobs, 3);
+
+const openGig = { id: "open-gig", status: "accepted", cancelStatus: null };
+assert.equal(cancelGigVisibility({ listing: openGig }).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: openGig }).showUndo, false);
+assert.equal(cancelGigVisibility({ listing: openGig, bookingStatus: "completed" }).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, cancelStatus: "cancel_requested" },
+  bookingStatus: "completed",
+}).showUndo, false);
+for (const status of ["completed", "flown", "uploaded"]) {
+  assert.equal(cancelGigVisibility({ listing: { ...openGig, status } }).showCancel, false, status);
+}
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { backfill: "completed-mission" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { parsed: { mission_status: "Assets uploaded" } } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { html: "upload assets when completed", status: "accepted" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: { ...openGig, cancelStatus: "cancelled" } }).showCancel, false);
+assert.equal(cancelGigVisibility({ listing: { ...openGig, cancelStatus: "cancelled" } }).showUndo, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, cancelStatus: "cancelled", rawDetail: { status: "flown" } },
+}).showUndo, false);
+assert.equal(cancelGigVisibility({
+  listing: openGig,
+  bookingStatus: "completed",
+  unlinkedListing: true,
+}).showCancel, true);
+const backfill = { id: "backfill", status: "accepted", bookingId: null, payout: 80, source: "zeitview" };
+const flownListing = { ...backfill, id: "flown-listing", rawDetail: { status: "flown" } };
+assert.equal(cancelGigVisibility({ listing: backfill }).showCancel, true);
+assert.equal(listingToJob(flownListing).workComplete, true);
+assert.equal(mergeJobs([], [backfill, flownListing], []).length, 2);
+
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { source: "completed-missions" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { origin: "backfill-completed.js" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { url: "https://pilot.dronebase.com/pilots/completed/DBM1" } },
+}).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { source: "zeitview", url: "https://pilot.dronebase.com/missions/DBM1" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { status: "incomplete" } },
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, rawDetail: { html: "<a href=\"https://pilot.dronebase.com/completed/DBM1\">page</a>" } },
+}).showCancel, true);
+
+const pastPage = {
+  ...openGig,
+  rawDetail: {
+    html: "<div class=\"mission-date\">05/27/2025</div><div class=\"mission-time\">02:30PM</div>",
+  },
+};
+const pastSchedule = listingSchedule(pastPage);
+assert.equal(pastSchedule.scheduleSource, "page_html");
+assert.equal(pastSchedule.date, "2025-05-27T18:30:00.000Z");
+const flightMs = new Date(pastSchedule.date).getTime();
+const twelveHours = 12 * 60 * 60 * 1000;
+assert.equal(cancelGigVisibility({ listing: pastPage, now: new Date(flightMs + twelveHours) }).showCancel, true);
+assert.equal(cancelGigVisibility({ listing: pastPage, now: new Date(flightMs + twelveHours + 1) }).showCancel, false);
+assert.equal(cancelGigVisibility({
+  listing: { ...pastPage, cancelStatus: "cancel_requested" },
+  now: new Date(flightMs + twelveHours + 1),
+}).showUndo, false);
+assert.equal(cancelGigVisibility({
+  listing: pastPage,
+  now: new Date("2025-05-26T18:30:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, lastSeenAt: "2020-01-01T00:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, deadline: "2020-01-01T15:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(cancelGigVisibility({
+  listing: { ...openGig, dueWindowStart: "2020-01-01T15:00:00.000Z" },
+  now: new Date("2026-06-01T00:00:00.000Z"),
+}).showCancel, true);
+assert.equal(listingToJob(pastPage).workComplete, true);
 
 console.log("Admin role and unlinked earnings checks passed.");
