@@ -99,7 +99,7 @@ Authorized redirect URIs:
 
 - Bookings, mission analytics, promos, users
 - **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
-- Revenue and mission analytics add booking totals to accepted `mission_listings` that have no `booking_id`, so a gig is not counted twice when the booking row exists
+- Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again.
 
 ## drone-gigs
 
