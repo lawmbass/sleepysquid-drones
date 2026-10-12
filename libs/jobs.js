@@ -4,8 +4,10 @@
  * A job is a booking row, plus an accepted mission_listings row whose
  * booking_id is null. Those listings are completed Zeitview jobs:
  * service from mission type, then the client or partner, then the source;
- * date from the scraped flight date (raw_detail schedule), then the due
- * window, then the deadline, and last seen only when none of those exist;
+ * date from the scraped flight date (raw_detail schedule), then the mission
+ * page (.mission-date/.mission-time, or the date above "You must arrive on
+ * time"), then the due window, then the deadline. Last seen is used only
+ * when none of those exist. Page times with no zone are US Eastern.
  * location from the address; amount from the payout.
  *
  * A listing with booking_id set is already the booking row. It is not added again.
@@ -195,10 +197,146 @@ function flightFromDetail(detail, depth = 0) {
   return null;
 }
 
+const EASTERN = "America/New_York";
+
+function zonedWallTimeToUtc(year, month, day, hour, minute, timeZone) {
+  const guess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(guess);
+  const map = {};
+  for (const part of parts) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+  let zonedHour = Number(map.hour);
+  if (zonedHour === 24) zonedHour = 0;
+  const asZone = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    zonedHour,
+    Number(map.minute),
+    Number(map.second)
+  );
+  return new Date(guess.getTime() - (asZone - guess.getTime()));
+}
+
+function instantFromWallClock(year, month, day, hour, minute, zone) {
+  const name = zone ? String(zone).trim().toUpperCase() : "";
+  if (!name || name === "ET") {
+    return zonedWallTimeToUtc(year, month, day, hour, minute, EASTERN).toISOString();
+  }
+  if (name === "EST") {
+    return new Date(Date.UTC(year, month - 1, day, hour + 5, minute)).toISOString();
+  }
+  if (name === "EDT") {
+    return new Date(Date.UTC(year, month - 1, day, hour + 4, minute)).toISOString();
+  }
+  if (name === "Z" || name === "UTC") {
+    return new Date(Date.UTC(year, month - 1, day, hour, minute)).toISOString();
+  }
+  const offset = name.match(/^([+-])(\d{2}):?(\d{2})$/);
+  if (offset) {
+    const sign = offset[1] === "+" ? 1 : -1;
+    const minutes = sign * (Number(offset[2]) * 60 + Number(offset[3]));
+    return new Date(Date.UTC(year, month - 1, day, hour, minute) - minutes * 60000).toISOString();
+  }
+  return zonedWallTimeToUtc(year, month, day, hour, minute, EASTERN).toISOString();
+}
+
+function pageSchedule(year, month, day, hour, minute, zone, source) {
+  return {
+    date: instantFromWallClock(year, month, day, hour, minute, zone),
+    hasFlightTime: true,
+    wallClock: false,
+    scheduleSource: source,
+  };
+}
+
+function parseUsDate(value) {
+  const match = String(value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, month, day };
+}
+
+function parseMissionClock(value) {
+  const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)(?:\s+([A-Za-z]{2,5}|Z|[+-]\d{2}:?\d{2}))?$/i);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hour < 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  if (hour > 23 || minute > 59) return null;
+  return { hour, minute, zone: match[4] || null };
+}
+
+function classText(html, className) {
+  const pattern = new RegExp(
+    `class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>\\s*([^<]+)`,
+    "i"
+  );
+  const match = html.match(pattern);
+  return match ? match[1].replace(/\s+/g, " ").trim() : null;
+}
+
+function flightFromPageHtml(html) {
+  if (typeof html !== "string" || !html.includes("mission-date")) return null;
+  const date = parseUsDate(classText(html, "mission-date"));
+  const clock = parseMissionClock(classText(html, "mission-time"));
+  if (!date || !clock) return null;
+  return pageSchedule(date.year, date.month, date.day, clock.hour, clock.minute, clock.zone, "page_html");
+}
+
+const ARRIVE_ON_TIME = "you must arrive on time";
+
+function flightFromPageText(text) {
+  if (typeof text !== "string" || !text) return null;
+  const pair = /(\d{1,2}\/\d{1,2}\/\d{4})(?:\r?\n| )(\d{1,2}:\d{2}(?:AM|PM))(?![A-Za-z])(?:[ \t]+(EST|EDT|ET|UTC|Z|[+-]\d{2}:?\d{2}))?/gi;
+  const matches = [];
+  for (const match of text.matchAll(pair)) {
+    matches.push({
+      index: match.index,
+      date: match[1],
+      time: match[2],
+      zone: match[3] || null,
+    });
+  }
+  if (!matches.length) return null;
+  const anchor = text.toLowerCase().indexOf(ARRIVE_ON_TIME);
+  let chosen = matches[0];
+  if (anchor !== -1) {
+    const before = matches.filter((item) => item.index < anchor);
+    if (before.length) chosen = before[before.length - 1];
+  }
+  const date = parseUsDate(chosen.date);
+  const clock = parseMissionClock(chosen.time);
+  if (!date || !clock) return null;
+  return pageSchedule(date.year, date.month, date.day, clock.hour, clock.minute, chosen.zone || clock.zone, "page_text");
+}
+
+function flightFromStoredPage(detail) {
+  if (!detail || typeof detail !== "object" || Array.isArray(detail)) return null;
+  return flightFromPageHtml(detail.html) || flightFromPageText(detail.text);
+}
+
 export function listingSchedule(listing) {
   if (!listing) return emptySchedule(null, null);
   const scraped = flightFromDetail(listing.rawDetail);
   if (scraped?.date) return scraped;
+  const page = flightFromStoredPage(listing.rawDetail);
+  if (page?.date) return page;
   if (listing.dueWindowStart) {
     return {
       date: listing.dueWindowStart,

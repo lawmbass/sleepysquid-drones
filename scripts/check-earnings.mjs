@@ -134,6 +134,66 @@ const centreville = listingToJob({
 });
 assert.equal(centreville.date, "2025-05-27T14:30:00.000Z");
 
+const pageHtml = `<div class="mission-scheduling">…<div class="mission-date">05/27/2025</div><div class="mission-time">02:30PM</div>`;
+const fromHtml = listingToJob({
+  id: "centreville-html",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  deadline: "2026-10-11T23:00:00.000Z",
+  rawDetail: { html: pageHtml, title: "No schedule key" },
+});
+assert.equal(fromHtml.date, "2025-05-27T18:30:00.000Z");
+assert.equal(fromHtml.hasFlightTime, true);
+assert.equal(fromHtml.wallClock, false);
+assert.equal(fromHtml.scheduleSource, "page_html");
+
+const pageText = "Download KML\n02/24/2025\n12:30PM\nYou must arrive on time on the scheduled flight date…";
+const fromText = listingToJob({
+  id: "february-text",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: { text: pageText },
+});
+assert.equal(fromText.date, "2025-02-24T17:30:00.000Z");
+assert.equal(fromText.hasFlightTime, true);
+assert.equal(fromText.scheduleSource, "page_text");
+
+const preferred = listingToJob({
+  id: "prefer-arrive",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: {
+    text: "Download KML\n02/24/2025\n12:30PM\nNotes\n05/27/2025\n02:30PM\nYou must arrive on time on the scheduled flight date…",
+  },
+});
+assert.equal(preferred.date, "2025-05-27T18:30:00.000Z");
+
+const htmlBeatsText = listingToJob({
+  id: "html-beats-text",
+  rawDetail: {
+    html: pageHtml,
+    text: pageText,
+  },
+});
+assert.equal(htmlBeatsText.date, "2025-05-27T18:30:00.000Z");
+assert.equal(htmlBeatsText.scheduleSource, "page_html");
+
+const scheduleBeatsPage = listingToJob({
+  id: "schedule-wins",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: {
+    schedule: { flight_date_and_time: "08/28/2024 3:00 PM" },
+    html: pageHtml,
+  },
+});
+assert.equal(scheduleBeatsPage.date, "2024-08-28T15:00:00.000Z");
+assert.equal(scheduleBeatsPage.scheduleSource, "raw_detail");
+
+const spacedTimeIgnored = listingToJob({
+  id: "spaced-time",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawDetail: { text: "Download KML\n05/27/2025\n02:30 PM\nYou must arrive on time on the scheduled flight date…" },
+});
+assert.equal(spacedTimeIgnored.date, "2026-10-11T23:00:00.000Z");
+assert.equal(spacedTimeIgnored.scheduleSource, "last_seen");
+
 const seenOnly = listingToJob({
   id: "seen-only",
   lastSeenAt: "2026-10-11T23:00:00.000Z",
