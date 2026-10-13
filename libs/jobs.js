@@ -27,6 +27,36 @@ export function jobAmount(job) {
   return Number.isFinite(price) ? price : 0;
 }
 
+function finiteOrNull(value) {
+  if (value == null || value === "") return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+/**
+ * Amounts shown in the booking detail modal.
+ * A Zeitview mission with no final price shows its payout in both the
+ * payout field and the final-price field.
+ */
+export function missionDetailAmounts(job) {
+  const isMission = Boolean(
+    job?.unlinkedListing ||
+    job?.isMission ||
+    (job?.source && job.source !== "customer")
+  );
+  const payout = finiteOrNull(job?.payout);
+  const finalPrice = finiteOrNull(job?.finalPrice);
+  const estimated = finiteOrNull(job?.estimatedPrice);
+  const payoutIsFixed = isMission && payout != null;
+  return {
+    isMission,
+    payout: payoutIsFixed ? payout : estimated,
+    finalPrice: finalPrice != null ? finalPrice : (payoutIsFixed ? payout : null),
+    payoutIsFixed,
+    finalPriceFallsBack: payoutIsFixed && finalPrice == null,
+  };
+}
+
 function pad(value) {
   return String(value).padStart(2, "0");
 }
