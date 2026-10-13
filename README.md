@@ -138,7 +138,7 @@ Bot insert example: `source: 'zeitview'`, `service`, `mission_id`, `payout`, `lo
 
 One row per mission. Unique on `(source, external_mission_id)` (`mission_listings_source_external_unique`). Upsert with `onConflict: 'source,external_mission_id'`.
 
-Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and the descriptive fields. **Do not send `admin_notes`, `tags`, `cancel_status`, `cancel_reason`, `cancel_requested_at`, or `cancelled_at`.** Those belong to the dashboard. Supabase upsert writes only the keys in the payload, so leaving them out leaves the stored values alone. When a mission is accepted, set `status` to `accepted` and `booking_id` to the `bookings.id` you just inserted.
+Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and the descriptive fields. **Do not send `admin_notes`, `tags`, `cancel_status`, `cancel_reason`, `cancel_requested_at`, or `cancelled_at`.** Those belong to the dashboard. Set `bot_accepted_at` only on the accept write, to the same instant as `bookings.accepted_at`. Omit it on later sightings and on the completed-mission backfill. Supabase upsert writes only the keys in the payload, so leaving them out leaves the stored values alone. When a mission is accepted, set `status` to `accepted` and `booking_id` to the `bookings.id` you just inserted.
 
 | Column | Type | Notes |
 | --- | --- | --- |
@@ -173,10 +173,11 @@ Set `first_seen_at` only on insert. Later sightings update `last_seen_at` and th
 | `cancel_reason` | text | Admin only. Reason in the pilot email. Bot must not send it. |
 | `cancel_requested_at` | timestamptz | Admin only. When the cancel or reschedule draft was marked requested. |
 | `cancelled_at` | timestamptz | Admin only. When Zeitview confirmed the cancel. |
+| `bot_accepted_at` | timestamptz | Set by the bot at the moment it accepts. Null on the completed-mission backfill. Later upserts must omit it. |
 | `equipment_search` | text | Generated from equipment and certifications. Do not write it. |
 | `created_at`, `updated_at` | timestamptz | |
 
-Cancel gig is hidden when the linked booking `status` is `completed`, when `cancel_status` is `cancelled`, when a real flight time from `listingSchedule()` (`raw_detail`, page HTML, or page text, not `last_seen`, the due window, or the deadline) is more than 12 hours in the past, or when a status-like field is `completed`, `flown`, or `uploaded`. The completed-mission backfill (`backfill-completed.js`) stored rows as `status = accepted` with no booking. That status alone is not a mark. A `raw_detail` `source`, `origin`, `url`, or similar field whose value contains `completed` (for example `completed-missions` or `backfill-completed.js`) is. Page HTML is not scanned for that word. Undo stays available until the gig is finished. An unlinked listing is not finished just because the job list labels it completed.
+Cancel gig uses the same helper as the job-card status badge. An unlinked accepted listing is a completed job, so the badge says Completed and Cancel gig stays hidden. The button is shown only when the bot recorded the acceptance (`bot_accepted_at`, the linked booking's `accepted_at`, or an accept result in `raw_detail`) and the gig is still pending: the badge is not Completed, the booking is not completed, it is not a completed-mission backfill (`raw_detail` source, origin, or URL containing `completed`), a real flight time is not more than 12 hours past, and it is not cancelled. `status = accepted` alone is not enough. When the marker is missing, Cancel gig stays hidden. On accept, set `bookings.accepted_at` and `mission_listings.bot_accepted_at` to that same time. Do not set `bot_accepted_at` from `backfill-completed.js`.
 
 `flight_plan` steps use these keys:
 

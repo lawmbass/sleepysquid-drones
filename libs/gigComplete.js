@@ -126,6 +126,36 @@ function detailHasCompletion(detail, depth) {
   return false;
 }
 
+function originBackfill(detail, depth) {
+  if (detail == null || depth > 6) return false;
+  if (typeof detail === "string") {
+    const trimmed = detail.trim();
+    if ((trimmed.startsWith("{") || trimmed.startsWith("[")) && trimmed.length < 500000) {
+      try {
+        return originBackfill(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+  if (Array.isArray(detail)) return detail.some((item) => originBackfill(item, depth + 1));
+  if (typeof detail !== "object") return false;
+  for (const [key, value] of Object.entries(detail)) {
+    const name = keyName(key);
+    if (SKIP_KEYS.has(name)) continue;
+    if (ORIGIN_KEYS.has(name) && mentionsCompleted(value)) return true;
+    if (value && typeof value === "object" && originBackfill(value, depth + 1)) return true;
+  }
+  return false;
+}
+
+export function isBackfillRecord(listing) {
+  if (!listing) return false;
+  if (mentionsCompleted(listing.source) && token(listing.source) !== "zeitview") return true;
+  return originBackfill(listing.rawDetail ?? listing.raw_detail, 0);
+}
+
 export function listingWorkComplete(listing) {
   if (!listing) return false;
   if (isCompletionValue(listing.status) || mentionsCompleted(listing.status)) return true;

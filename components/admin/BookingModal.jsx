@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
-import { cancelGigVisibility } from '@/libs/cancelGig';
+import { gigCardState } from '@/libs/jobs';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -155,16 +155,9 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
 
   if (!isOpen) return null;
 
-  const gigListing = {
-    id: booking.listingId || booking.id,
-    status: booking.listingStatus || "accepted",
-    cancelStatus: booking.cancelStatus || null,
-  };
-  const gigActions = cancelGigVisibility({
-    listing: gigListing,
-    bookingStatus: booking.status,
-    unlinkedListing: Boolean(booking.unlinkedListing),
-    workComplete: booking.workComplete,
+  const gigActions = gigCardState({
+    job: booking,
+    booking: booking.unlinkedListing ? null : booking,
   });
 
   const modalContent = (
@@ -406,17 +399,12 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               </div>
             </div>
 
-            {(booking.source === "zeitview" || booking.unlinkedListing) && (booking.cancelStatus || gigActions.showCancel || gigActions.showUndo) && (
+            {(gigActions.showCancel || gigActions.showUndo || booking.cancelStatus) && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <CancelStatusBadge status={booking.cancelStatus} />
-                <CancelGigButton
-                  listingId={booking.listingId || (booking.unlinkedListing ? booking.id : null)}
-                  listing={gigListing}
-                  bookingStatus={booking.status}
-                  unlinkedListing={Boolean(booking.unlinkedListing)}
-                  workComplete={booking.workComplete}
-                  onUpdated={onGigUpdated}
-                />
+                {(gigActions.showCancel || gigActions.showUndo) && (
+                  <CancelGigButton job={booking} onUpdated={onGigUpdated} />
+                )}
               </div>
             )}
 

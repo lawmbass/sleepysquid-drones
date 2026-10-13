@@ -15,7 +15,7 @@
  * is a booking linked to that listing. Cancel-requested gigs stay in.
  */
 
-import { listingWorkComplete } from "./gigComplete.js";
+import { isBackfillRecord, listingWorkComplete } from "./gigComplete.js";
 
 export function jobAmount(job) {
   if (!job) return 0;
@@ -401,6 +401,128 @@ export function listingService(listing) {
   return text(listing?.missionType) || text(listing?.clientName) || text(listing?.source) || "zeitview";
 }
 
+function hasTimestamp(value) {
+  if (value == null || value === "") return false;
+  return !Number.isNaN(new Date(value).getTime());
+}
+
+const ACCEPT_KEYS = new Set([
+  "acceptedat",
+  "botacceptedat",
+  "acceptedby",
+  "acceptresult",
+  "acceptedresult",
+]);
+
+const ACCEPT_TEXT = new Set(["bot", "auto", "auto-accept", "autoaccept", "accepted", "drone-gigs", "dronegigs"]);
+
+function rawAcceptSignal(detail, depth = 0) {
+  if (detail == null || depth > 6) return false;
+  if (typeof detail === "string") {
+    const trimmed = detail.trim();
+    if ((trimmed.startsWith("{") || trimmed.startsWith("[")) && trimmed.length < 500000) {
+      try {
+        return rawAcceptSignal(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+  if (Array.isArray(detail)) return detail.some((item) => rawAcceptSignal(item, depth + 1));
+  if (typeof detail !== "object") return false;
+  for (const [key, value] of Object.entries(detail)) {
+    const name = String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (name === "html" || name === "text" || name === "body" || name === "email") continue;
+    if (ACCEPT_KEYS.has(name)) {
+      if (hasTimestamp(value)) return true;
+      if (ACCEPT_TEXT.has(String(value || "").trim().toLowerCase())) return true;
+    }
+    if (value && typeof value === "object" && rawAcceptSignal(value, depth + 1)) return true;
+  }
+  return false;
+}
+
+function recordedFlightLongPast(record, now) {
+  if (!record) return false;
+  if (record.scheduleSource && record.date && !record.rawDetail && !record.raw_detail) {
+    if (!REAL_FLIGHT_SOURCES.has(record.scheduleSource)) return false;
+    const flightMs = new Date(record.date).getTime();
+    const nowMs = new Date(now).getTime();
+    if (Number.isNaN(flightMs) || Number.isNaN(nowMs)) return false;
+    return nowMs - flightMs > TWELVE_HOURS_MS;
+  }
+  return scheduledFlightLongPast(record, now);
+}
+
+/**
+ * One decision for the job-card status badge and the Cancel gig button.
+ * The green Completed badge on an unlinked accepted listing is badgeStatus
+ * "completed". Cancel gig is hidden whenever that badge is Completed.
+ * It is shown only for a bot acceptance recorded at accept time
+ * (mission_listings.bot_accepted_at, the linked booking's accepted_at, or
+ * an accept result in raw_detail) while the gig is still pending.
+ */
+export function gigCardState({
+  listing = null,
+  booking = null,
+  job = null,
+  now = new Date(),
+  bookingStatus,
+  unlinkedListing,
+  workComplete,
+} = {}) {
+  const unlinked = unlinkedListing === true
+    || job?.unlinkedListing === true
+    || Boolean(listing && listing.status === "accepted" && !listing.bookingId && !booking?.id && job?.unlinkedListing !== false && unlinkedListing !== false && !job);
+
+  const statusFromBooking = bookingStatus
+    || booking?.status
+    || listing?.bookingStatus
+    || (!unlinked ? job?.status : null)
+    || null;
+  const badgeStatus = unlinked ? "completed" : (statusFromBooking || "accepted");
+  const cancelStatus = listing?.cancelStatus ?? job?.cancelStatus ?? null;
+  const scheduleRecord = listing || job;
+  const backfill = isBackfillRecord(listing) || isBackfillRecord(job);
+  const markers = listingWorkComplete(listing) || (!listing && listingWorkComplete(job));
+  const flightPast = recordedFlightLongPast(scheduleRecord, now);
+  const bookingCompleted = !unlinked && String(statusFromBooking || "").toLowerCase() === "completed";
+  const badgeCompleted = String(badgeStatus).toLowerCase() === "completed";
+  const finished = workComplete === true
+    || job?.workComplete === true
+    || badgeCompleted
+    || bookingCompleted
+    || backfill
+    || markers
+    || flightPast;
+  const cancelled = cancelStatus === "cancelled" || String(statusFromBooking || "").toLowerCase() === "cancelled";
+  const botAccepted = !backfill && (
+    hasTimestamp(listing?.botAcceptedAt)
+    || hasTimestamp(listing?.bot_accepted_at)
+    || hasTimestamp(job?.botAcceptedAt)
+    || hasTimestamp(listing?.bookingAcceptedAt)
+    || (!unlinked && (
+      hasTimestamp(booking?.acceptedAt)
+      || hasTimestamp(booking?.accepted_at)
+      || hasTimestamp(job?.acceptedAt)
+    ))
+    || rawAcceptSignal(listing?.rawDetail)
+    || rawAcceptSignal(job?.rawDetail)
+  );
+  const open = !unlinked && ["pending", "confirmed", "in-progress"].includes(String(statusFromBooking || "").toLowerCase());
+  const showCancel = botAccepted && open && !finished && !cancelled && !badgeCompleted;
+
+  return {
+    badgeStatus,
+    showCancel,
+    showUndo: botAccepted && Boolean(cancelStatus) && !finished && !badgeCompleted,
+    finished,
+    botAccepted,
+    workComplete: finished,
+  };
+}
+
 export function listingToJob(listing) {
   const schedule = listingSchedule(listing);
   const when = schedule.date;
@@ -420,6 +542,7 @@ export function listingToJob(listing) {
     travelTime: numberOrNull(listing.travelTime),
     duration: numberOrNull(listing.estimatedOnSiteMinutes),
     acceptedAt: null,
+    botAcceptedAt: listing.botAcceptedAt || null,
     date: when,
     hasFlightTime: schedule.hasFlightTime,
     wallClock: schedule.wallClock,
@@ -436,7 +559,7 @@ export function listingToJob(listing) {
     phone: "",
     estimatedPrice: null,
     finalPrice: null,
-    status: "completed",
+    status: gigCardState({ listing, unlinkedListing: true }).badgeStatus,
     adminNotes: listing.adminNotes || "",
     createdAt: seen,
     updatedAt: listing.updatedAt || seen,
@@ -482,6 +605,7 @@ export function mergeJobs(bookings, listings, linkedListings = []) {
     if (flag) {
       job.listingId = flag.id;
       job.listingStatus = flag.status || null;
+      job.botAcceptedAt = flag.botAcceptedAt || null;
       job.cancelStatus = flag.cancelStatus || null;
       job.cancelReason = flag.cancelReason || "";
     }

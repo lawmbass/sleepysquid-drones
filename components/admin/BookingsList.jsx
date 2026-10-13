@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNavigation, FiUser } from 'react-icons/fi';
 import BookingModal from './BookingModal';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
+import { gigCardState } from '@/libs/jobs';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -10,6 +11,18 @@ const statusColors = {
   completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
 };
+
+function cardState(booking) {
+  return gigCardState({
+    job: booking,
+    booking: booking.unlinkedListing ? null : booking,
+  });
+}
+
+function statusText(status) {
+  if (!status) return "Unknown";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 const serviceLabels = {
   'aerial-photography': 'Aerial Photography',
@@ -82,7 +95,9 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
   };
 
   // Mobile booking card component
-  const MobileBookingCard = ({ booking }) => (
+  const MobileBookingCard = ({ booking }) => {
+    const gig = cardState(booking);
+    return (
     <div 
       className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => handleViewBooking(booking)}
@@ -109,8 +124,8 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
             </div>
           )}
         </div>
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
-          {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[gig.badgeStatus] || 'bg-gray-100 text-gray-800'}`}>
+          {statusText(gig.badgeStatus)}
         </span>
       </div>
 
@@ -192,24 +207,14 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               <span>{formatTime(booking.createdAt)}</span>
             </>
           )}
-          {(booking.listingId || booking.unlinkedListing) && (
-            <CancelGigButton
-              listingId={booking.listingId || booking.id}
-              listing={{
-                id: booking.listingId || booking.id,
-                status: booking.listingStatus || "accepted",
-                cancelStatus: booking.cancelStatus || null,
-              }}
-              bookingStatus={booking.status}
-              unlinkedListing={Boolean(booking.unlinkedListing)}
-              workComplete={booking.workComplete}
-              onUpdated={onGigUpdated}
-            />
+          {(gig.showCancel || gig.showUndo) && (
+            <CancelGigButton job={booking} onUpdated={onGigUpdated} />
           )}
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // Mobile view component
   const MobileBookingsList = () => (
@@ -317,7 +322,9 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {bookings.map((booking) => (
+                  {bookings.map((booking) => {
+                    const gig = cardState(booking);
+                    return (
                     <tr 
                       key={booking._id} 
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -389,22 +396,11 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col items-start gap-2">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
-                            {booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Unknown'}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[gig.badgeStatus] || 'bg-gray-100 text-gray-800'}`}>
+                            {statusText(gig.badgeStatus)}
                           </span>
-                          {(booking.listingId || booking.unlinkedListing) && (
-                            <CancelGigButton
-                              listingId={booking.listingId || booking.id}
-                              listing={{
-                                id: booking.listingId || booking.id,
-                                status: booking.listingStatus || "accepted",
-                                cancelStatus: booking.cancelStatus || null,
-                              }}
-                              bookingStatus={booking.status}
-                              unlinkedListing={Boolean(booking.unlinkedListing)}
-                              workComplete={booking.workComplete}
-                              onUpdated={onGigUpdated}
-                            />
+                          {(gig.showCancel || gig.showUndo) && (
+                            <CancelGigButton job={booking} onUpdated={onGigUpdated} />
                           )}
                         </div>
                       </td>
@@ -455,7 +451,8 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
