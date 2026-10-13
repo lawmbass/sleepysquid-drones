@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEdit2 } from "react-icons/fi";
 import HomeAddressField from "@/components/admin/HomeAddressField";
 import {
@@ -6,6 +6,7 @@ import {
   HOME_PIN_REJECTED,
   REASON_LABELS,
   homeAddressChanged,
+  sameHomePin,
   validateBotSettings,
 } from "@/libs/botRules";
 
@@ -120,8 +121,12 @@ export default function BotRulesSection() {
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState("");
   const [previewSource, setPreviewSource] = useState("saved");
+  const [previewDriveSource, setPreviewDriveSource] = useState("stored");
+  const [driveTimesUpdating, setDriveTimesUpdating] = useState(false);
+  const driveTimesUpdatingRef = useRef(false);
+  driveTimesUpdatingRef.current = driveTimesUpdating;
 
-  const applyResponse = useCallback((data, { replaceForm }) => {
+  const applyResponse = useCallback((data, { replaceForm, driveStatus }) => {
     if (replaceForm && data.settings) {
       const next = formFromSettings(data.settings);
       setForm(next);
@@ -135,6 +140,10 @@ export default function BotRulesSection() {
     setPreview(data.preview || null);
     setPreviewError(data.previewError || "");
     setPreviewSource(data.previewSource || "saved");
+    setPreviewDriveSource(data.previewDriveSource || "stored");
+    if (driveStatus && data.driveTimesUpdating != null) {
+      setDriveTimesUpdating(Boolean(data.driveTimesUpdating));
+    }
   }, []);
 
   const load = useCallback(async () => {
@@ -146,7 +155,7 @@ export default function BotRulesSection() {
       if (!response.ok) {
         throw new Error(body.message || "Failed to load bot rules.");
       }
-      applyResponse(body.data || {}, { replaceForm: true });
+      applyResponse(body.data || {}, { replaceForm: true, driveStatus: true });
     } catch (loadError) {
       setError(loadError.message);
     } finally {
@@ -219,7 +228,7 @@ export default function BotRulesSection() {
         }
         throw new Error(body.message || "Could not update bot rules.");
       }
-      applyResponse(body.data || {}, { replaceForm: method === "PUT" });
+      applyResponse(body.data || {}, { replaceForm: method === "PUT", driveStatus: method === "PUT" });
       if (method === "PUT") {
         setNotice(body.message || "Bot rules saved.");
       }
@@ -231,6 +240,78 @@ export default function BotRulesSection() {
   }
 
   const dirty = JSON.stringify(payloadFromForm(form)) !== savedKey;
+  const savedPin = savedKey ? JSON.parse(savedKey) : null;
+  const unsavedPin = Boolean(savedPin && !sameHomePin(savedPin, form));
+
+  useEffect(() => {
+    if (unsavedPin || !savedKey) return undefined;
+    const saved = JSON.parse(savedKey);
+    let cancelled = false;
+    let intervalId = null;
+    let checking = false;
+    let waitingForStored = false;
+
+    async function refreshPreview() {
+      const refresh = await fetch("/api/admin/bot-settings", { credentials: "include" });
+      const refreshed = await refresh.json().catch(() => ({}));
+      if (cancelled || !refresh.ok) return;
+      setPreview(refreshed.data?.preview || null);
+      setPreviewError(refreshed.data?.previewError || "");
+      setPreviewSource(refreshed.data?.previewSource || "saved");
+      setPreviewDriveSource(refreshed.data?.previewDriveSource || "stored");
+    }
+
+    async function checkStoredDrives() {
+      if (checking || cancelled) return;
+      checking = true;
+      try {
+        const response = await fetch("/api/admin/bot-settings/drive-times", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ homeLat: saved.homeLat, homeLng: saved.homeLng }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok) {
+          if (driveTimesUpdatingRef.current && !intervalId) {
+            intervalId = setInterval(checkStoredDrives, 15000);
+          }
+          return;
+        }
+        if (body.data?.matchesStored == null) {
+          setDriveTimesUpdating(false);
+          return;
+        }
+        if (body.data.matchesStored === false) {
+          waitingForStored = true;
+          setDriveTimesUpdating(true);
+          if (!intervalId) intervalId = setInterval(checkStoredDrives, 15000);
+          return;
+        }
+        if (body.data?.matchesStored === true) {
+          setDriveTimesUpdating(false);
+          clearInterval(intervalId);
+          intervalId = null;
+          if (waitingForStored) {
+            waitingForStored = false;
+            await refreshPreview();
+          }
+        }
+      } catch {
+        // The next poll tries again. The saved rules stay as they are.
+      } finally {
+        checking = false;
+      }
+    }
+
+    checkStoredDrives();
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [unsavedPin, savedKey]);
   const describedBy = (id) => {
     const ids = [`${id}-help`];
     if (fieldErrors[id]) ids.push(`${id}-error`);
@@ -457,7 +538,11 @@ export default function BotRulesSection() {
               className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
               onClick={() => send("POST")}
             >
-              {previewing ? "Checking..." : "Preview last 30 days"}
+              {previewing
+                ? unsavedPin
+                  ? "Checking drive times..."
+                  : "Checking..."
+                : "Preview last 30 days"}
             </button>
           </div>
         </div>
@@ -465,13 +550,24 @@ export default function BotRulesSection() {
 
       <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {previewSource === "form"
-            ? "This uses the rules in the form and the payout and drive time already stored on each mission. It does not recompute drive time from a new home address, and it is not saved until you press Save rules."
-            : dirty
-              ? "This uses the saved rules. Preview again to try the numbers currently in the form. Drive times already stored on each mission are used as-is."
-              : "This uses the saved rules, the stored payout, and the stored drive time. A new home address does not recompute old drives. Nothing is changed."}
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+          {previewing && unsavedPin
+            ? "Checking drive times from your unsaved address..."
+            : previewDriveSource === "unsaved-pin"
+              ? "Previewing drive times from your unsaved address. These minutes are not saved. The bot updates stored drive times after you save."
+              : previewSource === "form"
+                ? "This uses the rules in the form and the payout and drive time already stored on each mission. It is not saved until you press Save rules."
+                : dirty && unsavedPin
+                  ? "Preview again to check drive times from your unsaved address. The minutes below are still the stored ones."
+                  : dirty
+                    ? "This uses the saved rules. Preview again to try the numbers currently in the form."
+                    : "This uses the saved rules, the stored payout, and the stored drive time. Nothing is changed."}
         </p>
+        {driveTimesUpdating && !unsavedPin ? (
+          <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200" aria-live="polite">
+            Drive times are updating from your new address.
+          </p>
+        ) : null}
         {previewError ? (
           <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">{previewError}</p>
         ) : null}

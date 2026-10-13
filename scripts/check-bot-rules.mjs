@@ -12,6 +12,15 @@ const {
   DEFAULT_BOT_SETTINGS,
 } = await import("../libs/botRules.js");
 const { pinFromPlaceDetails, placesError, suggestionsFromAutocomplete } = await import("../libs/places.js");
+const {
+  MAX_ROUTE_CALLS,
+  clearDriveTimeCache,
+  computePreviewDriveTimes,
+  destinationForListing,
+  listingsWithDraftDrives,
+  minutesFromDuration,
+  storedDrivesMatch,
+} = await import("../libs/driveTimes.js");
 
 const defaults = { ...DEFAULT_BOT_SETTINGS };
 
@@ -174,5 +183,116 @@ assert.match(sql, /GRANT ALL ON TABLE public\.bot_settings TO service_role/);
 assert.match(sql, /GRANT SELECT, UPDATE ON TABLE public\.bot_settings TO authenticated/);
 assert.match(sql, /INSERT INTO public\.bot_settings \(id\)/);
 assert.doesNotMatch(sql, /USING\s*\(\s*true\s*\)/i);
+
+assert.equal(destinationForListing({ latitude: 0, longitude: 0, address: "1 Main St" }).kind, "address");
+assert.equal(destinationForListing({ latitude: null, longitude: null, address: "1 Main St" }).kind, "address");
+assert.equal(destinationForListing({ latitude: "0.000000", longitude: "0", address: "1 Main St" }).kind, "address");
+assert.equal(destinationForListing({ latitude: 38.8, longitude: -76.8, address: "1 Main St" }).kind, "coordinates");
+assert.equal(destinationForListing({ address: "   " }).kind, "missing");
+assert.equal(minutesFromDuration("3720s"), 62);
+assert.equal(minutesFromDuration("0s"), 0);
+assert.equal(minutesFromDuration("nope"), null);
+
+const origin = { lat: 38.737679, lng: -76.894043 };
+clearDriveTimeCache();
+const far = {
+  id: "far",
+  payout: 80,
+  travelTime: 20,
+  firstSeenAt: "2026-06-15T16:00:00.000Z",
+  address: "Far Farm",
+  latitude: 0,
+  longitude: 0,
+};
+const draftedLookup = await computePreviewDriveTimes(origin, [far], {
+  apiKey: "test",
+  fetchImpl: async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.destination.address, "Far Farm");
+    assert.equal(body.destination.location, undefined);
+    assert.equal(options.headers["X-Goog-FieldMask"], "routes.duration");
+    return { ok: true, status: 200, json: async () => ({ routes: [{ duration: "5400s" }] }) };
+  },
+});
+assert.equal(draftedLookup.calls, 1);
+assert.equal(draftedLookup.byId.get("far").minutes, 90);
+const drafted = listingsWithDraftDrives([far], draftedLookup.byId);
+assert.equal(far.travelTime, 20);
+assert.equal(drafted[0].travelTime, 90);
+assert.equal(decideListing(drafted[0], defaults).reason, "long_trip_payout");
+const cached = await computePreviewDriveTimes(origin, [far], {
+  apiKey: "test",
+  fetchImpl: async () => {
+    throw new Error("cache should answer");
+  },
+});
+assert.equal(cached.calls, 0);
+assert.equal(cached.cacheHits, 1);
+assert.equal(storedDrivesMatch([far], draftedLookup.byId), false);
+assert.equal(
+  storedDrivesMatch([{ id: "far", travelTime: 90 }], draftedLookup.byId),
+  true
+);
+assert.equal(
+  storedDrivesMatch([{ id: "far", travelTime: 20 }], new Map([["far", { minutes: null, source: "missing" }]])),
+  null
+);
+
+clearDriveTimeCache();
+let coordinateBody;
+await computePreviewDriveTimes(origin, [{
+  id: "pin",
+  address: "Do not use this",
+  latitude: 39.1,
+  longitude: -76.8,
+  firstSeenAt: "2026-06-15T16:00:00.000Z",
+  travelTime: 5,
+}], {
+  apiKey: "test",
+  fetchImpl: async (_url, options) => {
+    coordinateBody = JSON.parse(options.body);
+    return { ok: true, status: 200, json: async () => ({ routes: [{ duration: "120s" }] }) };
+  },
+});
+assert.equal(coordinateBody.destination.location.latLng.latitude, 39.1);
+assert.equal(coordinateBody.destination.location.latLng.longitude, -76.8);
+assert.equal(coordinateBody.destination.address, undefined);
+
+clearDriveTimeCache();
+let cappedCalls = 0;
+const many = Array.from({ length: MAX_ROUTE_CALLS + 1 }, (_, index) => ({
+  id: `row-${index}`,
+  address: `${index} Oak Street, Clinton, MD`,
+  latitude: null,
+  longitude: null,
+  travelTime: 15,
+  firstSeenAt: new Date(Date.UTC(2026, 5, 1, 0, index)).toISOString(),
+}));
+const cappedDrives = await computePreviewDriveTimes(origin, many, {
+  apiKey: "test",
+  fetchImpl: async () => {
+    cappedCalls += 1;
+    return { ok: true, status: 200, json: async () => ({ routes: [{ duration: "600s" }] }) };
+  },
+});
+assert.equal(cappedCalls, MAX_ROUTE_CALLS);
+assert.equal(cappedDrives.capped, true);
+assert.equal(cappedDrives.byId.get("row-0").source, "capped");
+assert.equal(cappedDrives.byId.get(`row-${MAX_ROUTE_CALLS}`).minutes, 10);
+assert.equal(listingsWithDraftDrives(many, cappedDrives.byId)[0].travelTime, 15);
+
+clearDriveTimeCache();
+const noKey = await computePreviewDriveTimes(origin, [far], {
+  apiKey: null,
+  fetchImpl: async () => {
+    throw new Error("should not call");
+  },
+});
+assert.equal(noKey.ok, false);
+assert.equal(noKey.reason, "no_key");
+
+const driveRoute = fs.readFileSync(new URL("../pages/api/admin/bot-settings/drive-times.js", import.meta.url), "utf8");
+assert.match(driveRoute, /requireAdmin/);
+assert.doesNotMatch(driveRoute, /\.update\(|\.upsert\(|\.insert\(/);
 
 console.log("Bot rules checks passed.");

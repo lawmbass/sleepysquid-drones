@@ -10,8 +10,9 @@ import {
   sameHomePin,
   validateBotSettings,
 } from "@/libs/botRules";
-import { getBotSettings, previewBotSettings, saveBotSettings } from "@/libs/db/botSettings";
+import { getBotSettings, loadPreviewListings, previewBotSettings, saveBotSettings } from "@/libs/db/botSettings";
 import { geocodeAddress, mapsApiKey } from "@/libs/geocode";
+import { computePreviewDriveTimes, listingsWithDraftDrives } from "@/libs/driveTimes";
 
 const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
@@ -46,15 +47,48 @@ function settingsUnavailable(res) {
   });
 }
 
-async function buildPreview(settings) {
+async function draftDrivePreview(settings) {
+  const listings = await loadPreviewListings(settings);
+  const computed = await computePreviewDriveTimes(
+    { lat: settings.homeLat, lng: settings.homeLng },
+    listings
+  );
+  if (!computed.ok) {
+    return {
+      preview: previewDecisions(listings, settings),
+      previewError:
+        "Drive times from the unsaved address could not be checked. This preview is using the stored drive times.",
+      previewDriveSource: "stored",
+      driveTimesUpdating: false,
+    };
+  }
+  return {
+    preview: previewDecisions(listingsWithDraftDrives(listings, computed.byId), settings),
+    previewError: computed.capped
+      ? "Drive times were checked for the newest 30 missions. Older ones in this window still use the stored drive time."
+      : null,
+    previewDriveSource: "unsaved-pin",
+    driveTimesUpdating: false,
+  };
+}
+
+async function buildPreview(settings, { recomputeDrives } = {}) {
   try {
-    return { preview: await previewBotSettings(settings), previewError: null };
+    if (recomputeDrives) return await draftDrivePreview(settings);
+    return {
+      preview: await previewBotSettings(settings),
+      previewError: null,
+      previewDriveSource: "stored",
+      driveTimesUpdating: false,
+    };
   } catch (error) {
     if (missingSettingsTable(error)) throw error;
     console.error("Bot rules preview error:", error);
     return {
       preview: previewDecisions([], settings),
       previewError: "The last 30 days could not be loaded. The rules themselves are unchanged.",
+      previewDriveSource: "stored",
+      driveTimesUpdating: false,
     };
   }
 }
@@ -144,7 +178,7 @@ export default async function handler(req, res) {
             "The bot_settings row is missing. Apply supabase/migrations/20261013180000_bot_settings.sql, then reload this page.",
         });
       }
-      const { preview, previewError } = await buildPreview(settings);
+      const { preview, previewError, previewDriveSource } = await buildPreview(settings);
       return res.status(200).json({
         success: true,
         data: {
@@ -153,6 +187,7 @@ export default async function handler(req, res) {
           preview,
           previewError,
           previewSource: "saved",
+          previewDriveSource,
         },
       });
     }
@@ -167,7 +202,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { preview, previewError } = await buildPreview(validated.settings);
+      const stored = await getBotSettings();
+      const recomputeDrives = Boolean(stored && !sameHomePin(stored, validated.settings));
+      const { preview, previewError, previewDriveSource } = await buildPreview(validated.settings, {
+        recomputeDrives,
+      });
       return res.status(200).json({
         success: true,
         data: {
@@ -176,6 +215,7 @@ export default async function handler(req, res) {
           preview,
           previewError,
           previewSource: "form",
+          previewDriveSource,
         },
       });
     }
@@ -194,7 +234,8 @@ export default async function handler(req, res) {
     }
 
     const settings = await saveBotSettings(pin.settings, session.user.email);
-    const { preview, previewError } = await buildPreview(settings);
+    const { preview, previewError, previewDriveSource } = await buildPreview(settings);
+    const pinMoved = Boolean(stored && !sameHomePin(stored, settings));
     return res.status(200).json({
       success: true,
       message: pin.geocoded
@@ -207,6 +248,8 @@ export default async function handler(req, res) {
         preview,
         previewError,
         previewSource: "saved",
+        previewDriveSource,
+        ...(pinMoved ? { driveTimesUpdating: true } : {}),
       },
     });
   } catch (error) {

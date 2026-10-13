@@ -61,6 +61,8 @@ function previewColumns(includeNotice) {
     "first_seen_at",
     "title",
     "address",
+    "latitude",
+    "longitude",
   ];
   if (includeNotice) {
     columns.push("raw_detail", "due_window_start", "due_window_end", "deadline", "last_seen_at");
@@ -68,7 +70,7 @@ function previewColumns(includeNotice) {
   return columns.join(", ");
 }
 
-export async function previewBotSettings(settings, now = new Date()) {
+export async function loadPreviewListings(settings, now = new Date()) {
   const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const rows = await fetchAll(() =>
     db()
@@ -78,7 +80,7 @@ export async function previewBotSettings(settings, now = new Date()) {
       .order("first_seen_at", { ascending: true })
   );
 
-  const listings = rows.map((row) => ({
+  return rows.map((row) => ({
     id: row.id,
     externalMissionId: row.external_mission_id,
     payout: num(row.payout),
@@ -86,12 +88,17 @@ export async function previewBotSettings(settings, now = new Date()) {
     firstSeenAt: row.first_seen_at,
     title: row.title,
     address: row.address,
+    latitude: num(row.latitude),
+    longitude: num(row.longitude),
     rawDetail: row.raw_detail || null,
     dueWindowStart: row.due_window_start || null,
     dueWindowEnd: row.due_window_end || null,
     deadline: row.deadline || null,
     lastSeenAt: row.last_seen_at || null,
   }));
+}
 
+export async function previewBotSettings(settings, now = new Date()) {
+  const listings = await loadPreviewListings(settings, now);
   return previewDecisions(listings, settings, now);
 }
