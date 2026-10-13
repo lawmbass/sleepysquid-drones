@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { FiEdit2 } from "react-icons/fi";
 import HomeAddressField from "@/components/admin/HomeAddressField";
 import {
   DECISION_LABELS,
@@ -67,11 +68,24 @@ function minutes(value) {
   return `${Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 })} min`;
 }
 
+function EditHint() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+      <FiEdit2 className="h-3.5 w-3.5" aria-hidden="true" />
+      Edit
+    </span>
+  );
+}
+
 function Field({ id, label, help, error, children }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-900 dark:text-white">
-        {label}
+      <label
+        htmlFor={id}
+        className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        <span>{label}</span>
+        <EditHint />
       </label>
       <p id={`${id}-help`} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {help}
@@ -87,7 +101,7 @@ function Field({ id, label, help, error, children }) {
 }
 
 const inputClass =
-  "block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white";
+  "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
 
 export default function BotRulesSection() {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -264,15 +278,18 @@ export default function BotRulesSection() {
         }}
       >
         <div>
-          <p className="block text-sm font-medium text-gray-900 dark:text-white">Accept gigs automatically</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Accept gigs automatically</p>
+            <EditHint />
+          </div>
           <p id="autoAcceptEnabled-help" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Turn this off to keep recording missions the bot sees, without accepting them.
           </p>
-          <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+          <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">
             <input
               id="autoAcceptEnabled"
               type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               checked={form.autoAcceptEnabled}
               aria-describedby="autoAcceptEnabled-help"
               onChange={(event) => setField("autoAcceptEnabled", event.target.checked)}
@@ -407,22 +424,42 @@ export default function BotRulesSection() {
           }}
         />
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="submit"
-            disabled={saving || previewing}
-            className="min-h-11 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+        <div
+          className={`flex flex-col gap-3 rounded-md border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+            dirty
+              ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40"
+              : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40"
+          }`}
+        >
+          <p
+            className={`text-sm font-medium ${
+              dirty ? "text-amber-800 dark:text-amber-200" : "text-gray-600 dark:text-gray-300"
+            }`}
+            aria-live="polite"
           >
-            {saving ? "Saving..." : "Save rules"}
-          </button>
-          <button
-            type="button"
-            disabled={saving || previewing}
-            className="min-h-11 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-            onClick={() => send("POST")}
-          >
-            {previewing ? "Checking..." : "Preview last 30 days"}
-          </button>
+            {dirty ? "You have unsaved changes." : "All changes are saved."}
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              disabled={saving || previewing || !dirty}
+              className={`min-h-11 rounded-md px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                dirty
+                  ? "cursor-pointer bg-blue-600 text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  : "cursor-default border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              }`}
+            >
+              {saving ? "Saving..." : dirty ? "Save changes" : "Save rules"}
+            </button>
+            <button
+              type="button"
+              disabled={saving || previewing}
+              className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
+              onClick={() => send("POST")}
+            >
+              {previewing ? "Checking..." : "Preview last 30 days"}
+            </button>
+          </div>
         </div>
       </form>
 

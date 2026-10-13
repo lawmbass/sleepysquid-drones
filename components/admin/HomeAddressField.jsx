@@ -1,8 +1,18 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { FiEdit2 } from "react-icons/fi";
 import { normalizeAddress } from "@/libs/botRules";
 
 const inputClass =
-  "block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-3 text-base shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white";
+  "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
+
+function EditHint() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+      <FiEdit2 className="h-3.5 w-3.5" aria-hidden="true" />
+      Edit
+    </span>
+  );
+}
 
 function newSessionToken() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -203,8 +213,12 @@ export default function HomeAddressField({
 
   return (
     <div>
-      <label htmlFor="homeAddress" className="block text-sm font-medium text-gray-900 dark:text-white">
-        Home address
+      <label
+        htmlFor="homeAddress"
+        className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        <span>Home address</span>
+        <EditHint />
       </label>
       <p id={helpId} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {mapsAvailable && !searchBroken
@@ -313,8 +327,12 @@ export default function HomeAddressField({
           {manualOpen ? (
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="manualLat" className="block text-sm font-medium text-gray-900 dark:text-white">
-                  Latitude
+                <label
+                  htmlFor="manualLat"
+                  className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  <span>Latitude</span>
+                  <EditHint />
                 </label>
                 <input
                   id="manualLat"
@@ -327,8 +345,12 @@ export default function HomeAddressField({
                 />
               </div>
               <div>
-                <label htmlFor="manualLng" className="block text-sm font-medium text-gray-900 dark:text-white">
-                  Longitude
+                <label
+                  htmlFor="manualLng"
+                  className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  <span>Longitude</span>
+                  <EditHint />
                 </label>
                 <input
                   id="manualLng"
@@ -346,7 +368,7 @@ export default function HomeAddressField({
               <div className="sm:col-span-2">
                 <button
                   type="button"
-                  className="min-h-11 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                  className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                   onClick={applyManual}
                 >
                   Use these coordinates
