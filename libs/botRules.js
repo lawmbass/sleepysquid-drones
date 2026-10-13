@@ -3,8 +3,10 @@
  *
  * The drone-gigs bot reads that row. This file is the dashboard's check of
  * the same numbers, plus a preview of how recent listings would be decided.
- * The preview uses the payout and drive time already stored on each listing.
- * It does not write anything.
+ * The preview uses the payout and drive time already stored on each listing,
+ * unless the form has an unsaved home pin. That preview asks the Routes API
+ * for draft drive minutes and does not write them. The bot fills stored
+ * travel_time after the address is saved.
  *
  * A drive time is mission_listings.travel_time, in minutes.
  * A long trip is a drive of long_trip_minutes or longer.
