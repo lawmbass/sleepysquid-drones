@@ -44,31 +44,6 @@ function settingsUnavailable(res) {
   });
 }
 
-async function requireAdmin(req, res) {
-  try {
-    await rateLimitMiddleware(req, res);
-  } catch (error) {
-    return null;
-  }
-
-  const session = await getServerSession(req, res, authOptions);
-  if (!session?.user?.email) {
-    res.status(401).json({
-      error: "Unauthorized",
-      message: "Authentication required. Please sign in.",
-    });
-    return null;
-  }
-  if (!adminConfig.isAdmin(session.user.email)) {
-    res.status(403).json({
-      error: "Forbidden",
-      message: "Admin access required. Insufficient permissions.",
-    });
-    return null;
-  }
-  return session;
-}
-
 async function buildPreview(settings) {
   try {
     return { preview: await previewBotSettings(settings), previewError: null };
@@ -120,13 +95,30 @@ async function resolveHomePin(settings, stored) {
 }
 
 export default async function handler(req, res) {
-  const session = await requireAdmin(req, res);
-  if (!session) return;
+  try {
+    await rateLimitMiddleware(req, res);
+  } catch (error) {
+    return;
+  }
 
   if (!["GET", "POST", "PUT"].includes(req.method)) {
     return res.status(405).json({
       error: "Method not allowed",
       message: "Only GET, POST, and PUT requests are allowed",
+    });
+  }
+
+  const session = await getServerSession(req, res, authOptions);
+  if (!session?.user?.email) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required. Please sign in.",
+    });
+  }
+  if (!adminConfig.isAdmin(session.user.email)) {
+    return res.status(403).json({
+      error: "Forbidden",
+      message: "Admin access required. Insufficient permissions.",
     });
   }
 
