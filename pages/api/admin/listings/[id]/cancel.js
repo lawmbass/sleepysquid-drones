@@ -6,8 +6,6 @@ import { findListingById, updateListingCancel } from "@/libs/db/listings";
 import { findBookingById, updateBooking } from "@/libs/db/bookings";
 import { isUuid } from "@/libs/db/shared";
 import { cancelGigVisibility } from "@/libs/cancelGig";
-import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
-import { scheduledFlightLongPast } from "@/libs/jobs";
 
 const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
@@ -69,12 +67,15 @@ export default async function handler(req, res) {
     const linkedBooking = existing.bookingId ? await findBookingById(existing.bookingId) : null;
     const visibility = cancelGigVisibility({
       listing: existing,
+      booking: linkedBooking,
       bookingStatus: linkedBooking?.status,
     });
     if ((action === "request" || action === "confirm") && !visibility.showCancel) {
       return res.status(400).json({
         error: "Gig completed",
-        message: "This gig is completed, so it can't be cancelled from here",
+        message: visibility.botAccepted
+          ? "This gig is completed, so it can't be cancelled from here"
+          : "Cancel gig is only available for a mission the bot accepted that is still pending",
       });
     }
     if (action === "undo" && !visibility.showUndo) {
@@ -141,9 +142,12 @@ export default async function handler(req, res) {
       }
     }
     listing.bookingStatus = bookingStatus;
-    listing.workComplete = listingWorkComplete(listing)
-      || scheduledFlightLongPast(listing)
-      || bookingWorkComplete(bookingStatus);
+    listing.bookingAcceptedAt = linkedBooking?.acceptedAt || listing.bookingAcceptedAt || null;
+    listing.workComplete = cancelGigVisibility({
+      listing,
+      booking: linkedBooking ? { ...linkedBooking, status: bookingStatus } : null,
+      bookingStatus,
+    }).workComplete;
 
     return res.status(200).json({
       success: true,

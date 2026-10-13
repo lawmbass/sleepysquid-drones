@@ -366,15 +366,14 @@ export default function ListingsSection() {
                           {statusLabel(listing.status)}
                         </span>
                         <CancelStatusBadge status={listing.cancelStatus} />
-                        {listing.status === "accepted" && (
-                          <CancelGigButton
-                            listingId={listing.id}
-                            listing={listing}
-                            bookingStatus={listing.bookingStatus}
-                            workComplete={listing.workComplete}
-                            onUpdated={() => fetchListings()}
-                          />
-                        )}
+                        <CancelGigButton
+                          listingId={listing.id}
+                          listing={listing}
+                          bookingStatus={listing.bookingStatus}
+                          bookingAcceptedAt={listing.bookingAcceptedAt}
+                          workComplete={listing.workComplete}
+                          onUpdated={() => fetchListings()}
+                        />
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{listing.missionType || "—"}</td>
@@ -446,18 +445,17 @@ export default function ListingsSection() {
                     {statusLabel(detail.status)}
                   </span>
                   <CancelStatusBadge status={detail.cancelStatus} />
-                  {detail.status === "accepted" && (
-                    <CancelGigButton
-                      listingId={detail.id}
-                      listing={detail}
-                      bookingStatus={detail.bookingStatus}
-                      workComplete={detail.workComplete}
-                      onUpdated={(listing) => {
-                        setDetail(listing);
-                        fetchListings();
-                      }}
-                    />
-                  )}
+                  <CancelGigButton
+                    listingId={detail.id}
+                    listing={detail}
+                    bookingStatus={detail.bookingStatus}
+                    bookingAcceptedAt={detail.bookingAcceptedAt}
+                    workComplete={detail.workComplete}
+                    onUpdated={(listing) => {
+                      setDetail(listing);
+                      fetchListings();
+                    }}
+                  />
                   {detail.declineReason && (
                     <span className="inline-flex rounded-full bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200">
                       {detail.declineReason}

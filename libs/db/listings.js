@@ -34,6 +34,7 @@ export function mapListing(row) {
     rawEmailText: row.raw_email_text,
     rawDetail: row.raw_detail,
     bookingId: row.booking_id,
+    botAcceptedAt: row.bot_accepted_at || null,
     adminNotes: row.admin_notes || "",
     tags: row.tags || [],
     cancelStatus: row.cancel_status || null,
@@ -70,6 +71,7 @@ const LIST_COLUMNS = [
   "required_certifications",
   "deliverables",
   "booking_id",
+  "bot_accepted_at",
   "admin_notes",
   "tags",
   "cancel_status",
@@ -106,15 +108,19 @@ function applyListingFilters(query, filters = {}) {
 async function attachBookingStatus(listings) {
   const ids = [...new Set(listings.map((listing) => listing?.bookingId).filter(Boolean))];
   if (!ids.length) {
-    return listings.map((listing) => ({ ...listing, bookingStatus: null }));
+    return listings.map((listing) => ({ ...listing, bookingStatus: null, bookingAcceptedAt: null }));
   }
-  const { data, error } = await db().from("bookings").select("id, status").in("id", ids);
+  const { data, error } = await db().from("bookings").select("id, status, accepted_at").in("id", ids);
   assertNoError(error);
-  const byId = new Map((data || []).map((row) => [row.id, row.status]));
-  return listings.map((listing) => ({
-    ...listing,
-    bookingStatus: listing.bookingId ? byId.get(listing.bookingId) || null : null,
-  }));
+  const byId = new Map((data || []).map((row) => [row.id, row]));
+  return listings.map((listing) => {
+    const booking = listing.bookingId ? byId.get(listing.bookingId) : null;
+    return {
+      ...listing,
+      bookingStatus: booking?.status || null,
+      bookingAcceptedAt: booking?.accepted_at || null,
+    };
+  });
 }
 
 function withWorkComplete(listing, { keepDetail = false } = {}) {
@@ -146,7 +152,7 @@ export async function listUnlinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
+      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, bot_accepted_at, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .is("booking_id", null)
   );
@@ -167,7 +173,7 @@ export async function listLinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, booking_id, status, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
+      .select("id, booking_id, status, bot_accepted_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .not("booking_id", "is", null)
   );

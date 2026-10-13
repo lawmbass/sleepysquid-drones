@@ -3,21 +3,13 @@
  * The browser opens the draft. This module does not send mail.
  */
 
-import { listingSchedule, scheduledFlightLongPast } from "./jobs.js";
-import {
-  bookingWorkComplete,
-  cancelGigVisibility as visibilityFromMarkers,
-  listingWorkComplete,
-} from "./gigComplete.js";
+import { gigCardState, listingSchedule } from "./jobs.js";
+import { bookingWorkComplete, listingWorkComplete } from "./gigComplete.js";
 
 export { bookingWorkComplete, listingWorkComplete };
 
 export function cancelGigVisibility(args = {}) {
-  const past = scheduledFlightLongPast(args.listing, args.now);
-  return visibilityFromMarkers({
-    ...args,
-    workComplete: args.workComplete === true || past ? true : args.workComplete,
-  });
+  return gigCardState(args);
 }
 
 export const PILOT_EMAIL = "pilots@dronebase.com";

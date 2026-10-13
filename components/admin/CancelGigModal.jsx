@@ -8,6 +8,7 @@ import {
   mailtoUrl,
   scheduleForListing,
 } from "@/libs/cancelGig";
+import { gigCardState } from "@/libs/jobs";
 
 const BADGE_STYLES = {
   cancel_requested: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100",
@@ -33,19 +34,29 @@ export function CancelStatusBadge({ status }) {
 export function CancelGigButton({
   listingId,
   listing,
+  job,
+  booking,
   bookingStatus,
-  unlinkedListing = false,
+  bookingAcceptedAt,
+  unlinkedListing,
   workComplete,
   onUpdated,
   className = "",
 }) {
   const [open, setOpen] = useState(false);
-  const id = listingId || listing?.id;
-  const actions = cancelGigVisibility({
-    listing: listing || { id, status: "accepted", cancelStatus: null },
-    bookingStatus,
-    unlinkedListing,
-    workComplete,
+  const id = listingId || listing?.id || job?.listingId || (job?.unlinkedListing ? job?.id : null);
+  const actions = gigCardState({
+    listing,
+    job,
+    booking: booking || (bookingStatus || bookingAcceptedAt || listing?.bookingStatus || listing?.bookingAcceptedAt
+      ? {
+        status: bookingStatus || listing?.bookingStatus,
+        acceptedAt: bookingAcceptedAt || listing?.bookingAcceptedAt,
+      }
+      : null),
+    bookingStatus: bookingStatus || listing?.bookingStatus,
+    unlinkedListing: unlinkedListing ?? job?.unlinkedListing,
+    workComplete: workComplete ?? job?.workComplete,
   });
   if (!id || (!actions.showCancel && !actions.showUndo)) return null;
   return (
@@ -132,7 +143,13 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
     : null;
   const reasonReady = reason.trim().length > 0;
   const actions = listing
-    ? cancelGigVisibility({ listing, bookingStatus: listing.bookingStatus })
+    ? cancelGigVisibility({
+      listing,
+      booking: listing.bookingId
+        ? { id: listing.bookingId, status: listing.bookingStatus, acceptedAt: listing.bookingAcceptedAt }
+        : null,
+      bookingStatus: listing.bookingStatus,
+    })
     : { showCancel: false, showUndo: false, workComplete: false };
 
   useEffect(() => {
@@ -216,7 +233,7 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
           {!listing && !loadError && <p className="text-sm text-gray-500 dark:text-gray-400">Loading gig…</p>}
           {listing && !actions.showCancel && !actions.showUndo && (
             <p className="text-sm text-gray-700 dark:text-gray-200">
-              This gig is completed, so Cancel gig is closed.
+              Cancel gig is closed for this mission.
             </p>
           )}
           {listing && actions.showUndo && !actions.showCancel && (
