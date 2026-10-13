@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { DECISION_LABELS, REASON_LABELS, validateBotSettings } from "@/libs/botRules";
+import { FiEdit2 } from "react-icons/fi";
+import HomeAddressField from "@/components/admin/HomeAddressField";
+import {
+  DECISION_LABELS,
+  HOME_PIN_REJECTED,
+  REASON_LABELS,
+  homeAddressChanged,
+  validateBotSettings,
+} from "@/libs/botRules";
 
 const EMPTY_FORM = {
   autoAcceptEnabled: true,
@@ -60,11 +68,24 @@ function minutes(value) {
   return `${Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 })} min`;
 }
 
+function EditHint() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+      <FiEdit2 className="h-3.5 w-3.5" aria-hidden="true" />
+      Edit
+    </span>
+  );
+}
+
 function Field({ id, label, help, error, children }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-900 dark:text-white">
-        {label}
+      <label
+        htmlFor={id}
+        className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        <span>{label}</span>
+        <EditHint />
       </label>
       <p id={`${id}-help`} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {help}
@@ -80,7 +101,7 @@ function Field({ id, label, help, error, children }) {
 }
 
 const inputClass =
-  "block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white";
+  "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
 
 export default function BotRulesSection() {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -92,6 +113,8 @@ export default function BotRulesSection() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [mapsKeyConfigured, setMapsKeyConfigured] = useState(false);
+  const [pinSource, setPinSource] = useState("saved");
+  const [coordinateFallback, setCoordinateFallback] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [updatedBy, setUpdatedBy] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -102,6 +125,8 @@ export default function BotRulesSection() {
     if (replaceForm && data.settings) {
       const next = formFromSettings(data.settings);
       setForm(next);
+      setPinSource("saved");
+      setCoordinateFallback(false);
       setSavedKey(JSON.stringify(payloadFromForm(next)));
       setUpdatedAt(data.settings.updatedAt || null);
       setUpdatedBy(data.settings.updatedBy || null);
@@ -148,11 +173,29 @@ export default function BotRulesSection() {
 
   async function send(method) {
     const payload = payloadFromForm(form);
+    const saved = savedKey ? JSON.parse(savedKey) : {};
+    if (
+      method === "PUT" &&
+      homeAddressChanged(saved.homeAddress, payload.homeAddress) &&
+      pinSource === "none" &&
+      !mapsKeyConfigured
+    ) {
+      setCoordinateFallback(true);
+      setFieldErrors({ homeAddress: HOME_PIN_REJECTED });
+      setNotice("");
+      setError(HOME_PIN_REJECTED);
+      return;
+    }
     const validated = validateBotSettings(payload);
     if (!validated.ok) {
-      setFieldErrors(errorsByField(validated.errors));
+      const errors = errorsByField(validated.errors);
+      if ((errors.homeLat || errors.homeLng) && !errors.homeAddress) {
+        errors.homeAddress = HOME_PIN_REJECTED;
+        setCoordinateFallback(true);
+      }
+      setFieldErrors(errors);
       setNotice("");
-      setError(validated.errors[0].message);
+      setError(errors.homeAddress || validated.errors[0].message);
       return;
     }
 
@@ -166,11 +209,14 @@ export default function BotRulesSection() {
         method,
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, homePinSource: pinSource }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setFieldErrors(errorsByField(body.errors));
+        if (body.errors?.some((item) => item.field === "homeAddress")) {
+          setCoordinateFallback(true);
+        }
         throw new Error(body.message || "Could not update bot rules.");
       }
       applyResponse(body.data || {}, { replaceForm: method === "PUT" });
@@ -225,22 +271,25 @@ export default function BotRulesSection() {
       ) : null}
 
       <form
-        className="space-y-8 rounded-lg bg-white p-6 shadow dark:bg-gray-800"
+        className="space-y-8 rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6"
         onSubmit={(event) => {
           event.preventDefault();
           send("PUT");
         }}
       >
         <div>
-          <p className="block text-sm font-medium text-gray-900 dark:text-white">Accept gigs automatically</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Accept gigs automatically</p>
+            <EditHint />
+          </div>
           <p id="autoAcceptEnabled-help" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Turn this off to keep recording missions the bot sees, without accepting them.
           </p>
-          <label className="mt-2 inline-flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+          <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">
             <input
               id="autoAcceptEnabled"
               type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               checked={form.autoAcceptEnabled}
               aria-describedby="autoAcceptEnabled-help"
               onChange={(event) => setField("autoAcceptEnabled", event.target.checked)}
@@ -354,80 +403,63 @@ export default function BotRulesSection() {
           </Field>
         </div>
 
-        <Field
-          id="homeAddress"
-          label="Home address"
-          help={
-            mapsKeyConfigured
-              ? "Drive time is measured from here. A changed address is looked up on the map when you save, and the pin below is replaced."
-              : "Drive time is measured from here. No Maps key is set, so a changed address also needs a new latitude and longitude. The old pin is not reused."
-          }
+        <HomeAddressField
+          address={form.homeAddress}
+          lat={form.homeLat}
+          lng={form.homeLng}
+          pinSource={pinSource}
+          mapsAvailable={mapsKeyConfigured}
+          fallbackRequested={coordinateFallback}
           error={fieldErrors.homeAddress}
+          disabled={saving || previewing}
+          onChange={(next) => {
+            setForm((current) => ({
+              ...current,
+              homeAddress: next.address,
+              homeLat: next.lat,
+              homeLng: next.lng,
+            }));
+            setPinSource(next.pinSource);
+            setFieldErrors((current) => ({ ...current, homeAddress: "" }));
+          }}
+        />
+
+        <div
+          className={`flex flex-col gap-3 rounded-md border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+            dirty
+              ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40"
+              : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40"
+          }`}
         >
-          <input
-            id="homeAddress"
-            type="text"
-            className={inputClass}
-            value={form.homeAddress}
-            aria-describedby={describedBy("homeAddress")}
-            aria-invalid={Boolean(fieldErrors.homeAddress)}
-            onChange={(event) => setField("homeAddress", event.target.value)}
-          />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Field
-            id="homeLat"
-            label="Latitude"
-            help="A number from -90 to 90. Filled in from the address when a Maps key is set."
-            error={fieldErrors.homeLat}
+          <p
+            className={`text-sm font-medium ${
+              dirty ? "text-amber-800 dark:text-amber-200" : "text-gray-600 dark:text-gray-300"
+            }`}
+            aria-live="polite"
           >
-            <input
-              id="homeLat"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.homeLat}
-              aria-describedby={describedBy("homeLat")}
-              aria-invalid={Boolean(fieldErrors.homeLat)}
-              onChange={(event) => setField("homeLat", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="homeLng"
-            label="Longitude"
-            help="A number from -180 to 180. Filled in from the address when a Maps key is set."
-            error={fieldErrors.homeLng}
-          >
-            <input
-              id="homeLng"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.homeLng}
-              aria-describedby={describedBy("homeLng")}
-              aria-invalid={Boolean(fieldErrors.homeLng)}
-              onChange={(event) => setField("homeLng", event.target.value)}
-            />
-          </Field>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="submit"
-            disabled={saving || previewing}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Save rules"}
-          </button>
-          <button
-            type="button"
-            disabled={saving || previewing}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-            onClick={() => send("POST")}
-          >
-            {previewing ? "Checking..." : "Preview last 30 days"}
-          </button>
+            {dirty ? "You have unsaved changes." : "All changes are saved."}
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              disabled={saving || previewing || !dirty}
+              className={`min-h-11 rounded-md px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                dirty
+                  ? "cursor-pointer bg-blue-600 text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  : "cursor-default border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+              }`}
+            >
+              {saving ? "Saving..." : dirty ? "Save changes" : "Save rules"}
+            </button>
+            <button
+              type="button"
+              disabled={saving || previewing}
+              className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
+              onClick={() => send("POST")}
+            >
+              {previewing ? "Checking..." : "Preview last 30 days"}
+            </button>
+          </div>
         </div>
       </form>
 

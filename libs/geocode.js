@@ -38,9 +38,11 @@ export async function geocodeAddress(address) {
     return { ok: false, reason: body?.status || "empty" };
   }
 
+  const formattedAddress = String(body.results[0].formatted_address || "").trim();
   return {
     ok: true,
     lat: location.lat,
     lng: location.lng,
+    formattedAddress: formattedAddress || null,
   };
 }

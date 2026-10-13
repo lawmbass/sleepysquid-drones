@@ -75,6 +75,28 @@ export function sameHomePin(previous, next) {
   return Math.abs(lat - nextLat) < 1e-6 && Math.abs(lng - nextLng) < 1e-6;
 }
 
+export const HOME_PIN_REJECTED =
+  "Choose an address from the suggestions, or enter the coordinates.";
+
+export const HOME_PIN_SAME =
+  "Those coordinates match the saved pin. Enter the coordinates for the new address.";
+
+/**
+ * An address change is saved when the admin picked a suggestion, entered
+ * coordinates, or the server geocoded the typed address. A typed address
+ * with none of those is rejected.
+ */
+export function classifyHomePin({ addressChanged, pinSource, samePin }) {
+  if (pinSource === "manual") {
+    if (!addressChanged && samePin) return { action: "keep" };
+    if (addressChanged && samePin) return { action: "reject", message: HOME_PIN_SAME };
+    return { action: "use-client" };
+  }
+  if (!addressChanged) return { action: "keep" };
+  if (pinSource === "place") return { action: "use-client" };
+  return { action: "geocode" };
+}
+
 function fail(errors, field, message) {
   errors.push({ field, message });
 }

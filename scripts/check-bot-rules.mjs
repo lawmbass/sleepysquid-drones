@@ -3,12 +3,15 @@ import fs from "node:fs";
 
 const {
   decideListing,
+  HOME_PIN_REJECTED,
+  classifyHomePin,
   homeAddressChanged,
   previewDecisions,
   sameHomePin,
   validateBotSettings,
   DEFAULT_BOT_SETTINGS,
 } = await import("../libs/botRules.js");
+const { pinFromPlaceDetails, placesError, suggestionsFromAutocomplete } = await import("../libs/places.js");
 
 const defaults = { ...DEFAULT_BOT_SETTINGS };
 
@@ -105,6 +108,47 @@ assert.equal(homeAddressChanged("11205 Keystone Avenue, Clinton, MD", "  11205  
 assert.equal(homeAddressChanged(defaults.homeAddress, "1 Main Street, Waldorf, MD"), true);
 assert.equal(sameHomePin(defaults, { homeLat: "38.737679", homeLng: -76.894043 }), true);
 assert.equal(sameHomePin(defaults, { homeLat: 39, homeLng: -77 }), false);
+
+assert.deepEqual(classifyHomePin({ addressChanged: false, pinSource: "none", samePin: true }), { action: "keep" });
+assert.deepEqual(classifyHomePin({ addressChanged: true, pinSource: "place", samePin: true }), { action: "use-client" });
+assert.deepEqual(classifyHomePin({ addressChanged: true, pinSource: "manual", samePin: false }), { action: "use-client" });
+assert.equal(classifyHomePin({ addressChanged: true, pinSource: "manual", samePin: true }).message, "Those coordinates match the saved pin. Enter the coordinates for the new address.");
+assert.deepEqual(classifyHomePin({ addressChanged: true, pinSource: "none", samePin: false }), { action: "geocode" });
+assert.equal(classifyHomePin({ addressChanged: false, pinSource: "saved", samePin: true }).action, "keep");
+
+const suggestions = suggestionsFromAutocomplete({
+  suggestions: [
+    {
+      placePrediction: {
+        placeId: "ChIJkeystone",
+        text: { text: "11205 Keystone Avenue, Clinton, MD, USA" },
+        structuredFormat: {
+          mainText: { text: "11205 Keystone Avenue" },
+          secondaryText: { text: "Clinton, MD, USA" },
+        },
+      },
+    },
+    { placePrediction: { placeId: "bad id", text: { text: "skip" } } },
+  ],
+});
+assert.equal(suggestions.length, 1);
+assert.equal(suggestions[0].mainText, "11205 Keystone Avenue");
+assert.deepEqual(
+  pinFromPlaceDetails({
+    shortFormattedAddress: "11205 Keystone Ave, Clinton, MD 20735",
+    formattedAddress: "11205 Keystone Avenue, Clinton, MD 20735, USA",
+    location: { latitude: 38.737679, longitude: -76.894043 },
+  }),
+  {
+    formattedAddress: "11205 Keystone Ave, Clinton, MD 20735",
+    lat: 38.737679,
+    lng: -76.894043,
+  }
+);
+assert.equal(pinFromPlaceDetails({ formattedAddress: "no pin" }), null);
+assert.equal(placesError("no_key").body.code, "search_unavailable");
+assert.equal(placesError("network").body.message.includes("coordinates"), true);
+assert.equal(HOME_PIN_REJECTED.includes("suggestions"), true);
 
 const sql = fs.readFileSync(new URL("../supabase/migrations/20261013180000_bot_settings.sql", import.meta.url), "utf8");
 for (const column of [
