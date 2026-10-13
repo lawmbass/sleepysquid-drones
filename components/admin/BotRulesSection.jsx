@@ -104,6 +104,35 @@ function Field({ id, label, help, error, children }) {
 const inputClass =
   "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
 
+function ReasonChips({ sample }) {
+  const chips = Array.isArray(sample.failures) && sample.failures.length
+    ? sample.failures
+    : sample.reason
+      ? [{
+          code: sample.reason,
+          tone: sample.decision === "unsure" ? "unsure" : "decline",
+          text: REASON_LABELS[sample.reason] || sample.reason,
+        }]
+      : [];
+  if (!chips.length) return null;
+  return (
+    <ul className="mt-1 flex max-w-[14rem] flex-wrap gap-1 sm:max-w-xs">
+      {chips.map((chip) => (
+        <li
+          key={chip.code}
+          className={`max-w-full rounded px-1.5 py-0.5 text-xs leading-snug ${
+            chip.tone === "unsure"
+              ? "bg-amber-100 text-amber-950 dark:bg-amber-900/50 dark:text-amber-100"
+              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100"
+          }`}
+        >
+          {chip.text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function BotRulesSection() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [savedKey, setSavedKey] = useState("");
@@ -623,13 +652,9 @@ export default function BotRulesSection() {
                         </td>
                         <td className="py-2 pr-4">{money(sample.payout)}</td>
                         <td className="py-2 pr-4">{minutes(sample.travelTime)}</td>
-                        <td className="py-2">
+                        <td className="py-2 align-top">
                           <div>{DECISION_LABELS[sample.decision] || sample.decision}</div>
-                          {sample.reason ? (
-                            <div className="text-gray-500 dark:text-gray-400">
-                              {REASON_LABELS[sample.reason] || sample.reason}
-                            </div>
-                          ) : null}
+                          <ReasonChips sample={sample} />
                         </td>
                       </tr>
                     ))}

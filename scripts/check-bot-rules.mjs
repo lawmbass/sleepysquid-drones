@@ -6,6 +6,7 @@ const {
   HOME_PIN_REJECTED,
   classifyHomePin,
   homeAddressChanged,
+  explainListing,
   previewDecisions,
   sameHomePin,
   validateBotSettings,
@@ -97,6 +98,73 @@ const byId = Object.fromEntries(capped.samples.map((sample) => [sample.id, sampl
 assert.equal(byId.a, null);
 assert.equal(byId.b, "daily_cap");
 assert.equal(byId.c, null);
+assert.deepEqual(capped.samples.find((sample) => sample.id === "a").failures, []);
+assert.deepEqual(
+  capped.samples.find((sample) => sample.id === "b").failures.map((failure) => failure.code),
+  ["daily_cap"]
+);
+
+const stackedRules = {
+  ...defaults,
+  minPayoutUsd: 50,
+  longTripMinutes: 60,
+  longTripMinPayoutUsd: 100,
+  maxDriveMinutes: 70,
+  minNoticeHours: 12,
+  dailyAcceptCap: 1,
+};
+const stacked = listing({
+  id: "stacked",
+  payout: 40,
+  travelTime: 75,
+  firstSeenAt: "2026-06-15T20:00:00.000Z",
+  rawDetail: { text: "06/15/2026 06:00PM\nYou must arrive on time" },
+});
+assert.equal(decideListing(stacked, stackedRules).reason, "payout_below_minimum");
+assert.equal(decideListing(stacked, { ...stackedRules, autoAcceptEnabled: false }).reason, "auto_accept_off");
+const stackedPreview = previewDecisions(
+  [
+    listing({ id: "opener", firstSeenAt: "2026-06-15T16:00:00.000Z", payout: 200, travelTime: 10 }),
+    stacked,
+  ],
+  stackedRules,
+  new Date("2026-06-16T12:00:00.000Z")
+);
+const stackedRow = stackedPreview.samples.find((sample) => sample.id === "stacked");
+assert.equal(stackedRow.reason, "payout_below_minimum");
+assert.equal(stackedRow.decision, "decline");
+assert.deepEqual(
+  stackedRow.failures.map((failure) => failure.text),
+  [
+    "$40 is under the $50 minimum",
+    "Drive 75 min is over the 70 min maximum",
+    "Drive 75 min ≥ 60 min needs $100 (pays $40)",
+    "Notice 2 h < 12 h minimum",
+    "Daily cap of 1 is already filled",
+  ]
+);
+const paysEighty = explainListing(
+  listing({ payout: 80, travelTime: 75 }),
+  { ...defaults, longTripMinutes: 60, longTripMinPayoutUsd: 100 }
+);
+assert.deepEqual(
+  paysEighty.map((failure) => failure.text),
+  ["Drive 75 min ≥ 60 min needs $100 (pays $80)"]
+);
+const withUnknownDrive = explainListing(
+  listing({ payout: 40, travelTime: null }),
+  defaults
+);
+assert.equal(decideListing(listing({ payout: 40, travelTime: null }), defaults).reason, "payout_below_minimum");
+assert.deepEqual(
+  withUnknownDrive.map((failure) => failure.code),
+  ["payout_below_minimum", "drive_time_missing"]
+);
+assert.equal(withUnknownDrive.find((failure) => failure.code === "drive_time_missing").tone, "unsure");
+const autoOff = explainListing(stacked, { ...stackedRules, autoAcceptEnabled: false });
+assert.equal(autoOff[0].text, "Auto-accept is off");
+assert.equal(autoOff.some((failure) => failure.code === "payout_below_minimum"), true);
+assert.equal(autoOff.some((failure) => failure.code === "too_little_notice"), true);
 
 const negative = validateBotSettings({ ...defaults, minPayoutUsd: -5 });
 assert.equal(negative.ok, false);

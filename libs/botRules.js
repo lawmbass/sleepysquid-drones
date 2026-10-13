@@ -324,6 +324,83 @@ export function decideListing(listing, settings) {
   return { decision: "accept", reason: null };
 }
 
+function dollars(value) {
+  const amount = Number(value);
+  const rounded = Math.round(amount * 100) / 100;
+  return `$${Number.isInteger(rounded) ? rounded : rounded.toFixed(2)}`;
+}
+
+function compactCount(value) {
+  const amount = Number(value);
+  if (Number.isInteger(amount)) return String(amount);
+  return String(Math.round(amount * 10) / 10);
+}
+
+/**
+ * Every rule this listing fails, for the preview column only.
+ * decideListing still stops at the first failure. That short-circuit is
+ * what the counts use, and it is what the bot does.
+ */
+export function explainListing(listing, settings) {
+  const rules = settings || DEFAULT_BOT_SETTINGS;
+  const failures = [];
+  if (!rules.autoAcceptEnabled) {
+    failures.push({ code: "auto_accept_off", tone: "skip", text: "Auto-accept is off" });
+  }
+
+  const payout = listingNumber(listing, "payout", "payout");
+  if (payout == null) {
+    failures.push({ code: "payout_missing", tone: "decline", text: "No payout is stored" });
+  } else if (payout < Number(rules.minPayoutUsd)) {
+    failures.push({
+      code: "payout_below_minimum",
+      tone: "decline",
+      text: `${dollars(payout)} is under the ${dollars(rules.minPayoutUsd)} minimum`,
+    });
+  }
+
+  const drive = listingNumber(listing, "travelTime", "travel_time");
+  if (drive == null) {
+    failures.push({
+      code: "drive_time_missing",
+      tone: "unsure",
+      text: "No drive time is stored",
+    });
+  } else {
+    if (rules.maxDriveMinutes != null && drive > Number(rules.maxDriveMinutes)) {
+      failures.push({
+        code: "drive_too_long",
+        tone: "decline",
+        text: `Drive ${compactCount(drive)} min is over the ${compactCount(rules.maxDriveMinutes)} min maximum`,
+      });
+    }
+    if (
+      payout != null &&
+      drive >= Number(rules.longTripMinutes) &&
+      payout < Number(rules.longTripMinPayoutUsd)
+    ) {
+      failures.push({
+        code: "long_trip_payout",
+        tone: "decline",
+        text: `Drive ${compactCount(drive)} min ≥ ${compactCount(rules.longTripMinutes)} min needs ${dollars(rules.longTripMinPayoutUsd)} (pays ${dollars(payout)})`,
+      });
+    }
+  }
+
+  if (rules.minNoticeHours != null) {
+    const hours = noticeHours(listing);
+    if (hours != null && hours < Number(rules.minNoticeHours)) {
+      failures.push({
+        code: "too_little_notice",
+        tone: "decline",
+        text: `Notice ${compactCount(hours)} h < ${compactCount(rules.minNoticeHours)} h minimum`,
+      });
+    }
+  }
+
+  return failures;
+}
+
 function easternDay(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -355,13 +432,21 @@ export function previewDecisions(listings, settings, now = new Date()) {
 
   for (const listing of rows) {
     let { decision, reason } = decideListing(listing, rules);
-    if (decision === "accept" && rules.dailyAcceptCap != null) {
+    const failures = explainListing(listing, rules);
+    if (rules.dailyAcceptCap != null) {
       const day = easternDay(listing.firstSeenAt || listing.first_seen_at) || "unknown";
       const used = acceptedByDay.get(day) || 0;
       if (used >= Number(rules.dailyAcceptCap)) {
-        decision = "decline";
-        reason = "daily_cap";
-      } else {
+        failures.push({
+          code: "daily_cap",
+          tone: "decline",
+          text: `Daily cap of ${compactCount(rules.dailyAcceptCap)} is already filled`,
+        });
+        if (decision === "accept") {
+          decision = "decline";
+          reason = "daily_cap";
+        }
+      } else if (decision === "accept") {
         acceptedByDay.set(day, used + 1);
       }
     }
@@ -383,6 +468,7 @@ export function previewDecisions(listings, settings, now = new Date()) {
       firstSeenAt: listing.firstSeenAt || listing.first_seen_at || null,
       decision,
       reason,
+      failures,
     });
   }
 
