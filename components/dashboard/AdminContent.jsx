@@ -8,6 +8,7 @@ import Settings from './Settings';
 import UserManagement from '@/components/admin/UserManagement';
 import PromoManagement from '@/components/admin/PromoManagement';
 import ListingsSection from '@/components/admin/ListingsSection';
+import BotRulesSection from '@/components/admin/BotRulesSection';
 import AccessStatusBanner from './AccessStatusBanner';
 // Note: AdminSettings is now an inline component within this file
 
@@ -241,6 +242,9 @@ export default function AdminContent({ user, onUpdate }) {
 
       case 'listings':
         return <ListingsSection />;
+
+      case 'bot-rules':
+        return <BotRulesSection />;
       
       default:
         return (

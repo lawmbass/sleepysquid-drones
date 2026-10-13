@@ -65,7 +65,7 @@ Users live in `public.users`. Google accounts are linked in `public.oauth_accoun
 - An email is an admin when it is listed in `ADMIN_EMAILS` or it ends with `@sleepysquid.com` (case-insensitive). Account creation and every sign-in store `role = admin` for those addresses.
 - The dashboard uses that same check, plus a stored `admin` role. API admin routes return 401 with no session, then 403 unless `adminConfig.isAdmin` is true.
 - Middleware lets any `@sleepysquid.com` address into dashboard pages even when `hasAccess` is false. Other users with `hasAccess` false go to `/access-denied`.
-- A non-admin who opens an admin section (`bookings`, `listings`, `promos`, `analytics`, `users`) is sent back to `/dashboard`.
+- A non-admin who opens an admin section (`bookings`, `listings`, `bot-rules`, `promos`, `analytics`, `users`) is sent back to `/dashboard`.
 - Protected pages: `/dashboard`, `/admin`, `/profile`, `/settings`. `/` matches exactly, so it no longer treats every path as public. `/api/*` is never redirected to login; handlers keep returning 401.
 
 `public.is_dashboard_admin()` is true when a Supabase JWT email ends with `@sleepysquid.com` or is in `admin_allowlist` (starts empty). NextAuth does not issue Supabase JWTs, so the website uses the service role after its own session check. The RLS policies are what a direct PostgREST client would hit.
@@ -99,6 +99,7 @@ Authorized redirect URIs:
 
 - Bookings, mission analytics, promos, users
 - **Listings**: every DroneBase/Zeitview mission the bot has seen, with filters, a detail view (requirements and flight-plan steps), and aggregates
+- **Bot rules**: the acceptance rules in `bot_settings`. Admins edit them here. The bot reads the same row.
 - Overview stats, the recent jobs list, and analytics all read one job list: every booking, plus accepted `mission_listings` with no `booking_id`. Those listings count as completed Zeitview jobs. A listing that already has a booking is not counted again. The recent-jobs count is the length of that list. A listing's job date is the scraped flight date in `raw_detail` (schedule / parsed schedule / "flight date and time"), then `.mission-date` plus `.mission-time` in `raw_detail.html`, then an unlabeled `MM/DD/YYYY` and `HH:MMAM` in `raw_detail.text` (the pair just before "You must arrive on time"), then `due_window_start`, then `deadline`, then `due_window_end`. Page times with no zone are US Eastern. `last_seen_at` is used only when none of those exist. A listing with `cancel_status = cancelled`, and a booking linked to that listing, is left out of this list. Cancel-requested gigs stay in.
 
 ## drone-gigs
@@ -196,6 +197,30 @@ Cancel gig uses the same helper as the job-card status badge. An unlinked accept
 `shot_type` is `photo`, `video`, `orbit`, `panorama`, or `grid/mapping` when the listing says so. Omit altitude, angle, or count when the listing does not give them. `required` is a boolean.
 
 Service role has full write access. Authenticated dashboard admins can `SELECT` and `UPDATE` (notes and tags). Anon has no grant and no policy, so the public key cannot read listings or raw email.
+
+### `public.bot_settings` (acceptance rules the bot reads)
+
+One row, `id = 1`. Read it with the service role. Do not insert another row. The dashboard is what updates it (`PUT /api/admin/bot-settings`). Null on `max_drive_minutes`, `daily_accept_cap`, or `min_notice_hours` means that limit is off.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | smallint | Primary key, default `1`, check `id = 1` |
+| `auto_accept_enabled` | boolean | Default `true`. When false, record the mission and do not accept it. |
+| `min_payout_usd` | numeric | Default `50`. Turn down a lower payout. |
+| `long_trip_minutes` | int | Default `60`. A drive this long, or longer, is a long trip. |
+| `long_trip_min_payout_usd` | numeric | Default `100`. Minimum payout for a long trip. |
+| `max_drive_minutes` | int | Null means no maximum. A longer drive is not accepted. |
+| `home_address` | text | Default `11205 Keystone Avenue, Clinton, MD`. Where drive time is measured from. |
+| `home_lat` | double precision | Default `38.737679` |
+| `home_lng` | double precision | Default `-76.894043` |
+| `daily_accept_cap` | int | Null means no cap. Most accepts on one Eastern calendar day. |
+| `min_notice_hours` | int | Null means notice is not checked. Hours the mission must be seen before the flight. |
+| `updated_at` | timestamptz | Set on update. |
+| `updated_by` | text | Email of the admin who last saved the row. |
+
+The dashboard preview counts missions whose `first_seen_at` is in the last 30 days. It uses stored `payout` and `travel_time` (minutes). It does not recompute drive time. A missing drive time is "can't tell" once the payout is high enough. Minimum notice is applied only when the stored page has a real flight time.
+
+Apply `supabase/migrations/20261013180000_bot_settings.sql` before deploying the page. The service role bypasses RLS. Authenticated dashboard admins (`is_dashboard_admin()`) can `SELECT` and `UPDATE`. Anon has no grant and no policy.
 
 ## Commands
 

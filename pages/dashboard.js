@@ -8,7 +8,7 @@ import ClientContent from '@/components/dashboard/ClientContent';
 import PilotContent from '@/components/dashboard/PilotContent';
 import DefaultContent from '@/components/dashboard/DefaultContent';
 
-const ADMIN_SECTIONS = ['bookings', 'listings', 'promos', 'analytics', 'users'];
+const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'promos', 'analytics', 'users'];
 
 export default function Dashboard() {
   const { data: session, status, update } = useSession();
