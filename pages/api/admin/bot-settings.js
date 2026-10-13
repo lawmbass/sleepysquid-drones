@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
 import {
+  HOME_PIN_REJECTED,
+  classifyHomePin,
   homeAddressChanged,
   previewDecisions,
   sameHomePin,
@@ -57,41 +59,51 @@ async function buildPreview(settings) {
   }
 }
 
-async function resolveHomePin(settings, stored) {
+async function resolveHomePin(settings, stored, pinSource) {
   const addressChanged = !stored || homeAddressChanged(stored.homeAddress, settings.homeAddress);
-  if (!addressChanged) {
+  const decision = classifyHomePin({
+    addressChanged,
+    pinSource,
+    samePin: Boolean(stored && sameHomePin(stored, settings)),
+  });
+
+  if (decision.action === "keep") {
+    return {
+      ok: true,
+      geocoded: false,
+      settings: {
+        ...settings,
+        homeAddress: stored.homeAddress,
+        homeLat: stored.homeLat,
+        homeLng: stored.homeLng,
+      },
+    };
+  }
+
+  if (decision.action === "use-client") {
     return { ok: true, settings, geocoded: false };
+  }
+
+  if (decision.action === "reject") {
+    return { ok: false, status: 400, message: decision.message };
   }
 
   if (mapsApiKey()) {
     const lookup = await geocodeAddress(settings.homeAddress);
-    if (!lookup.ok) {
-      const rejected = lookup.reason === "REQUEST_DENIED";
+    if (lookup.ok) {
+      const formatted = lookup.formattedAddress;
+      const homeAddress =
+        formatted && formatted.length >= 8 && formatted.length <= 300 ? formatted : settings.homeAddress;
       return {
-        ok: false,
-        status: 400,
-        message: rejected
-          ? "The Maps key was rejected, so the new address was not saved. Check GOOGLE_MAPS_API_KEY, or remove it and enter the latitude and longitude yourself."
-          : "That address could not be found on the map, so it was not saved. Check the spelling and try again.",
+        ok: true,
+        geocoded: true,
+        settings: { ...settings, homeAddress, homeLat: lookup.lat, homeLng: lookup.lng },
       };
     }
-    return {
-      ok: true,
-      geocoded: true,
-      settings: { ...settings, homeLat: lookup.lat, homeLng: lookup.lng },
-    };
+    console.error("Home address geocode failed", lookup.reason);
   }
 
-  if (stored && sameHomePin(stored, settings)) {
-    return {
-      ok: false,
-      status: 400,
-      message:
-        "The home address changed, and there is no Maps key on the server. Enter the latitude and longitude for the new address. The saved pin was not reused.",
-    };
-  }
-
-  return { ok: true, settings, geocoded: false };
+  return { ok: false, status: 400, message: HOME_PIN_REJECTED };
 }
 
 export default async function handler(req, res) {
@@ -169,7 +181,10 @@ export default async function handler(req, res) {
     }
 
     const stored = await getBotSettings();
-    const pin = await resolveHomePin(validated.settings, stored);
+    const pinSource = req.body?.homePinSource === "place" || req.body?.homePinSource === "manual"
+      ? req.body.homePinSource
+      : "none";
+    const pin = await resolveHomePin(validated.settings, stored, pinSource);
     if (!pin.ok) {
       return res.status(pin.status).json({
         error: "Invalid bot rules",

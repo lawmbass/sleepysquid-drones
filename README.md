@@ -220,6 +220,8 @@ One row, `id = 1`. Read it with the service role. Do not insert another row. The
 
 The dashboard preview counts missions whose `first_seen_at` is in the last 30 days. It uses stored `payout` and `travel_time` (minutes). It does not recompute drive time. A missing drive time is "can't tell" once the payout is high enough. Minimum notice is applied only when the stored page has a real flight time.
 
+The home address box searches through the server (`/api/admin/places/autocomplete` and `/api/admin/places/details`). The browser never sees `GOOGLE_MAPS_API_KEY`. Suggestions use Places API (New) autocomplete with a session token, and the chosen place uses Place Details (New) with that same token. A small map image is loaded through `/api/admin/places/map`. Saving a typed address that was not chosen still tries the Geocoding API; if that also fails, the save is rejected. Enable **Places API (New)**, **Geocoding API**, and **Maps Static API** on the key.
+
 Apply `supabase/migrations/20261013180000_bot_settings.sql` before deploying the page. The service role bypasses RLS. Authenticated dashboard admins (`is_dashboard_admin()`) can `SELECT` and `UPDATE`. Anon has no grant and no policy.
 
 ## Commands

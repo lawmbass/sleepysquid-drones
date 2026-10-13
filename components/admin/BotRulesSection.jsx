@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { DECISION_LABELS, REASON_LABELS, validateBotSettings } from "@/libs/botRules";
+import HomeAddressField from "@/components/admin/HomeAddressField";
+import {
+  DECISION_LABELS,
+  HOME_PIN_REJECTED,
+  REASON_LABELS,
+  homeAddressChanged,
+  validateBotSettings,
+} from "@/libs/botRules";
 
 const EMPTY_FORM = {
   autoAcceptEnabled: true,
@@ -92,6 +99,8 @@ export default function BotRulesSection() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [mapsKeyConfigured, setMapsKeyConfigured] = useState(false);
+  const [pinSource, setPinSource] = useState("saved");
+  const [coordinateFallback, setCoordinateFallback] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [updatedBy, setUpdatedBy] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -102,6 +111,8 @@ export default function BotRulesSection() {
     if (replaceForm && data.settings) {
       const next = formFromSettings(data.settings);
       setForm(next);
+      setPinSource("saved");
+      setCoordinateFallback(false);
       setSavedKey(JSON.stringify(payloadFromForm(next)));
       setUpdatedAt(data.settings.updatedAt || null);
       setUpdatedBy(data.settings.updatedBy || null);
@@ -148,11 +159,29 @@ export default function BotRulesSection() {
 
   async function send(method) {
     const payload = payloadFromForm(form);
+    const saved = savedKey ? JSON.parse(savedKey) : {};
+    if (
+      method === "PUT" &&
+      homeAddressChanged(saved.homeAddress, payload.homeAddress) &&
+      pinSource === "none" &&
+      !mapsKeyConfigured
+    ) {
+      setCoordinateFallback(true);
+      setFieldErrors({ homeAddress: HOME_PIN_REJECTED });
+      setNotice("");
+      setError(HOME_PIN_REJECTED);
+      return;
+    }
     const validated = validateBotSettings(payload);
     if (!validated.ok) {
-      setFieldErrors(errorsByField(validated.errors));
+      const errors = errorsByField(validated.errors);
+      if ((errors.homeLat || errors.homeLng) && !errors.homeAddress) {
+        errors.homeAddress = HOME_PIN_REJECTED;
+        setCoordinateFallback(true);
+      }
+      setFieldErrors(errors);
       setNotice("");
-      setError(validated.errors[0].message);
+      setError(errors.homeAddress || validated.errors[0].message);
       return;
     }
 
@@ -166,11 +195,14 @@ export default function BotRulesSection() {
         method,
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, homePinSource: pinSource }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setFieldErrors(errorsByField(body.errors));
+        if (body.errors?.some((item) => item.field === "homeAddress")) {
+          setCoordinateFallback(true);
+        }
         throw new Error(body.message || "Could not update bot rules.");
       }
       applyResponse(body.data || {}, { replaceForm: method === "PUT" });
@@ -225,7 +257,7 @@ export default function BotRulesSection() {
       ) : null}
 
       <form
-        className="space-y-8 rounded-lg bg-white p-6 shadow dark:bg-gray-800"
+        className="space-y-8 rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6"
         onSubmit={(event) => {
           event.preventDefault();
           send("PUT");
@@ -354,76 +386,39 @@ export default function BotRulesSection() {
           </Field>
         </div>
 
-        <Field
-          id="homeAddress"
-          label="Home address"
-          help={
-            mapsKeyConfigured
-              ? "Drive time is measured from here. A changed address is looked up on the map when you save, and the pin below is replaced."
-              : "Drive time is measured from here. No Maps key is set, so a changed address also needs a new latitude and longitude. The old pin is not reused."
-          }
+        <HomeAddressField
+          address={form.homeAddress}
+          lat={form.homeLat}
+          lng={form.homeLng}
+          pinSource={pinSource}
+          mapsAvailable={mapsKeyConfigured}
+          fallbackRequested={coordinateFallback}
           error={fieldErrors.homeAddress}
-        >
-          <input
-            id="homeAddress"
-            type="text"
-            className={inputClass}
-            value={form.homeAddress}
-            aria-describedby={describedBy("homeAddress")}
-            aria-invalid={Boolean(fieldErrors.homeAddress)}
-            onChange={(event) => setField("homeAddress", event.target.value)}
-          />
-        </Field>
+          disabled={saving || previewing}
+          onChange={(next) => {
+            setForm((current) => ({
+              ...current,
+              homeAddress: next.address,
+              homeLat: next.lat,
+              homeLng: next.lng,
+            }));
+            setPinSource(next.pinSource);
+            setFieldErrors((current) => ({ ...current, homeAddress: "" }));
+          }}
+        />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Field
-            id="homeLat"
-            label="Latitude"
-            help="A number from -90 to 90. Filled in from the address when a Maps key is set."
-            error={fieldErrors.homeLat}
-          >
-            <input
-              id="homeLat"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.homeLat}
-              aria-describedby={describedBy("homeLat")}
-              aria-invalid={Boolean(fieldErrors.homeLat)}
-              onChange={(event) => setField("homeLat", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="homeLng"
-            label="Longitude"
-            help="A number from -180 to 180. Filled in from the address when a Maps key is set."
-            error={fieldErrors.homeLng}
-          >
-            <input
-              id="homeLng"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.homeLng}
-              aria-describedby={describedBy("homeLng")}
-              aria-invalid={Boolean(fieldErrors.homeLng)}
-              onChange={(event) => setField("homeLng", event.target.value)}
-            />
-          </Field>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             type="submit"
             disabled={saving || previewing}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            className="min-h-11 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save rules"}
           </button>
           <button
             type="button"
             disabled={saving || previewing}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            className="min-h-11 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
             onClick={() => send("POST")}
           >
             {previewing ? "Checking..." : "Preview last 30 days"}
