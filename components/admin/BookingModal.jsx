@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
-import { gigCardState } from '@/libs/jobs';
+import { gigCardState, missionDetailAmounts } from '@/libs/jobs';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -26,8 +26,8 @@ const serviceLabels = {
 export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDelete, onGigUpdated }) {
   const [formData, setFormData] = useState({
     status: booking.status,
-    estimatedPrice: booking.estimatedPrice || '',
-    finalPrice: booking.finalPrice || '',
+    estimatedPrice: booking.estimatedPrice ?? '',
+    finalPrice: booking.finalPrice ?? '',
     adminNotes: booking.adminNotes || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,8 +39,8 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
     if (booking) {
       setFormData({
         status: booking.status,
-        estimatedPrice: booking.estimatedPrice || '',
-        finalPrice: booking.finalPrice || '',
+        estimatedPrice: booking.estimatedPrice ?? '',
+        finalPrice: booking.finalPrice ?? '',
         adminNotes: booking.adminNotes || ''
       });
     }
@@ -78,11 +78,11 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
       if (formData.status !== booking.status) {
         updates.status = formData.status;
       }
-      if (formData.estimatedPrice !== (booking.estimatedPrice || '')) {
-        updates.estimatedPrice = formData.estimatedPrice ? parseFloat(formData.estimatedPrice) : null;
+      if (formData.estimatedPrice !== (booking.estimatedPrice ?? '')) {
+        updates.estimatedPrice = formData.estimatedPrice === "" ? null : parseFloat(formData.estimatedPrice);
       }
-      if (formData.finalPrice !== (booking.finalPrice || '')) {
-        updates.finalPrice = formData.finalPrice ? parseFloat(formData.finalPrice) : null;
+      if (formData.finalPrice !== (booking.finalPrice ?? '')) {
+        updates.finalPrice = formData.finalPrice === "" ? null : parseFloat(formData.finalPrice);
       }
       if (formData.adminNotes !== (booking.adminNotes || '')) {
         updates.adminNotes = formData.adminNotes;
@@ -159,6 +159,13 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
     job: booking,
     booking: booking.unlinkedListing ? null : booking,
   });
+  const readOnlyJob = Boolean(booking.unlinkedListing || booking.readOnly);
+  const amounts = missionDetailAmounts(booking);
+  const payoutValue = amounts.payoutIsFixed ? amounts.payout : formData.estimatedPrice;
+  const finalValue = readOnlyJob || formData.finalPrice === ""
+    ? (amounts.finalPrice ?? "")
+    : formData.finalPrice;
+  const fieldClass = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-900 dark:disabled:bg-gray-900 dark:disabled:text-gray-100";
 
   const modalContent = (
     <div 
@@ -298,6 +305,11 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
           {/* Admin Form */}
           <form onSubmit={handleSubmit} className="mt-6">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Admin Actions</h4>
+            {readOnlyJob && (
+              <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+                Shown for reference. This completed Zeitview job is not edited from here.
+              </p>
+            )}
             
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -314,7 +326,8 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 <select
                   value={formData.status}
                   onChange={(e) => handleChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                  disabled={readOnlyJob}
+                  className={fieldClass}
                 >
                   {statuses.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -333,15 +346,16 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.estimatedPrice}
+                  value={payoutValue}
                   onChange={(e) => handleChange('estimatedPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                  className={fieldClass}
                   placeholder="0.00"
-                  readOnly={booking.source !== 'customer' && booking.payout}
+                  readOnly={amounts.payoutIsFixed || readOnlyJob}
+                  disabled={readOnlyJob}
                 />
-                {booking.source !== 'customer' && booking.payout && (
+                {amounts.payoutIsFixed && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mission payout is fixed at ${booking.payout}
+                    Mission payout is fixed at ${amounts.payout}
                   </p>
                 )}
               </div>
@@ -355,11 +369,18 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.finalPrice}
+                  value={finalValue}
                   onChange={(e) => handleChange('finalPrice', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                  className={fieldClass}
                   placeholder="0.00"
+                  readOnly={readOnlyJob}
+                  disabled={readOnlyJob}
                 />
+                {amounts.finalPriceFallsBack && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Showing the mission payout, ${amounts.finalPrice}.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -373,8 +394,10 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 onChange={(e) => handleChange('adminNotes', e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-                placeholder="Add any internal notes about this booking..."
+                readOnly={readOnlyJob}
+                disabled={readOnlyJob}
+                className={fieldClass}
+                placeholder={readOnlyJob ? "No admin notes" : "Add any internal notes about this booking..."}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {formData.adminNotes.length}/500 characters
@@ -436,14 +459,14 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 )}
               </button>}
               
-              {/* Cancel and Save buttons - stacked on mobile, side by side on desktop */}
+              {/* Close and Save buttons - stacked on mobile, side by side on desktop */}
               <div className="flex flex-col sm:flex-row gap-3 sm:space-x-3 sm:gap-0">
                 <button
                   type="button"
                   onClick={onClose}
                   className="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
                 >
-                  Cancel
+                  Close
                 </button>
                 {!booking.unlinkedListing && <button
                   type="submit"

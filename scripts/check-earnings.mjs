@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
-const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState } = await import("../libs/jobs.js");
+const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts } = await import("../libs/jobs.js");
 const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 
@@ -501,5 +501,54 @@ assert.equal(cancelGigVisibility({
 }).showCancel, true);
 assert.equal(listingToJob(pastPage).workComplete, true);
 assert.equal(gigCardState({ listing: pastPage, unlinkedListing: true }).showCancel, false);
+
+const cobbIsland = listingToJob({
+  id: "cobb",
+  source: "zeitview",
+  status: "accepted",
+  payout: 70,
+  externalMissionId: "DBM9380917324",
+  address: "Cobb Island",
+  title: "Cobb Island",
+  bookingId: null,
+});
+const cobbAmounts = missionDetailAmounts(cobbIsland);
+assert.equal(cobbIsland.unlinkedListing, true);
+assert.equal(cobbIsland.readOnly, true);
+assert.equal(cobbIsland.finalPrice, null);
+assert.equal(cobbAmounts.payout, 70);
+assert.equal(cobbAmounts.finalPrice, 70);
+assert.equal(cobbAmounts.finalPriceFallsBack, true);
+
+const laPlataAmounts = missionDetailAmounts(listingToJob({
+  source: "zeitview",
+  status: "accepted",
+  payout: 150,
+  externalMissionId: "DBM5272171280",
+  bookingId: null,
+}));
+assert.equal(laPlataAmounts.payout, 150);
+assert.equal(laPlataAmounts.finalPrice, 150);
+
+const pricedMission = missionDetailAmounts({
+  source: "zeitview",
+  isMission: true,
+  payout: 150,
+  estimatedPrice: null,
+  finalPrice: 180,
+});
+assert.equal(pricedMission.payout, 150);
+assert.equal(pricedMission.finalPrice, 180);
+assert.equal(pricedMission.finalPriceFallsBack, false);
+
+const customerQuote = missionDetailAmounts({
+  source: "customer",
+  payout: null,
+  estimatedPrice: 100,
+  finalPrice: null,
+});
+assert.equal(customerQuote.payout, 100);
+assert.equal(customerQuote.finalPrice, null);
+assert.equal(customerQuote.finalPriceFallsBack, false);
 
 console.log("Admin role and unlinked earnings checks passed.");
