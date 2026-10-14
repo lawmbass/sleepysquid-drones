@@ -203,7 +203,10 @@ export default async function handler(req, res) {
 
     if (req.method === "POST") {
       const stored = await getBotSettings();
-      const recomputeDrives = Boolean(stored && !sameHomePin(stored, validated.settings));
+      const pinPicked = req.body?.homePinSource === "place" || req.body?.homePinSource === "manual";
+      const recomputeDrives = Boolean(
+        stored && pinPicked && !sameHomePin(stored, validated.settings)
+      );
       const { preview, previewError, previewDriveSource } = await buildPreview(validated.settings, {
         recomputeDrives,
       });

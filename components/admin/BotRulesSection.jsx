@@ -69,33 +69,166 @@ function minutes(value) {
   return `${Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 })} min`;
 }
 
-function EditHint() {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
-      <FiEdit2 className="h-3.5 w-3.5" aria-hidden="true" />
-      Edit
-    </span>
-  );
+function formatDollars(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "—";
+  return `$${amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
-function Field({ id, label, help, error, children }) {
+function formatMinutes(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "—";
+  return `${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })} min`;
+}
+
+function displayValue(id, source) {
+  if (id === "autoAcceptEnabled") {
+    return source.autoAcceptEnabled ? "Auto-accept is on" : "Auto-accept is off";
+  }
+  if (id === "minPayoutUsd" || id === "longTripMinPayoutUsd") return formatDollars(source[id]);
+  if (id === "longTripMinutes") return formatMinutes(source[id]);
+  if (id === "maxDriveMinutes") {
+    return String(source.maxDriveMinutes).trim() === "" ? "No maximum" : formatMinutes(source.maxDriveMinutes);
+  }
+  if (id === "dailyAcceptCap") {
+    return String(source.dailyAcceptCap).trim() === "" ? "No cap" : String(source.dailyAcceptCap);
+  }
+  if (id === "minNoticeHours") {
+    return String(source.minNoticeHours).trim() === "" ? "Not checked" : `${source.minNoticeHours} hours`;
+  }
+  if (id === "homeAddress") return source.homeAddress || "No address pinned";
+  return "";
+}
+
+const RULES = [
+  {
+    id: "autoAcceptEnabled",
+    label: "Accept gigs automatically",
+    help: "Turn this off to keep recording missions the bot sees, without accepting them.",
+    kind: "boolean",
+  },
+  {
+    id: "minPayoutUsd",
+    label: "Minimum payout",
+    help: "Turn down a gig that pays less than this. Use 0 to 100,000.",
+    kind: "decimal",
+  },
+  {
+    id: "longTripMinutes",
+    label: "Long trip starts at",
+    help: "A drive this long, or longer, has to meet the higher payout. Use 1 to 1,440 (24 hours).",
+    kind: "whole",
+  },
+  {
+    id: "longTripMinPayoutUsd",
+    label: "Long-trip minimum payout",
+    help: "The least a long drive must pay. This cannot be lower than the regular minimum.",
+    kind: "decimal",
+  },
+  {
+    id: "maxDriveMinutes",
+    label: "Maximum drive",
+    help: "Leave blank for no maximum. A longer drive is never accepted. Use 1 to 1,440 if you set one.",
+    kind: "whole",
+  },
+  {
+    id: "dailyAcceptCap",
+    label: "Daily accept cap",
+    help: "The most gigs the bot may accept on one Eastern day. Leave blank for no cap. Use 1 to 48 if you set one.",
+    kind: "whole",
+  },
+  {
+    id: "minNoticeHours",
+    label: "Minimum notice",
+    help: "How long before the flight the bot must already have seen the gig. Leave blank to ignore notice. Use 0 to 168 if you set one. The preview only applies this when a real flight time is stored.",
+    kind: "whole",
+  },
+  {
+    id: "homeAddress",
+    label: "Home address",
+    help: "Drive time is measured from here.",
+    kind: "address",
+  },
+];
+
+const PREVIEW_FIELDS = [
+  "autoAcceptEnabled",
+  "minPayoutUsd",
+  "longTripMinutes",
+  "longTripMinPayoutUsd",
+  "maxDriveMinutes",
+  "dailyAcceptCap",
+  "minNoticeHours",
+];
+
+function previewPayload(form, savedForm, pinSource) {
+  const saved = payloadFromForm(savedForm);
+  const draft = payloadFromForm(form);
+  let current = saved;
+  for (const key of PREVIEW_FIELDS) {
+    if (draft[key] === saved[key]) continue;
+    const next = { ...current, [key]: draft[key] };
+    if (validateBotSettings(next).ok) current = next;
+  }
+  const typedAddress = pinSource === "none" && homeAddressChanged(saved.homeAddress, draft.homeAddress);
+  if (!typedAddress) {
+    const next = {
+      ...current,
+      homeAddress: draft.homeAddress,
+      homeLat: draft.homeLat,
+      homeLng: draft.homeLng,
+    };
+    if (validateBotSettings(next).ok) current = next;
+  }
+  return current;
+}
+
+function Rule({
+  id,
+  label,
+  help,
+  value,
+  editing,
+  focusField,
+  error,
+  children,
+  className = "",
+}) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!editing || !focusField) return;
+    panelRef.current?.querySelector("input, select, textarea")?.focus();
+  }, [editing, focusField]);
+
   return (
-    <div>
-      <label
-        htmlFor={id}
-        className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
-      >
-        <span>{label}</span>
-        <EditHint />
-      </label>
+    <div className={`border-b border-gray-100 py-4 last:border-b-0 dark:border-gray-700 ${className}`} data-rule={id}>
+      {editing ? (
+        <label htmlFor={id} className="text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+      ) : (
+        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+          <p id={`${id}-label`} className="text-sm font-medium text-gray-900 dark:text-white">
+            {label}
+          </p>
+          <p className="text-base text-gray-900 dark:text-white sm:text-right" aria-labelledby={`${id}-label`}>
+            {value}
+          </p>
+        </div>
+      )}
       <p id={`${id}-help`} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {help}
       </p>
-      <div className="mt-2">{children}</div>
-      {error ? (
-        <p id={`${id}-error`} className="mt-1 text-sm text-red-600 dark:text-red-400">
-          {error}
-        </p>
+      {editing ? (
+        <div ref={panelRef} className="mt-2">
+          {children}
+          {error ? (
+            <p id={`${id}-error`} className="mt-2 text-sm text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -104,7 +237,26 @@ function Field({ id, label, help, error, children }) {
 const inputClass =
   "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
 
-function ReasonChips({ sample }) {
+const CARD_DECISIONS = {
+  accept: {
+    label: "Accept",
+    className: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+  },
+  decline: {
+    label: "Decline",
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200",
+  },
+  unsure: {
+    label: "Can't tell",
+    className: "bg-amber-100 text-amber-950 dark:bg-amber-900/50 dark:text-amber-100",
+  },
+  skip: {
+    label: "Auto-accept off",
+    className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+  },
+};
+
+function ReasonChips({ sample, fullWidth = false }) {
   const chips = Array.isArray(sample.failures) && sample.failures.length
     ? sample.failures
     : sample.reason
@@ -116,7 +268,7 @@ function ReasonChips({ sample }) {
       : [];
   if (!chips.length) return null;
   return (
-    <ul className="mt-1 flex max-w-[14rem] flex-wrap gap-1 sm:max-w-xs">
+    <ul className={`mt-1 flex flex-wrap gap-1 ${fullWidth ? "w-full" : "max-w-[14rem] sm:max-w-xs"}`}>
       {chips.map((chip) => (
         <li
           key={chip.code}
@@ -135,8 +287,12 @@ function ReasonChips({ sample }) {
 
 export default function BotRulesSection() {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [savedForm, setSavedForm] = useState(EMPTY_FORM);
   const [savedKey, setSavedKey] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [focusRuleId, setFocusRuleId] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [ruleError, setRuleError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -153,12 +309,35 @@ export default function BotRulesSection() {
   const [previewDriveSource, setPreviewDriveSource] = useState("stored");
   const [driveTimesUpdating, setDriveTimesUpdating] = useState(false);
   const driveTimesUpdatingRef = useRef(false);
+  const savedPreviewRef = useRef(null);
+  const previewRequest = useRef(0);
+  const editRulesButtonRef = useRef(null);
+  const pendingFocusReturn = useRef(false);
   driveTimesUpdatingRef.current = driveTimesUpdating;
+
+  const rememberSavedPreview = useCallback((data) => {
+    savedPreviewRef.current = {
+      preview: data.preview || null,
+      previewError: data.previewError || "",
+      previewSource: data.previewSource || "saved",
+      previewDriveSource: data.previewDriveSource || "stored",
+    };
+  }, []);
+
+  const showSavedPreview = useCallback(() => {
+    const saved = savedPreviewRef.current;
+    if (!saved) return;
+    setPreview(saved.preview);
+    setPreviewError(saved.previewError);
+    setPreviewSource(saved.previewSource);
+    setPreviewDriveSource(saved.previewDriveSource);
+  }, []);
 
   const applyResponse = useCallback((data, { replaceForm, driveStatus }) => {
     if (replaceForm && data.settings) {
       const next = formFromSettings(data.settings);
       setForm(next);
+      setSavedForm(next);
       setPinSource("saved");
       setCoordinateFallback(false);
       setSavedKey(JSON.stringify(payloadFromForm(next)));
@@ -170,10 +349,11 @@ export default function BotRulesSection() {
     setPreviewError(data.previewError || "");
     setPreviewSource(data.previewSource || "saved");
     setPreviewDriveSource(data.previewDriveSource || "stored");
+    if (replaceForm || data.previewSource !== "form") rememberSavedPreview(data);
     if (driveStatus && data.driveTimesUpdating != null) {
       setDriveTimesUpdating(Boolean(data.driveTimesUpdating));
     }
-  }, []);
+  }, [rememberSavedPreview]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -209,19 +389,49 @@ export default function BotRulesSection() {
     return next;
   }
 
-  async function send(method) {
+  const draftChanged = Boolean(
+    editing &&
+      savedKey &&
+      (JSON.stringify(payloadFromForm(form)) !== savedKey || pinSource !== "saved")
+  );
+
+  function beginEdit() {
+    if (editing || saving) return;
+    setFocusRuleId(RULES[0].id);
+    setNotice("");
+    setEditing(true);
+  }
+
+  function leaveEdit() {
+    pendingFocusReturn.current = true;
+    setEditing(false);
+    setFocusRuleId(null);
+  }
+
+  function cancelEdit() {
+    previewRequest.current += 1;
+    setPreviewing(false);
+    setForm(savedForm);
+    setPinSource("saved");
+    setCoordinateFallback(false);
+    setFieldErrors({});
+    setRuleError("");
+    showSavedPreview();
+    leaveEdit();
+  }
+
+  async function saveRules() {
     const payload = payloadFromForm(form);
     const saved = savedKey ? JSON.parse(savedKey) : {};
     if (
-      method === "PUT" &&
       homeAddressChanged(saved.homeAddress, payload.homeAddress) &&
       pinSource === "none" &&
       !mapsKeyConfigured
     ) {
       setCoordinateFallback(true);
       setFieldErrors({ homeAddress: HOME_PIN_REJECTED });
+      setRuleError("");
       setNotice("");
-      setError(HOME_PIN_REJECTED);
       return;
     }
     const validated = validateBotSettings(payload);
@@ -232,48 +442,105 @@ export default function BotRulesSection() {
         setCoordinateFallback(true);
       }
       setFieldErrors(errors);
+      setRuleError("");
       setNotice("");
-      setError(errors.homeAddress || validated.errors[0].message);
       return;
     }
 
-    const busy = method === "PUT" ? setSaving : setPreviewing;
-    busy(true);
-    setError("");
+    setSaving(true);
+    setRuleError("");
     setNotice("");
     setFieldErrors({});
     try {
       const response = await fetch("/api/admin/bot-settings", {
-        method,
+        method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, homePinSource: pinSource }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setFieldErrors(errorsByField(body.errors));
+        const errors = errorsByField(body.errors);
+        setFieldErrors(errors);
         if (body.errors?.some((item) => item.field === "homeAddress")) {
           setCoordinateFallback(true);
         }
-        throw new Error(body.message || "Could not update bot rules.");
+        if (!Object.keys(errors).length) {
+          setRuleError(body.message || "Could not update bot rules.");
+        }
+        return;
       }
-      applyResponse(body.data || {}, { replaceForm: method === "PUT", driveStatus: method === "PUT" });
-      if (method === "PUT") {
-        setNotice(body.message || "Bot rules saved.");
-      }
-    } catch (sendError) {
-      setError(sendError.message);
+      applyResponse(body.data || {}, { replaceForm: true, driveStatus: true });
+      setNotice(body.message || "Bot rules saved.");
+      leaveEdit();
+    } catch (saveError) {
+      setRuleError(saveError.message || "Could not update bot rules.");
     } finally {
-      busy(false);
+      setSaving(false);
     }
   }
 
-  const dirty = JSON.stringify(payloadFromForm(form)) !== savedKey;
+  const previewDraft = useCallback(async (payload, source, signal) => {
+    const requestId = previewRequest.current + 1;
+    previewRequest.current = requestId;
+    setPreviewing(true);
+    try {
+      const response = await fetch("/api/admin/bot-settings", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body: JSON.stringify({ ...payload, homePinSource: source }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (requestId !== previewRequest.current) return;
+      if (!response.ok) {
+        setPreviewError(body.message || "The preview could not be checked.");
+        return;
+      }
+      applyResponse(body.data || {}, { replaceForm: false, driveStatus: false });
+    } catch (previewFailure) {
+      if (previewFailure?.name === "AbortError" || requestId !== previewRequest.current) return;
+      setPreviewError(previewFailure.message || "The preview could not be checked.");
+    } finally {
+      if (requestId === previewRequest.current) setPreviewing(false);
+    }
+  }, [applyResponse]);
+
   const savedPin = savedKey ? JSON.parse(savedKey) : null;
   const unsavedPin = Boolean(savedPin && !sameHomePin(savedPin, form));
 
   useEffect(() => {
-    if (unsavedPin || !savedKey) return undefined;
+    if (!editing || !savedKey) return undefined;
+    const payload = previewPayload(form, savedForm, pinSource);
+    if (JSON.stringify(payload) === JSON.stringify(payloadFromForm(savedForm))) {
+      previewRequest.current += 1;
+      setPreviewing(false);
+      showSavedPreview();
+      return undefined;
+    }
+    const controller = new AbortController();
+    setPreviewing(true);
+    const timer = setTimeout(() => {
+      previewDraft(payload, pinSource, controller.signal);
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      previewRequest.current += 1;
+      setPreviewing(false);
+    };
+  }, [editing, form, pinSource, previewDraft, savedForm, savedKey, showSavedPreview]);
+
+  useEffect(() => {
+    if (!editing && pendingFocusReturn.current) {
+      pendingFocusReturn.current = false;
+      editRulesButtonRef.current?.focus();
+    }
+  }, [editing]);
+
+  useEffect(() => {
+    if (unsavedPin || !savedKey || editing) return undefined;
     const saved = JSON.parse(savedKey);
     let cancelled = false;
     let intervalId = null;
@@ -283,11 +550,12 @@ export default function BotRulesSection() {
     async function refreshPreview() {
       const refresh = await fetch("/api/admin/bot-settings", { credentials: "include" });
       const refreshed = await refresh.json().catch(() => ({}));
-      if (cancelled || !refresh.ok) return;
-      setPreview(refreshed.data?.preview || null);
-      setPreviewError(refreshed.data?.previewError || "");
-      setPreviewSource(refreshed.data?.previewSource || "saved");
-      setPreviewDriveSource(refreshed.data?.previewDriveSource || "stored");
+      if (cancelled || !refresh.ok || !refreshed.data) return;
+      rememberSavedPreview(refreshed.data);
+      setPreview(refreshed.data.preview || null);
+      setPreviewError(refreshed.data.previewError || "");
+      setPreviewSource(refreshed.data.previewSource || "saved");
+      setPreviewDriveSource(refreshed.data.previewDriveSource || "stored");
     }
 
     async function checkStoredDrives() {
@@ -340,12 +608,24 @@ export default function BotRulesSection() {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [unsavedPin, savedKey]);
+  }, [editing, unsavedPin, savedKey, rememberSavedPreview]);
   const describedBy = (id) => {
     const ids = [`${id}-help`];
     if (fieldErrors[id]) ids.push(`${id}-error`);
     return ids.join(" ");
   };
+
+  const addressNeedsPin = editing && pinSource === "none" && homeAddressChanged(savedForm.homeAddress, form.homeAddress);
+  let previewStatus = "This uses the saved rules, the stored payout, and the stored drive time. Nothing is changed.";
+  if (previewDriveSource === "unsaved-pin") {
+    previewStatus = "Previewing drive times from your unsaved address. These minutes are not saved. The bot updates stored drive times after you save.";
+  } else if (addressNeedsPin && previewSource === "form") {
+    previewStatus = "This preview uses the rules you're editing. Choose an address to update drive times. The minutes below are still the stored ones.";
+  } else if (addressNeedsPin) {
+    previewStatus = "Choose an address to preview drive times from it. The minutes below are still the stored ones.";
+  } else if (editing && previewSource === "form") {
+    previewStatus = "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
+  }
 
   if (loading) {
     return (
@@ -354,12 +634,12 @@ export default function BotRulesSection() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${editing ? "pb-[calc(7.5rem+env(safe-area-inset-bottom))]" : ""}`}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bot rules</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
-          These are the rules the drone-gigs bot reads before it accepts a mission. Saving here
-          updates the single shared settings row.
+          These are the rules the drone-gigs bot reads before it accepts a mission. Edit rules to
+          change them together. Save stores every change. Cancel puts the saved values back.
         </p>
         {updatedAt ? (
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -381,216 +661,149 @@ export default function BotRulesSection() {
       ) : null}
 
       <form
-        className="space-y-8 rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6"
+        className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6"
+        data-rules-card
         onSubmit={(event) => {
           event.preventDefault();
-          send("PUT");
+          if (draftChanged && !saving) saveRules();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && editing) {
+            event.preventDefault();
+            cancelEdit();
+          }
         }}
       >
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Accept gigs automatically</p>
-            <EditHint />
-          </div>
-          <p id="autoAcceptEnabled-help" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Turn this off to keep recording missions the bot sees, without accepting them.
-          </p>
-          <label className="mt-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">
-            <input
-              id="autoAcceptEnabled"
-              type="checkbox"
-              className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              checked={form.autoAcceptEnabled}
-              aria-describedby="autoAcceptEnabled-help"
-              onChange={(event) => setField("autoAcceptEnabled", event.target.checked)}
-            />
-            Auto-accept is on
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Field
-            id="minPayoutUsd"
-            label="Minimum payout (dollars)"
-            help="Turn down a gig that pays less than this. Use 0 to 100,000."
-            error={fieldErrors.minPayoutUsd}
-          >
-            <input
-              id="minPayoutUsd"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.minPayoutUsd}
-              aria-describedby={describedBy("minPayoutUsd")}
-              aria-invalid={Boolean(fieldErrors.minPayoutUsd)}
-              onChange={(event) => setField("minPayoutUsd", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="longTripMinutes"
-            label="Long trip starts at (minutes)"
-            help="A drive this long, or longer, has to meet the higher payout. Use 1 to 1,440 (24 hours)."
-            error={fieldErrors.longTripMinutes}
-          >
-            <input
-              id="longTripMinutes"
-              type="text"
-              inputMode="numeric"
-              className={inputClass}
-              value={form.longTripMinutes}
-              aria-describedby={describedBy("longTripMinutes")}
-              aria-invalid={Boolean(fieldErrors.longTripMinutes)}
-              onChange={(event) => setField("longTripMinutes", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="longTripMinPayoutUsd"
-            label="Long-trip minimum payout (dollars)"
-            help="The least a long drive must pay. This cannot be lower than the regular minimum."
-            error={fieldErrors.longTripMinPayoutUsd}
-          >
-            <input
-              id="longTripMinPayoutUsd"
-              type="text"
-              inputMode="decimal"
-              className={inputClass}
-              value={form.longTripMinPayoutUsd}
-              aria-describedby={describedBy("longTripMinPayoutUsd")}
-              aria-invalid={Boolean(fieldErrors.longTripMinPayoutUsd)}
-              onChange={(event) => setField("longTripMinPayoutUsd", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="maxDriveMinutes"
-            label="Maximum drive (minutes)"
-            help="Leave blank for no maximum. A longer drive is never accepted. Use 1 to 1,440 if you set one."
-            error={fieldErrors.maxDriveMinutes}
-          >
-            <input
-              id="maxDriveMinutes"
-              type="text"
-              inputMode="numeric"
-              className={inputClass}
-              value={form.maxDriveMinutes}
-              aria-describedby={describedBy("maxDriveMinutes")}
-              aria-invalid={Boolean(fieldErrors.maxDriveMinutes)}
-              onChange={(event) => setField("maxDriveMinutes", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="dailyAcceptCap"
-            label="Daily accept cap"
-            help="The most gigs the bot may accept on one Eastern day. Leave blank for no cap. Use 1 to 48 if you set one."
-            error={fieldErrors.dailyAcceptCap}
-          >
-            <input
-              id="dailyAcceptCap"
-              type="text"
-              inputMode="numeric"
-              className={inputClass}
-              value={form.dailyAcceptCap}
-              aria-describedby={describedBy("dailyAcceptCap")}
-              aria-invalid={Boolean(fieldErrors.dailyAcceptCap)}
-              onChange={(event) => setField("dailyAcceptCap", event.target.value)}
-            />
-          </Field>
-          <Field
-            id="minNoticeHours"
-            label="Minimum notice (hours)"
-            help="How long before the flight the bot must already have seen the gig. Leave blank to ignore notice. Use 0 to 168 if you set one. The preview only applies this when a real flight time is stored."
-            error={fieldErrors.minNoticeHours}
-          >
-            <input
-              id="minNoticeHours"
-              type="text"
-              inputMode="numeric"
-              className={inputClass}
-              value={form.minNoticeHours}
-              aria-describedby={describedBy("minNoticeHours")}
-              aria-invalid={Boolean(fieldErrors.minNoticeHours)}
-              onChange={(event) => setField("minNoticeHours", event.target.value)}
-            />
-          </Field>
-        </div>
-
-        <HomeAddressField
-          address={form.homeAddress}
-          lat={form.homeLat}
-          lng={form.homeLng}
-          pinSource={pinSource}
-          mapsAvailable={mapsKeyConfigured}
-          fallbackRequested={coordinateFallback}
-          error={fieldErrors.homeAddress}
-          disabled={saving || previewing}
-          onChange={(next) => {
-            setForm((current) => ({
-              ...current,
-              homeAddress: next.address,
-              homeLat: next.lat,
-              homeLng: next.lng,
-            }));
-            setPinSource(next.pinSource);
-            setFieldErrors((current) => ({ ...current, homeAddress: "" }));
-          }}
-        />
-
-        <div
-          className={`flex flex-col gap-3 rounded-md border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
-            dirty
-              ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40"
-              : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40"
-          }`}
-        >
-          <p
-            className={`text-sm font-medium ${
-              dirty ? "text-amber-800 dark:text-amber-200" : "text-gray-600 dark:text-gray-300"
-            }`}
-            aria-live="polite"
-          >
-            {dirty ? "You have unsaved changes." : "All changes are saved."}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
+        {editing ? null : (
+          <div className="mb-4 flex justify-end">
             <button
-              type="submit"
-              disabled={saving || previewing || !dirty}
-              className={`min-h-11 rounded-md px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                dirty
-                  ? "cursor-pointer bg-blue-600 text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  : "cursor-default border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-              }`}
-            >
-              {saving ? "Saving..." : dirty ? "Save changes" : "Save rules"}
-            </button>
-            <button
+              ref={editRulesButtonRef}
               type="button"
-              disabled={saving || previewing}
-              className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
-              onClick={() => send("POST")}
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              onClick={beginEdit}
             >
-              {previewing
-                ? unsavedPin
-                  ? "Checking drive times..."
-                  : "Checking..."
-                : "Preview last 30 days"}
+              <FiEdit2 className="h-4 w-4" aria-hidden="true" />
+              Edit rules
             </button>
           </div>
+        )}
+        <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
+          {RULES.map((rule) => {
+            const help = rule.id === "homeAddress" && editing && mapsKeyConfigured
+              ? "Drive time is measured from here. Start typing, then choose the address from the list."
+              : rule.help;
+            return (
+              <Rule
+                key={rule.id}
+                id={rule.id}
+                label={rule.label}
+                help={help}
+                value={displayValue(rule.id, savedForm)}
+                editing={editing}
+                focusField={focusRuleId === rule.id}
+                error={rule.id === "homeAddress" ? "" : fieldErrors[rule.id]}
+                className={rule.id === "homeAddress" ? "md:col-span-2" : ""}
+              >
+                {rule.kind === "boolean" ? (
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">
+                    <input
+                      id={rule.id}
+                      type="checkbox"
+                      className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      checked={form.autoAcceptEnabled}
+                      aria-describedby="autoAcceptEnabled-help"
+                      disabled={saving}
+                      onChange={(event) => setField("autoAcceptEnabled", event.target.checked)}
+                    />
+                    {form.autoAcceptEnabled ? "Auto-accept is on" : "Auto-accept is off"}
+                  </label>
+                ) : null}
+                {rule.kind === "decimal" || rule.kind === "whole" ? (
+                  <input
+                    id={rule.id}
+                    type="text"
+                    inputMode={rule.kind === "decimal" ? "decimal" : "numeric"}
+                    className={inputClass}
+                    value={form[rule.id]}
+                    aria-describedby={describedBy(rule.id)}
+                    aria-invalid={Boolean(fieldErrors[rule.id])}
+                    disabled={saving}
+                    onChange={(event) => setField(rule.id, event.target.value)}
+                  />
+                ) : null}
+                {rule.kind === "address" ? (
+                  <HomeAddressField
+                    address={form.homeAddress}
+                    lat={form.homeLat}
+                    lng={form.homeLng}
+                    pinSource={pinSource}
+                    mapsAvailable={mapsKeyConfigured}
+                    fallbackRequested={coordinateFallback}
+                    error={fieldErrors.homeAddress}
+                    disabled={saving}
+                    embedded
+                    describedBy={describedBy("homeAddress")}
+                    onChange={(next) => {
+                      setForm((current) => ({
+                        ...current,
+                        homeAddress: next.address,
+                        homeLat: next.lat,
+                        homeLng: next.lng,
+                      }));
+                      setPinSource(next.pinSource);
+                      setFieldErrors((current) => ({ ...current, homeAddress: "" }));
+                    }}
+                  />
+                ) : null}
+              </Rule>
+            );
+          })}
         </div>
+        {editing ? (
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pt-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-gray-700 dark:bg-gray-800/95"
+            data-edit-bar
+          >
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={`text-sm font-medium ${ruleError ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-200"}`}
+                aria-live="polite"
+              >
+                {ruleError || (draftChanged ? "Unsaved changes." : "No changes yet.")}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="submit"
+                  disabled={saving || !draftChanged}
+                  className="min-h-11 cursor-pointer rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-gray-800"
+                >
+                  {saving ? "Saving..." : "Save changes"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </form>
 
       <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-          {previewing && unsavedPin
-            ? "Checking drive times from your unsaved address..."
-            : previewDriveSource === "unsaved-pin"
-              ? "Previewing drive times from your unsaved address. These minutes are not saved. The bot updates stored drive times after you save."
-              : previewSource === "form"
-                ? "This uses the rules in the form and the payout and drive time already stored on each mission. It is not saved until you press Save rules."
-                : dirty && unsavedPin
-                  ? "Preview again to check drive times from your unsaved address. The minutes below are still the stored ones."
-                  : dirty
-                    ? "This uses the saved rules. Preview again to try the numbers currently in the form."
-                    : "This uses the saved rules, the stored payout, and the stored drive time. Nothing is changed."}
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
+          {previewing ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400" data-preview-updating aria-live="polite">
+              Updating...
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400" aria-live="polite" data-preview-status>
+          {previewStatus}
         </p>
         {driveTimesUpdating && !unsavedPin ? (
           <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200" aria-live="polite">
@@ -631,7 +844,39 @@ export default function BotRulesSection() {
               </p>
             ) : null}
             {!previewError && preview.considered > 0 ? (
-              <div className="mt-4 overflow-x-auto">
+              <>
+              <div className="mt-4 space-y-3 sm:hidden" data-preview-cards>
+                {preview.samples.map((sample) => {
+                  const badge = CARD_DECISIONS[sample.decision] || {
+                    label: sample.decision,
+                    className: CARD_DECISIONS.skip.className,
+                  };
+                  return (
+                    <article
+                      key={sample.id || `${sample.externalMissionId}-${sample.firstSeenAt}`}
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {sample.externalMissionId || sample.title || "Mission"}
+                      </div>
+                      {sample.address ? (
+                        <div className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{sample.address}</div>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
+                        <span>Payout {money(sample.payout)}</span>
+                        <span>Drive {minutes(sample.travelTime)}</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                        <ReasonChips sample={sample} fullWidth />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="mt-4 hidden overflow-x-auto sm:block">
                 <table className="min-w-full text-left text-sm">
                   <thead className="text-gray-500 dark:text-gray-400">
                     <tr>
@@ -661,6 +906,7 @@ export default function BotRulesSection() {
                   </tbody>
                 </table>
               </div>
+              </>
             ) : null}
           </>
         ) : null}
