@@ -480,7 +480,7 @@ export default function BotRulesSection() {
     }
   }
 
-  const previewDraft = useCallback(async (payload, source) => {
+  const previewDraft = useCallback(async (payload, source, signal) => {
     const requestId = previewRequest.current + 1;
     previewRequest.current = requestId;
     setPreviewing(true);
@@ -489,6 +489,7 @@ export default function BotRulesSection() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
+        signal,
         body: JSON.stringify({ ...payload, homePinSource: source }),
       });
       const body = await response.json().catch(() => ({}));
@@ -499,7 +500,7 @@ export default function BotRulesSection() {
       }
       applyResponse(body.data || {}, { replaceForm: false, driveStatus: false });
     } catch (previewFailure) {
-      if (requestId !== previewRequest.current) return;
+      if (previewFailure?.name === "AbortError" || requestId !== previewRequest.current) return;
       setPreviewError(previewFailure.message || "The preview could not be checked.");
     } finally {
       if (requestId === previewRequest.current) setPreviewing(false);
@@ -518,10 +519,17 @@ export default function BotRulesSection() {
       showSavedPreview();
       return undefined;
     }
+    const controller = new AbortController();
+    setPreviewing(true);
     const timer = setTimeout(() => {
-      previewDraft(payload, pinSource);
+      previewDraft(payload, pinSource, controller.signal);
     }, 400);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      previewRequest.current += 1;
+      setPreviewing(false);
+    };
   }, [editing, form, pinSource, previewDraft, savedForm, savedKey, showSavedPreview]);
 
   useEffect(() => {
@@ -609,18 +617,14 @@ export default function BotRulesSection() {
 
   const addressNeedsPin = editing && pinSource === "none" && homeAddressChanged(savedForm.homeAddress, form.homeAddress);
   let previewStatus = "This uses the saved rules, the stored payout, and the stored drive time. Nothing is changed.";
-  if (previewing && unsavedPin) {
-    previewStatus = "Checking drive times from your unsaved address...";
-  } else if (previewDriveSource === "unsaved-pin") {
+  if (previewDriveSource === "unsaved-pin") {
     previewStatus = "Previewing drive times from your unsaved address. These minutes are not saved. The bot updates stored drive times after you save.";
   } else if (addressNeedsPin && previewSource === "form") {
     previewStatus = "This preview uses the rules you're editing. Choose an address to update drive times. The minutes below are still the stored ones.";
   } else if (addressNeedsPin) {
     previewStatus = "Choose an address to preview drive times from it. The minutes below are still the stored ones.";
-  } else if (editing && (previewSource === "form" || previewing)) {
-    previewStatus = previewing
-      ? "Checking the rules you're editing..."
-      : "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
+  } else if (editing && previewSource === "form") {
+    previewStatus = "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
   }
 
   if (loading) {
@@ -630,7 +634,7 @@ export default function BotRulesSection() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${editing ? "pb-[calc(7.5rem+env(safe-area-inset-bottom))]" : ""}`}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bot rules</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
@@ -757,10 +761,10 @@ export default function BotRulesSection() {
         </div>
         {editing ? (
           <div
-            className="sticky bottom-0 z-20 -mx-4 mt-2 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur sm:-mx-6 sm:px-6 dark:border-gray-700 dark:bg-gray-800/95"
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 pt-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-gray-700 dark:bg-gray-800/95"
             data-edit-bar
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={`text-sm font-medium ${ruleError ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-200"}`}
                 aria-live="polite"
@@ -790,7 +794,14 @@ export default function BotRulesSection() {
       </form>
 
       <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
+          {previewing ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400" data-preview-updating aria-live="polite">
+              Updating...
+            </p>
+          ) : null}
+        </div>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400" aria-live="polite" data-preview-status>
           {previewStatus}
         </p>
