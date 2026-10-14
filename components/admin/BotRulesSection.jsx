@@ -160,54 +160,56 @@ const RULES = [
   },
 ];
 
+const PREVIEW_FIELDS = [
+  "autoAcceptEnabled",
+  "minPayoutUsd",
+  "longTripMinutes",
+  "longTripMinPayoutUsd",
+  "maxDriveMinutes",
+  "dailyAcceptCap",
+  "minNoticeHours",
+];
+
+function previewPayload(form, savedForm, pinSource) {
+  const saved = payloadFromForm(savedForm);
+  const draft = payloadFromForm(form);
+  let current = saved;
+  for (const key of PREVIEW_FIELDS) {
+    if (draft[key] === saved[key]) continue;
+    const next = { ...current, [key]: draft[key] };
+    if (validateBotSettings(next).ok) current = next;
+  }
+  const typedAddress = pinSource === "none" && homeAddressChanged(saved.homeAddress, draft.homeAddress);
+  if (!typedAddress) {
+    const next = {
+      ...current,
+      homeAddress: draft.homeAddress,
+      homeLat: draft.homeLat,
+      homeLng: draft.homeLng,
+    };
+    if (validateBotSettings(next).ok) current = next;
+  }
+  return current;
+}
+
 function Rule({
   id,
   label,
   help,
   value,
   editing,
-  editDisabled,
+  focusField,
   error,
-  saving,
-  saveDisabled,
   onEdit,
-  onSave,
-  onCancel,
   children,
   className = "",
 }) {
-  const editRef = useRef(null);
   const panelRef = useRef(null);
-  const wasEditing = useRef(false);
 
   useEffect(() => {
-    if (editing) {
-      wasEditing.current = true;
-      panelRef.current?.querySelector("input, select, textarea")?.focus();
-      return;
-    }
-    if (wasEditing.current) {
-      wasEditing.current = false;
-      editRef.current?.focus();
-    }
-  }, [editing]);
-
-  function onKeyDown(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onCancel();
-      return;
-    }
-    if (
-      event.key === "Enter" &&
-      !event.defaultPrevented &&
-      event.target instanceof HTMLInputElement &&
-      event.target.type !== "checkbox"
-    ) {
-      event.preventDefault();
-      if (!saveDisabled) onSave();
-    }
-  }
+    if (!editing || !focusField) return;
+    panelRef.current?.querySelector("input, select, textarea")?.focus();
+  }, [editing, focusField]);
 
   return (
     <div className={`border-b border-gray-100 pb-6 last:border-b-0 dark:border-gray-700 ${className}`} data-rule={id}>
@@ -223,10 +225,8 @@ function Rule({
         )}
         {editing ? null : (
           <button
-            ref={editRef}
             type="button"
-            disabled={editDisabled}
-            className="inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-md px-2 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-blue-950/40"
+            className="inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-md px-2 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-blue-950/40"
             aria-label={`Edit ${label}`}
             onClick={onEdit}
           >
@@ -238,31 +238,13 @@ function Rule({
         {help}
       </p>
       {editing ? (
-        <div ref={panelRef} className="mt-2" onKeyDown={onKeyDown}>
+        <div ref={panelRef} className="mt-2">
           {children}
           {error ? (
             <p id={`${id}-error`} className="mt-2 text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           ) : null}
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              disabled={saving || saveDisabled}
-              className="min-h-11 cursor-pointer rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-gray-800"
-              onClick={onSave}
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       ) : (
         <p className="mt-2 text-base text-gray-900 dark:text-white" aria-labelledby={`${id}-label`}>
@@ -328,7 +310,8 @@ export default function BotRulesSection() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState(EMPTY_FORM);
   const [savedKey, setSavedKey] = useState("");
-  const [editingId, setEditingId] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [focusRuleId, setFocusRuleId] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [ruleError, setRuleError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -349,6 +332,9 @@ export default function BotRulesSection() {
   const driveTimesUpdatingRef = useRef(false);
   const savedPreviewRef = useRef(null);
   const previewRequest = useRef(0);
+  const editRulesButtonRef = useRef(null);
+  const returnFocusTo = useRef(null);
+  const pendingFocusReturn = useRef(false);
   driveTimesUpdatingRef.current = driveTimesUpdating;
 
   const rememberSavedPreview = useCallback((data) => {
@@ -426,24 +412,23 @@ export default function BotRulesSection() {
   }
 
   const draftChanged = Boolean(
-    editingId &&
+    editing &&
       savedKey &&
-      (JSON.stringify(payloadFromForm(form)) !== savedKey ||
-        (editingId === "homeAddress" && pinSource !== "saved"))
+      (JSON.stringify(payloadFromForm(form)) !== savedKey || pinSource !== "saved")
   );
 
-  function startEdit(id) {
-    if (editingId === id || saving) return;
-    if (editingId && draftChanged) return;
-    previewRequest.current += 1;
-    setPreviewing(false);
-    setForm(savedForm);
-    setPinSource("saved");
-    setCoordinateFallback(false);
-    setFieldErrors({});
-    setRuleError("");
+  function beginEdit(opener) {
+    if (editing || saving) return;
+    returnFocusTo.current = opener;
+    setFocusRuleId(opener === "edit-rules" ? RULES[0].id : opener);
     setNotice("");
-    setEditingId(id);
+    setEditing(true);
+  }
+
+  function leaveEdit() {
+    pendingFocusReturn.current = true;
+    setEditing(false);
+    setFocusRuleId(null);
   }
 
   function cancelEdit() {
@@ -454,11 +439,11 @@ export default function BotRulesSection() {
     setCoordinateFallback(false);
     setFieldErrors({});
     setRuleError("");
-    setEditingId(null);
     showSavedPreview();
+    leaveEdit();
   }
 
-  async function saveRule() {
+  async function saveRules() {
     const payload = payloadFromForm(form);
     const saved = savedKey ? JSON.parse(savedKey) : {};
     if (
@@ -509,8 +494,8 @@ export default function BotRulesSection() {
         return;
       }
       applyResponse(body.data || {}, { replaceForm: true, driveStatus: true });
-      setEditingId(null);
       setNotice(body.message || "Bot rules saved.");
+      leaveEdit();
     } catch (saveError) {
       setRuleError(saveError.message || "Could not update bot rules.");
     } finally {
@@ -548,10 +533,9 @@ export default function BotRulesSection() {
   const unsavedPin = Boolean(savedPin && !sameHomePin(savedPin, form));
 
   useEffect(() => {
-    if (!editingId || !savedKey) return undefined;
-    const payload = payloadFromForm(form);
-    const addressNeedsPin = editingId === "homeAddress" && (pinSource === "none" || !unsavedPin);
-    if (!draftChanged || addressNeedsPin || !validateBotSettings(payload).ok) {
+    if (!editing || !savedKey) return undefined;
+    const payload = previewPayload(form, savedForm, pinSource);
+    if (JSON.stringify(payload) === JSON.stringify(payloadFromForm(savedForm))) {
       previewRequest.current += 1;
       setPreviewing(false);
       showSavedPreview();
@@ -561,10 +545,23 @@ export default function BotRulesSection() {
       previewDraft(payload, pinSource);
     }, 400);
     return () => clearTimeout(timer);
-  }, [draftChanged, editingId, form, pinSource, previewDraft, savedKey, showSavedPreview, unsavedPin]);
+  }, [editing, form, pinSource, previewDraft, savedForm, savedKey, showSavedPreview]);
 
   useEffect(() => {
-    if (unsavedPin || !savedKey || editingId) return undefined;
+    if (!editing && pendingFocusReturn.current) {
+      pendingFocusReturn.current = false;
+      const opener = returnFocusTo.current;
+      if (opener === "edit-rules") {
+        editRulesButtonRef.current?.focus();
+      } else {
+        const rule = RULES.find((item) => item.id === opener);
+        document.querySelector(`[aria-label="Edit ${rule?.label}"]`)?.focus();
+      }
+    }
+  }, [editing]);
+
+  useEffect(() => {
+    if (unsavedPin || !savedKey || editing) return undefined;
     const saved = JSON.parse(savedKey);
     let cancelled = false;
     let intervalId = null;
@@ -632,25 +629,27 @@ export default function BotRulesSection() {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [editingId, unsavedPin, savedKey, rememberSavedPreview]);
+  }, [editing, unsavedPin, savedKey, rememberSavedPreview]);
   const describedBy = (id) => {
     const ids = [`${id}-help`];
     if (fieldErrors[id]) ids.push(`${id}-error`);
     return ids.join(" ");
   };
 
-  const editingRule = RULES.find((rule) => rule.id === editingId);
+  const addressNeedsPin = editing && pinSource === "none" && homeAddressChanged(savedForm.homeAddress, form.homeAddress);
   let previewStatus = "This uses the saved rules, the stored payout, and the stored drive time. Nothing is changed.";
-  if (editingId === "homeAddress" && draftChanged && (pinSource === "none" || !unsavedPin)) {
-    previewStatus = "Choose an address to preview drive times from it. The minutes below are still the stored ones.";
-  } else if (previewing && unsavedPin) {
+  if (previewing && unsavedPin) {
     previewStatus = "Checking drive times from your unsaved address...";
   } else if (previewDriveSource === "unsaved-pin") {
     previewStatus = "Previewing drive times from your unsaved address. These minutes are not saved. The bot updates stored drive times after you save.";
-  } else if (editingRule && (previewSource === "form" || previewing)) {
+  } else if (addressNeedsPin && previewSource === "form") {
+    previewStatus = "This preview uses the rules you're editing. Choose an address to update drive times. The minutes below are still the stored ones.";
+  } else if (addressNeedsPin) {
+    previewStatus = "Choose an address to preview drive times from it. The minutes below are still the stored ones.";
+  } else if (editing && (previewSource === "form" || previewing)) {
     previewStatus = previewing
-      ? `Checking how ${editingRule.label} would change the last 30 days...`
-      : `This preview uses your draft for ${editingRule.label}. It is not saved until you press Save.`;
+      ? "Checking the rules you're editing..."
+      : "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
   }
 
   if (loading) {
@@ -664,8 +663,8 @@ export default function BotRulesSection() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bot rules</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
-          These are the rules the drone-gigs bot reads before it accepts a mission. Edit one rule
-          at a time. Save stores that rule. Cancel puts the saved value back.
+          These are the rules the drone-gigs bot reads before it accepts a mission. Edit rules to
+          change them together. Save stores every change. Cancel puts the saved values back.
         </p>
         {updatedAt ? (
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -686,10 +685,35 @@ export default function BotRulesSection() {
         </div>
       ) : null}
 
-      <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6" data-rules-card>
+      <form
+        className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 sm:p-6"
+        data-rules-card
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (draftChanged && !saving) saveRules();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && editing) {
+            event.preventDefault();
+            cancelEdit();
+          }
+        }}
+      >
+        {editing ? null : (
+          <div className="mb-4 flex justify-end">
+            <button
+              ref={editRulesButtonRef}
+              type="button"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              onClick={() => beginEdit("edit-rules")}
+            >
+              <FiEdit2 className="h-4 w-4" aria-hidden="true" />
+              Edit rules
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
           {RULES.map((rule) => {
-            const editing = editingId === rule.id;
             const help = rule.id === "homeAddress" && editing && mapsKeyConfigured
               ? "Drive time is measured from here. Start typing, then choose the address from the list."
               : rule.help;
@@ -701,14 +725,10 @@ export default function BotRulesSection() {
                 help={help}
                 value={displayValue(rule.id, savedForm)}
                 editing={editing}
-                editDisabled={saving || (editingId != null && editingId !== rule.id && draftChanged)}
-                error={rule.id === "homeAddress" ? ruleError : (fieldErrors[rule.id] || (editing ? ruleError : ""))}
-                saving={saving}
-                saveDisabled={!draftChanged}
+                focusField={focusRuleId === rule.id}
+                error={rule.id === "homeAddress" ? "" : fieldErrors[rule.id]}
                 className={rule.id === "homeAddress" ? "md:col-span-2" : ""}
-                onEdit={() => startEdit(rule.id)}
-                onSave={saveRule}
-                onCancel={cancelEdit}
+                onEdit={() => beginEdit(rule.id)}
               >
                 {rule.kind === "boolean" ? (
                   <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">
@@ -748,7 +768,6 @@ export default function BotRulesSection() {
                     error={fieldErrors.homeAddress}
                     disabled={saving}
                     embedded
-                    autoFocus
                     describedBy={describedBy("homeAddress")}
                     onChange={(next) => {
                       setForm((current) => ({
@@ -766,7 +785,39 @@ export default function BotRulesSection() {
             );
           })}
         </div>
-      </div>
+        {editing ? (
+          <div
+            className="sticky bottom-0 z-20 -mx-4 mt-2 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur sm:-mx-6 sm:px-6 dark:border-gray-700 dark:bg-gray-800/95"
+            data-edit-bar
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={`text-sm font-medium ${ruleError ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-200"}`}
+                aria-live="polite"
+              >
+                {ruleError || (draftChanged ? "Unsaved changes." : "No changes yet.")}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="submit"
+                  disabled={saving || !draftChanged}
+                  className="min-h-11 cursor-pointer rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-gray-800"
+                >
+                  {saving ? "Saving..." : "Save changes"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  className="min-h-11 cursor-pointer rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </form>
 
       <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
