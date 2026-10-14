@@ -6,6 +6,17 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Keep anchored sections clear of the fixed navbar and promo banner */
+section[id] {
+  scroll-margin-top: calc(var(--promo-banner-height, 0px) + 5rem);
+}
+
 body {
   @apply text-gray-800;
 }

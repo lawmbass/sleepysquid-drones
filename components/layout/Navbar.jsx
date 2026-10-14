@@ -36,19 +36,19 @@ const Navbar = () => {
             <Link href="/" className="text-white hover:text-blue-300 transition-colors">
               Home
             </Link>
-            <Link href="#services" className="text-white hover:text-blue-300 transition-colors">
+            <Link href="/#services" className="text-white hover:text-blue-300 transition-colors">
               Services
             </Link>
-            <Link href="#portfolio" className="text-white hover:text-blue-300 transition-colors">
+            <Link href="/#portfolio" className="text-white hover:text-blue-300 transition-colors">
               Portfolio
             </Link>
-            <Link href="#pricing" className="text-white hover:text-blue-300 transition-colors">
+            <Link href="/#pricing" className="text-white hover:text-blue-300 transition-colors">
               Pricing
             </Link>
-            <Link href="#contact" className="text-white hover:text-blue-300 transition-colors">
+            <Link href="/#contact" className="text-white hover:text-blue-300 transition-colors">
               Contact
             </Link>
-            <Link href="#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors">
+            <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors">
               Book Now
             </Link>
             <Link href="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2 rounded-full transition-colors border border-gray-600">
@@ -84,19 +84,19 @@ const Navbar = () => {
           <Link href="/" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
             Home
           </Link>
-          <Link href="#services" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
+          <Link href="/#services" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
             Services
           </Link>
-          <Link href="#portfolio" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
+          <Link href="/#portfolio" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
             Portfolio
           </Link>
-          <Link href="#pricing" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
+          <Link href="/#pricing" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
             Pricing
           </Link>
-          <Link href="#contact" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
+          <Link href="/#contact" className="text-white hover:text-blue-300 transition-colors py-2" onClick={() => setIsOpen(false)}>
             Contact
           </Link>
-          <Link href="#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors text-center" onClick={() => setIsOpen(false)}>
+          <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors text-center" onClick={() => setIsOpen(false)}>
             Book Now
           </Link>
           <Link href="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2 rounded-full transition-colors text-center border border-gray-600" onClick={() => setIsOpen(false)}>
