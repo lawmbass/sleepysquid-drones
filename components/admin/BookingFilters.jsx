@@ -16,7 +16,7 @@ const sources = [
   { value: '', label: 'All Sources' },
   { value: 'customer', label: 'Customer Bookings' },
   { value: 'zeitview', label: 'Zeitview Missions' },
-  { value: 'manual', label: 'Manual Entries' }
+  { value: 'manual', label: 'Added by admin' }
 ];
 
 const statuses = [

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FiTrendingUp, FiDollarSign, FiMapPin, FiBarChart, FiActivity, FiRefreshCw, FiTarget, FiNavigation } from 'react-icons/fi';
+import { bookingSourceLabel } from '@/libs/manualBooking';
 
 export default function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -308,7 +309,7 @@ export default function Analytics() {
             <div key={sourceName} className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{sourceName}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{bookingSourceLabel(sourceName)}</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{source.count}</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
@@ -395,7 +396,7 @@ export default function Analytics() {
           <div key={sourceName} className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{sourceName}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{bookingSourceLabel(sourceName)}</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{source.count} missions</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">

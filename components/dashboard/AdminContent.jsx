@@ -8,6 +8,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import PromoManagement from '@/components/admin/PromoManagement';
 import ListingsSection from '@/components/admin/ListingsSection';
 import BotRulesSection from '@/components/admin/BotRulesSection';
+import AddBookingForm from '@/components/admin/AddBookingForm';
 import AccessStatusBanner from './AccessStatusBanner';
 import {
   OVERVIEW_STATUS_FILTERS,
@@ -215,11 +216,8 @@ export default function AdminContent({ user, onUpdate }) {
       case 'bookings':
         return (
           <div className="space-y-6">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bookings Management</h1>
-              <p className="text-gray-600 dark:text-gray-300">Manage all customer bookings and service requests.</p>
-            </div>
-            
+            <AddBookingForm onCreated={fetchBookings} />
+
             <BookingFilters 
               filters={filters} 
               onFilterChange={handleFilterChange}

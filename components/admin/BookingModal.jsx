@@ -4,6 +4,7 @@ import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage,
 import ConfirmationDialog from './ConfirmationDialog';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState, missionDetailAmounts } from '@/libs/jobs';
+import { bookingSourceLabel } from '@/libs/manualBooking';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -166,6 +167,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
     ? (amounts.finalPrice ?? "")
     : formData.finalPrice;
   const fieldClass = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-900 dark:disabled:bg-gray-900 dark:disabled:text-gray-100";
+  const customerLike = booking.source === 'customer' || booking.source === 'manual';
 
   const modalContent = (
     <div 
@@ -180,7 +182,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {booking.source === 'customer' ? 'Booking' : 'Mission'} Details - {booking.name}
+            {customerLike ? 'Booking' : 'Mission'} Details - {booking.name}
             {booking.missionId && (
               <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">({booking.missionId})</span>
             )}
@@ -198,14 +200,14 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
             {/* Customer Information */}
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                {booking.source === 'customer' ? 'Customer' : 'Mission'} Information
+                {customerLike ? 'Customer' : 'Mission'} Information
               </h4>
               <div className="space-y-3">
                 {booking.source !== 'customer' && (
                   <div className="flex items-center">
                     <FiTarget className="h-4 w-4 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-900 dark:text-white">
-                      Source: {booking.source ? booking.source.charAt(0).toUpperCase() + booking.source.slice(1) : 'Unknown'}
+                      Source: {bookingSourceLabel(booking.source)}
                     </span>
                   </div>
                 )}
@@ -213,7 +215,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                   <FiMail className="h-4 w-4 text-gray-500 mr-2" />
                   <span className="text-sm text-gray-900 dark:text-white">{booking.email}</span>
                 </div>
-                {booking.source === 'customer' && (
+                {customerLike && (
                   <div className="flex items-center">
                     <FiPhone className="h-4 w-4 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-900 dark:text-white">{booking.phone}</span>
@@ -340,7 +342,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               {/* Estimated Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {booking.source === 'customer' ? 'Estimated Price' : 'Mission Payout'} ($)
+                  {customerLike ? 'Estimated Price' : 'Mission Payout'} ($)
                 </label>
                 <input
                   type="number"
