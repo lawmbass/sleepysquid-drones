@@ -136,11 +136,11 @@ assert.equal(stackedRow.decision, "decline");
 assert.deepEqual(
   stackedRow.failures.map((failure) => failure.text),
   [
-    "$40 is under the $50 minimum",
-    "Drive 75 min is over the 70 min maximum",
-    "Drive 75 min ≥ 60 min needs $100 (pays $40)",
-    "Notice 2 h < 12 h minimum",
-    "Daily cap of 1 is already filled",
+    "Pays $40, below your $50 minimum",
+    "This drive is 75 minutes, past your maximum of 70 minutes.",
+    "Pays $40, but drives of an hour or more need at least $100 (this one is 75 min)",
+    "The flight is 2 hours away, short of your 12 hours notice.",
+    "Today's cap of 1 accepted mission is already filled.",
   ]
 );
 const paysEighty = explainListing(
@@ -149,7 +149,15 @@ const paysEighty = explainListing(
 );
 assert.deepEqual(
   paysEighty.map((failure) => failure.text),
-  ["Drive 75 min ≥ 60 min needs $100 (pays $80)"]
+  ["Pays $80, but drives of an hour or more need at least $100 (this one is 75 min)"]
+);
+const paysSeventy = explainListing(
+  listing({ payout: 70, travelTime: 60 }),
+  { ...defaults, longTripMinutes: 60, longTripMinPayoutUsd: 100, minPayoutUsd: 50 }
+);
+assert.deepEqual(
+  paysSeventy.map((failure) => failure.text),
+  ["Pays $70, but drives of an hour or more need at least $100 (this one is 60 min)"]
 );
 const withUnknownDrive = explainListing(
   listing({ payout: 40, travelTime: null }),
@@ -162,7 +170,7 @@ assert.deepEqual(
 );
 assert.equal(withUnknownDrive.find((failure) => failure.code === "drive_time_missing").tone, "unsure");
 const autoOff = explainListing(stacked, { ...stackedRules, autoAcceptEnabled: false });
-assert.equal(autoOff[0].text, "Auto-accept is off");
+assert.equal(autoOff[0].text, "Auto-accept is off, so the bot would not take it.");
 assert.equal(autoOff.some((failure) => failure.code === "payout_below_minimum"), true);
 assert.equal(autoOff.some((failure) => failure.code === "too_little_notice"), true);
 

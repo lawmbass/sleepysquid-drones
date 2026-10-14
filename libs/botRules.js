@@ -336,6 +336,18 @@ function compactCount(value) {
   return String(Math.round(amount * 10) / 10);
 }
 
+function driveLength(minutes) {
+  const amount = Number(minutes);
+  if (amount === 60) return "an hour";
+  if (amount === 1) return "1 minute";
+  return `${compactCount(amount)} minutes`;
+}
+
+function hourLength(hours) {
+  const count = compactCount(Number(hours));
+  return `${count} ${count === "1" ? "hour" : "hours"}`;
+}
+
 /**
  * Every rule this listing fails, for the preview column only.
  * decideListing still stops at the first failure. That short-circuit is
@@ -345,17 +357,25 @@ export function explainListing(listing, settings) {
   const rules = settings || DEFAULT_BOT_SETTINGS;
   const failures = [];
   if (!rules.autoAcceptEnabled) {
-    failures.push({ code: "auto_accept_off", tone: "skip", text: "Auto-accept is off" });
+    failures.push({
+      code: "auto_accept_off",
+      tone: "skip",
+      text: "Auto-accept is off, so the bot would not take it.",
+    });
   }
 
   const payout = listingNumber(listing, "payout", "payout");
   if (payout == null) {
-    failures.push({ code: "payout_missing", tone: "decline", text: "No payout is stored" });
+    failures.push({
+      code: "payout_missing",
+      tone: "decline",
+      text: "No payout is stored on the mission.",
+    });
   } else if (payout < Number(rules.minPayoutUsd)) {
     failures.push({
       code: "payout_below_minimum",
       tone: "decline",
-      text: `${dollars(payout)} is under the ${dollars(rules.minPayoutUsd)} minimum`,
+      text: `Pays ${dollars(payout)}, below your ${dollars(rules.minPayoutUsd)} minimum`,
     });
   }
 
@@ -364,14 +384,14 @@ export function explainListing(listing, settings) {
     failures.push({
       code: "drive_time_missing",
       tone: "unsure",
-      text: "No drive time is stored",
+      text: "No drive time is stored, so the drive rules cannot be checked.",
     });
   } else {
     if (rules.maxDriveMinutes != null && drive > Number(rules.maxDriveMinutes)) {
       failures.push({
         code: "drive_too_long",
         tone: "decline",
-        text: `Drive ${compactCount(drive)} min is over the ${compactCount(rules.maxDriveMinutes)} min maximum`,
+        text: `This drive is ${driveLength(drive)}, past your maximum of ${driveLength(rules.maxDriveMinutes)}.`,
       });
     }
     if (
@@ -382,7 +402,7 @@ export function explainListing(listing, settings) {
       failures.push({
         code: "long_trip_payout",
         tone: "decline",
-        text: `Drive ${compactCount(drive)} min ≥ ${compactCount(rules.longTripMinutes)} min needs ${dollars(rules.longTripMinPayoutUsd)} (pays ${dollars(payout)})`,
+        text: `Pays ${dollars(payout)}, but drives of ${driveLength(rules.longTripMinutes)} or more need at least ${dollars(rules.longTripMinPayoutUsd)} (this one is ${compactCount(drive)} min)`,
       });
     }
   }
@@ -393,7 +413,7 @@ export function explainListing(listing, settings) {
       failures.push({
         code: "too_little_notice",
         tone: "decline",
-        text: `Notice ${compactCount(hours)} h < ${compactCount(rules.minNoticeHours)} h minimum`,
+        text: `The flight is ${hourLength(hours)} away, short of your ${hourLength(rules.minNoticeHours)} notice.`,
       });
     }
   }
@@ -440,7 +460,7 @@ export function previewDecisions(listings, settings, now = new Date()) {
         failures.push({
           code: "daily_cap",
           tone: "decline",
-          text: `Daily cap of ${compactCount(rules.dailyAcceptCap)} is already filled`,
+          text: `Today's cap of ${compactCount(rules.dailyAcceptCap)} accepted ${Number(rules.dailyAcceptCap) === 1 ? "mission is" : "missions are"} already filled.`,
         });
         if (decision === "accept") {
           decision = "decline";
