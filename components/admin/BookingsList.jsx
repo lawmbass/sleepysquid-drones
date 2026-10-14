@@ -3,6 +3,7 @@ import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNaviga
 import BookingModal from './BookingModal';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState } from '@/libs/jobs';
+import { bookingSourceLabel } from '@/libs/manualBooking';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -112,7 +113,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               <span className={`ml-2 px-2 py-0.5 text-xs font-semibold rounded-full ${
                 booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
               }`}>
-                {booking.source === 'zeitview' ? 'ZV' : booking.source?.toUpperCase() || ''}
+                {booking.source === 'zeitview' ? 'ZV' : bookingSourceLabel(booking.source)}
               </span>
             )}
             <CancelStatusBadge status={booking.cancelStatus} />
@@ -164,7 +165,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
           <FiMail className="h-3 w-3 text-gray-400 mr-1" />
           <span className="text-xs text-gray-600 dark:text-gray-300">{booking.email}</span>
         </div>
-        {booking.source === 'customer' && booking.phone && (
+        {(booking.source === 'customer' || booking.source === 'manual') && booking.phone && (
           <div className="flex items-center">
             <FiPhone className="h-3 w-3 text-gray-400 mr-1" />
             <span className="text-xs text-gray-600 dark:text-gray-300">{booking.phone}</span>
@@ -340,8 +341,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                                   booking.source === 'zeitview' ? 'bg-blue-100 text-blue-800' :
                                   'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {booking.source === 'zeitview' ? 'ZV' :
-                                   booking.source?.toUpperCase() || ''}
+                                  {booking.source === 'zeitview' ? 'ZV' : bookingSourceLabel(booking.source)}
                                 </span>
                               )}
                               <span className="ml-2"><CancelStatusBadge status={booking.cancelStatus} /></span>
@@ -356,7 +356,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                               <FiMail className="h-3 w-3 mr-1" />
                               {booking.email}
                             </div>
-                            {booking.source === 'customer' && (
+                            {(booking.source === 'customer' || booking.source === 'manual') && (
                               <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                                 <FiPhone className="h-3 w-3 mr-1" />
                                 {booking.phone}

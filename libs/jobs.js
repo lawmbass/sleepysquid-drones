@@ -19,6 +19,7 @@
  */
 
 import { isBackfillRecord, listingWorkComplete } from "./gigComplete.js";
+import { jobIsMission } from "./manualBooking.js";
 
 export function jobAmount(job) {
   if (!job) return 0;
@@ -42,11 +43,7 @@ function finiteOrNull(value) {
  * payout field and the final-price field.
  */
 export function missionDetailAmounts(job) {
-  const isMission = Boolean(
-    job?.unlinkedListing ||
-    job?.isMission ||
-    (job?.source && job.source !== "customer")
-  );
+  const isMission = jobIsMission(job);
   const payout = finiteOrNull(job?.payout);
   const finalPrice = finiteOrNull(job?.finalPrice);
   const estimated = finiteOrNull(job?.estimatedPrice);
@@ -676,7 +673,7 @@ export function bookingToJob(booking) {
     unlinkedListing: false,
     readOnly: false,
     amount: jobAmount(booking),
-    isMission: Boolean(booking.source && booking.source !== "customer"),
+    isMission: jobIsMission(booking),
   };
 }
 

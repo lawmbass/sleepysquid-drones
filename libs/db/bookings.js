@@ -1,4 +1,5 @@
 import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from "@/libs/db/shared";
+import { MANUAL_SOURCE, isMissionSource } from "@/libs/manualBooking";
 
 export function mapBooking(row) {
   if (!row) return null;
@@ -6,7 +7,7 @@ export function mapBooking(row) {
   const payout = num(row.payout);
   const estimatedPrice = num(row.estimated_price);
   const finalPrice = num(row.final_price);
-  const isMission = row.source && row.source !== "customer";
+  const isMission = isMissionSource(row.source);
   const hasCoordinates = row.latitude !== null && row.latitude !== undefined
     || row.longitude !== null && row.longitude !== undefined;
 
@@ -67,7 +68,7 @@ function applyBookingFilters(query, filters = {}) {
     query = query.or("source.eq.customer,source.is.null");
   }
   if (filters.missionsOnly) {
-    query = query.neq("source", "customer");
+    query = query.neq("source", "customer").neq("source", MANUAL_SOURCE);
   }
   if (filters.travelDistancePresent) {
     query = query.not("travel_distance", "is", null);
