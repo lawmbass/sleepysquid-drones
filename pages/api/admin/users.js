@@ -1,4 +1,5 @@
-import { countUsers, createUser, findUserByEmail, listUsers, userAccessAndRoleStats } from "@/libs/db/users";
+import { countUsers, createUser, findUserByEmail, listUserAdminFields, listUsers, userAccessAndRoleStats } from "@/libs/db/users";
+import { offerUserDelete } from "@/libs/userDeletion";
 import { countPendingInvitations, listPendingInvitations, pendingInvitationRoleCounts } from "@/libs/db/invitations";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      return handleGetUsers(req, res);
+      return handleGetUsers(req, res, session);
     } else if (req.method === 'POST') {
       return handleCreateUser(req, res);
     } else {
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleGetUsers(req, res) {
+async function handleGetUsers(req, res, session) {
   try {
     // Extract query parameters
     const { 
@@ -144,8 +145,18 @@ async function handleGetUsers(req, res) {
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
-    // Apply pagination to combined results
-    const paginatedItems = allItems.slice(skip, skip + limitNum);
+    const adminRows = await listUserAdminFields();
+    const paginatedItems = allItems.slice(skip, skip + limitNum).map((item) => {
+      if (item.isPendingInvitation) return item;
+      return {
+        ...item,
+        canDelete: offerUserDelete({
+          actorEmail: session?.user?.email,
+          target: item,
+          admins: adminRows,
+        }),
+      };
+    });
 
     // Get total count for pagination (users + invitations)
     const totalCount = await countUsers({ search, hasAccess });

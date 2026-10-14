@@ -351,7 +351,7 @@ export default function UserModal({ user, onClose, onSaved }) {
 
         {/* Footer - outside scrollable area */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
-          {user ? (
+          {user?.canDelete ? (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}

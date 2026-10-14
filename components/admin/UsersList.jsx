@@ -167,20 +167,28 @@ export default function UsersList({
                     <button
                       type="button"
                       role="menuitem"
-                      onClick={() => onEditUser(user)}
+                      onClick={() => {
+                        setExpandedCard(null);
+                        onEditUser(user);
+                      }}
                       className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       Edit user
                     </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deletingUser === user._id}
-                      className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Delete user
-                    </button>
+                    {user.canDelete && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setExpandedCard(null);
+                          handleDeleteUser(user);
+                        }}
+                        disabled={deletingUser === user._id}
+                        className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                      >
+                        Delete user
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -278,54 +286,6 @@ export default function UsersList({
                 </div>
               )}
             </div>
-
-            {/* Actions */}
-            {isCurrentUserAdmin && (
-              <div className="flex space-x-2 mt-4">
-                {isPendingInvitation ? (
-                  <>
-                    <button
-                      onClick={() => handleResendInvitation(user)}
-                      disabled={resendingInvitation === user._id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-md shadow-sm text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                    >
-                      {resendingInvitation === user._id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      ) : (
-                        <FiMail className="h-4 w-4 mr-2" />
-                      )}
-                      Resend Invitation
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deletingUser === user._id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                    >
-                      <FiX className="h-4 w-4 mr-2" />
-                      Cancel Invitation
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => onEditUser(user)}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-md shadow-sm text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
-                    >
-                      <FiEdit2 className="h-4 w-4 mr-2" />
-                      Edit User
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deletingUser === user._id}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                    >
-                      <FiTrash2 className="h-4 w-4 mr-2" />
-                      Delete user
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -594,15 +554,17 @@ export default function UsersList({
                                 >
                                   <FiEdit2 className="h-4 w-4" />
                                 </button>
-                                <button
-                                  onClick={() => handleDeleteUser(user)}
-                                  disabled={deletingUser === user._id}
-                                  className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50"
-                                  title="Delete user"
-                                >
-                                  <FiTrash2 className="h-4 w-4 mr-1" />
-                                  Delete user
-                                </button>
+                                {user.canDelete && (
+                                  <button
+                                    onClick={() => handleDeleteUser(user)}
+                                    disabled={deletingUser === user._id}
+                                    className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50"
+                                    title="Delete user"
+                                  >
+                                    <FiTrash2 className="h-4 w-4 mr-1" />
+                                    Delete user
+                                  </button>
+                                )}
                               </>
                             )}
                           </>

@@ -4,7 +4,7 @@ import fs from "node:fs";
 process.env.ADMIN_EMAILS = "lawrence@sleepysquid.com";
 
 const { adminConfig } = await import("../libs/adminConfig.js");
-const { userDeletionDecision, isDashboardAdminAccount, isMissingSessionsTable } = await import("../libs/userDeletion.js");
+const { userDeletionDecision, offerUserDelete, isDashboardAdminAccount, isMissingSessionsTable } = await import("../libs/userDeletion.js");
 
 adminConfig.reloadFromEnv();
 
@@ -50,6 +50,9 @@ const missing = userDeletionDecision({
   admins,
 });
 assert.equal(missing.status, 404);
+assert.equal(offerUserDelete({ actorEmail: lawrence.email, target: gmailAdmin, admins }), true);
+assert.equal(offerUserDelete({ actorEmail: lawrence.email, target: lawrence, admins }), false);
+assert.equal(offerUserDelete({ actorEmail: lawrence.email, target: lawrence, admins: [lawrence] }), false);
 
 process.env.ADMIN_EMAILS = "lawrence@sleepysquid.com,lawmbass1@gmail.com";
 adminConfig.reloadFromEnv();
@@ -81,9 +84,13 @@ assert.doesNotMatch(route, /\.from\(["']mission_listings["']\)/);
 const list = fs.readFileSync(new URL("../components/admin/UsersList.jsx", import.meta.url), "utf8");
 const modal = fs.readFileSync(new URL("../components/admin/UserModal.jsx", import.meta.url), "utf8");
 assert.match(list, /Delete user/);
+assert.match(list, /user\.canDelete/);
 assert.match(list, /Delete \$\{confirmDialog\.user\?\.email\}\?/);
+assert.doesNotMatch(list, /Edit User/);
 assert.doesNotMatch(list, /user\.role !== 'admin'/);
-assert.match(modal, /Delete user/);
+assert.match(modal, /user\?\.canDelete/);
 assert.match(modal, /Delete \$\{user\?\.email\}\?/);
+const usersRoute = fs.readFileSync(new URL("../pages/api/admin/users.js", import.meta.url), "utf8");
+assert.match(usersRoute, /canDelete: offerUserDelete/);
 
 console.log("User deletion checks passed.");

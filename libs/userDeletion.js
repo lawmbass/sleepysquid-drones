@@ -55,6 +55,11 @@ export function userDeletionDecision({ actorEmail, target, admins = [] } = {}) {
   return { allowed: true };
 }
 
+/** Whether the Users page should show Delete user. Same rules as the server refusal. */
+export function offerUserDelete(args) {
+  return userDeletionDecision(args).allowed === true;
+}
+
 /** PostgREST and Postgres both say this when public.sessions was never created. */
 export function isMissingSessionsTable(error) {
   if (!error) return false;
