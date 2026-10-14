@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import BookingsList from '@/components/admin/BookingsList';
-import BookingStats from '@/components/admin/BookingStats';
 import BookingFilters from '@/components/admin/BookingFilters';
 import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
@@ -18,8 +17,6 @@ export default function AdminContent({ user, onUpdate }) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [bookings, setBookings] = useState([]);
-  const [stats, setStats] = useState({});
-  const [missionStats, setMissionStats] = useState(null);
   const [recentJobs, setRecentJobs] = useState([]);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({
@@ -66,8 +63,6 @@ export default function AdminContent({ user, onUpdate }) {
       // Handle nested API response structure: response.data.bookings, response.data.stats, etc.
       const data = response_data.data || response_data;
       setBookings(data.bookings || []);
-      setStats(data.stats || {});
-      setMissionStats(data.missionStats || null);
       setRecentJobs(data.recentJobs || []);
       setPagination(data.pagination || {});
     } catch (error) {
@@ -154,8 +149,6 @@ export default function AdminContent({ user, onUpdate }) {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
               <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
             </div>
-            
-            <BookingStats stats={stats} missionStats={missionStats} user={user} />
             
             <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">

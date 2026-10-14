@@ -1022,6 +1022,9 @@ export function summarizeAnalytics(jobs) {
       conversionRate: Number(summary.conversionRate.toFixed(2)),
       revenuePerMile: Number(revenuePerMile.toFixed(2)),
       upcomingJobs: summary.upcomingCount,
+      customerBookings: summary.customerBookings,
+      missionBookings: summary.missionStats.totalMissions,
+      avgMissionTravelDistance: summary.missionStats.avgTravelDistance,
     },
     sourceBreakdown,
     timeBasedAnalytics: [...days.values()]
