@@ -11,6 +11,10 @@ const {
   sameHomePin,
   validateBotSettings,
   DEFAULT_BOT_SETTINGS,
+  snapZeitviewRadius,
+  zeitviewFromRow,
+  zeitviewRadiusColumn,
+  zeitviewSyncStatus,
 } = await import("../libs/botRules.js");
 const { pinFromPlaceDetails, placesError, suggestionsFromAutocomplete } = await import("../libs/places.js");
 const {
@@ -185,6 +189,67 @@ const blankMax = validateBotSettings({ ...defaults, maxDriveMinutes: "", dailyAc
 assert.equal(blankMax.ok, true);
 assert.equal(blankMax.settings.maxDriveMinutes, null);
 assert.equal(blankMax.settings.homeAddress, defaults.homeAddress);
+assert.equal(Object.prototype.hasOwnProperty.call(blankMax.settings, "zeitviewRadiusMiles"), false);
+assert.equal(zeitviewRadiusColumn(blankMax.settings).write, false);
+
+const keepRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: "" });
+assert.equal(keepRadius.ok, true);
+assert.equal(keepRadius.settings.zeitviewRadiusMiles, null);
+assert.deepEqual(zeitviewRadiusColumn(keepRadius.settings), { write: true, value: null });
+
+const snappedRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: 37 });
+assert.equal(snappedRadius.ok, true);
+assert.equal(snappedRadius.settings.zeitviewRadiusMiles, 25);
+assert.equal(snapZeitviewRadius(80), 100);
+assert.equal(snapZeitviewRadius("50"), 50);
+assert.equal(snapZeitviewRadius("keep current"), null);
+
+const badRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: "nearby" });
+assert.equal(badRadius.ok, false);
+assert.equal(badRadius.errors.some((error) => error.field === "zeitviewRadiusMiles"), true);
+
+assert.equal(zeitviewFromRow({ home_address: defaults.homeAddress }).zeitviewAvailable, false);
+assert.equal(zeitviewSyncStatus({ zeitviewAvailable: false, zeitviewLastResult: "failed" }), null);
+const radiusRow = zeitviewFromRow({
+  zeitview_radius_miles: "50",
+  zeitview_last_synced_at: "2026-10-14T05:00:00.000Z",
+  zeitview_last_result: "ok",
+  zeitview_last_error: null,
+  zeitview_observed: {
+    street: "11205 Keystone Ave",
+    city: "Clinton",
+    travel_distance: 50,
+  },
+});
+assert.equal(radiusRow.zeitviewAvailable, true);
+assert.equal(radiusRow.zeitviewRadiusMiles, 50);
+assert.equal(
+  zeitviewSyncStatus(radiusRow, () => "Oct 14, 1:00 AM").text,
+  "Synced Oct 14, 1:00 AM: 50 mi from 11205 Keystone Ave, Clinton"
+);
+const nestedObserved = zeitviewSyncStatus(
+  {
+    ...radiusRow,
+    zeitviewObserved: {
+      address: { street: "11205 Keystone Ave", city: "Clinton" },
+      travel_distance: "50 mi",
+    },
+  },
+  () => "Oct 14, 1:00 AM"
+);
+assert.equal(nestedObserved.text, "Synced Oct 14, 1:00 AM: 50 mi from 11205 Keystone Ave, Clinton");
+assert.equal(
+  zeitviewSyncStatus({ ...radiusRow, zeitviewObserved: { travel_distance: 50 } }, () => "Oct 14, 1:00 AM"),
+  null
+);
+const failedSync = zeitviewSyncStatus({
+  ...radiusRow,
+  zeitviewLastResult: "failed",
+  zeitviewLastError: "profile form changed",
+});
+assert.equal(failedSync.title, "Zeitview sync broke, script needs updating");
+assert.equal(failedSync.detail, "profile form changed");
+assert.equal(failedSync.state, "failed");
 
 const huge = validateBotSettings({ ...defaults, longTripMinutes: 5000, maxDriveMinutes: 0 });
 assert.equal(huge.ok, false);
@@ -259,6 +324,28 @@ assert.match(sql, /GRANT ALL ON TABLE public\.bot_settings TO service_role/);
 assert.match(sql, /GRANT SELECT, UPDATE ON TABLE public\.bot_settings TO authenticated/);
 assert.match(sql, /INSERT INTO public\.bot_settings \(id\)/);
 assert.doesNotMatch(sql, /USING\s*\(\s*true\s*\)/i);
+
+const zeitviewSql = fs.readFileSync(
+  new URL("../supabase/migrations/20261014020000_bot_settings_zeitview.sql", import.meta.url),
+  "utf8"
+);
+for (const column of [
+  "zeitview_radius_miles numeric",
+  "zeitview_last_synced_at timestamptz",
+  "zeitview_last_result text",
+  "zeitview_last_error text",
+  "zeitview_observed jsonb",
+]) {
+  assert.equal(zeitviewSql.includes(column), true, column);
+}
+assert.match(zeitviewSql, /zeitview_radius_miles IN \(10, 25, 50, 100, 200\)/);
+assert.match(zeitviewSql, /zeitview_last_result IN \('ok', 'failed'\)/);
+assert.doesNotMatch(zeitviewSql, /CREATE POLICY/i);
+assert.doesNotMatch(zeitviewSql, /DROP POLICY/i);
+assert.doesNotMatch(zeitviewSql, /TO anon/i);
+assert.doesNotMatch(zeitviewSql, /USING\s*\(\s*true\s*\)/i);
+assert.match(sql, /CREATE POLICY bot_settings_admin_select/);
+assert.match(sql, /CREATE POLICY bot_settings_admin_update/);
 
 assert.equal(destinationForListing({ latitude: 0, longitude: 0, address: "1 Main St" }).kind, "address");
 assert.equal(destinationForListing({ latitude: null, longitude: null, address: "1 Main St" }).kind, "address");

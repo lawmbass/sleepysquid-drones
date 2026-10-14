@@ -1,4 +1,4 @@
-import { previewDecisions } from "@/libs/botRules";
+import { previewDecisions, zeitviewFromRow, zeitviewRadiusColumn } from "@/libs/botRules";
 import { assertNoError, db, fetchAll, num } from "@/libs/db/shared";
 
 export function mapBotSettings(row) {
@@ -16,6 +16,7 @@ export function mapBotSettings(row) {
     minNoticeHours: row.min_notice_hours == null ? null : num(row.min_notice_hours),
     updatedAt: row.updated_at || null,
     updatedBy: row.updated_by || null,
+    ...zeitviewFromRow(row),
   };
 }
 
@@ -36,20 +37,47 @@ function toRow(settings, updatedBy) {
   };
 }
 
+export function settingsRow(settings, updatedBy) {
+  const row = toRow(settings, updatedBy);
+  const radius = zeitviewRadiusColumn(settings);
+  if (radius.write) row.zeitview_radius_miles = radius.value;
+  return row;
+}
+
+function missingZeitviewColumn(error) {
+  const code = String(error?.code || "");
+  const message = `${error?.message || ""} ${error?.details || ""}`;
+  if (!/zeitview_radius_miles/i.test(message)) return false;
+  return code === "PGRST204" || code === "42703" || /schema cache|does not exist|could not find/i.test(message);
+}
+
 export async function getBotSettings() {
   const { data, error } = await db().from("bot_settings").select("*").eq("id", 1).maybeSingle();
   assertNoError(error);
   return mapBotSettings(data);
 }
 
-export async function saveBotSettings(settings, updatedBy) {
+async function upsertSettings(row) {
   const { data, error } = await db()
     .from("bot_settings")
-    .upsert(toRow(settings, updatedBy), { onConflict: "id" })
+    .upsert(row, { onConflict: "id" })
     .select("*")
     .single();
   assertNoError(error);
   return mapBotSettings(data);
+}
+
+export async function saveBotSettings(settings, updatedBy) {
+  const row = settingsRow(settings, updatedBy);
+  try {
+    return await upsertSettings(row);
+  } catch (error) {
+    if (!Object.prototype.hasOwnProperty.call(row, "zeitview_radius_miles") || !missingZeitviewColumn(error)) {
+      throw error;
+    }
+    delete row.zeitview_radius_miles;
+    return upsertSettings(row);
+  }
 }
 
 function previewColumns(includeNotice) {

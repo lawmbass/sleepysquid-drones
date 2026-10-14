@@ -8,6 +8,7 @@ import {
   homeAddressChanged,
   sameHomePin,
   validateBotSettings,
+  zeitviewSyncStatus,
 } from "@/libs/botRules";
 
 const EMPTY_FORM = {
@@ -21,6 +22,8 @@ const EMPTY_FORM = {
   homeLng: "",
   dailyAcceptCap: "",
   minNoticeHours: "",
+  zeitviewAvailable: false,
+  zeitviewRadiusMiles: "",
 };
 
 function textValue(value) {
@@ -40,6 +43,8 @@ function formFromSettings(settings) {
     homeLng: textValue(settings.homeLng),
     dailyAcceptCap: textValue(settings.dailyAcceptCap),
     minNoticeHours: textValue(settings.minNoticeHours),
+    zeitviewAvailable: settings.zeitviewAvailable === true,
+    zeitviewRadiusMiles: settings.zeitviewRadiusMiles == null ? "" : String(settings.zeitviewRadiusMiles),
   };
 }
 
@@ -56,6 +61,9 @@ function payloadFromForm(form) {
     homeLng: form.homeLng,
     dailyAcceptCap: optional(form.dailyAcceptCap),
     minNoticeHours: optional(form.minNoticeHours),
+    ...(form.zeitviewAvailable
+      ? { zeitviewRadiusMiles: form.zeitviewRadiusMiles === "" ? null : form.zeitviewRadiusMiles }
+      : {}),
   };
 }
 
@@ -97,8 +105,20 @@ function displayValue(id, source) {
     return String(source.minNoticeHours).trim() === "" ? "Not checked" : `${source.minNoticeHours} hours`;
   }
   if (id === "homeAddress") return source.homeAddress || "No address pinned";
+  if (id === "zeitviewRadiusMiles") {
+    return String(source.zeitviewRadiusMiles).trim() === "" ? "Keep current" : `${source.zeitviewRadiusMiles} miles`;
+  }
   return "";
 }
+
+const ZEITVIEW_RADIUS_OPTIONS = [
+  { value: "", label: "Keep current" },
+  { value: "10", label: "10 miles" },
+  { value: "25", label: "25 miles" },
+  { value: "50", label: "50 miles" },
+  { value: "100", label: "100 miles" },
+  { value: "200", label: "200 miles" },
+];
 
 const RULES = [
   {
@@ -142,6 +162,13 @@ const RULES = [
     label: "Minimum notice",
     help: "How long before the flight the bot must already have seen the gig. Leave blank to ignore notice. Use 0 to 168 if you set one. The preview only applies this when a real flight time is stored.",
     kind: "whole",
+  },
+  {
+    id: "zeitviewRadiusMiles",
+    label: "Zeitview travel radius",
+    help: "The radius the bot sets on the Zeitview profile. Keep current leaves the radius already there.",
+    kind: "select",
+    options: ZEITVIEW_RADIUS_OPTIONS,
   },
   {
     id: "homeAddress",
@@ -308,6 +335,7 @@ export default function BotRulesSection() {
   const [previewSource, setPreviewSource] = useState("saved");
   const [previewDriveSource, setPreviewDriveSource] = useState("stored");
   const [driveTimesUpdating, setDriveTimesUpdating] = useState(false);
+  const [zeitviewProfile, setZeitviewProfile] = useState(null);
   const driveTimesUpdatingRef = useRef(false);
   const savedPreviewRef = useRef(null);
   const previewRequest = useRef(0);
@@ -343,6 +371,17 @@ export default function BotRulesSection() {
       setSavedKey(JSON.stringify(payloadFromForm(next)));
       setUpdatedAt(data.settings.updatedAt || null);
       setUpdatedBy(data.settings.updatedBy || null);
+      setZeitviewProfile(
+        data.settings.zeitviewAvailable
+          ? {
+              available: true,
+              lastSyncedAt: data.settings.zeitviewLastSyncedAt || null,
+              lastResult: data.settings.zeitviewLastResult || null,
+              lastError: data.settings.zeitviewLastError || "",
+              observed: data.settings.zeitviewObserved || null,
+            }
+          : null
+      );
     }
     setMapsKeyConfigured(Boolean(data.mapsKeyConfigured));
     setPreview(data.preview || null);
@@ -627,6 +666,22 @@ export default function BotRulesSection() {
     previewStatus = "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
   }
 
+  const zeitviewSync = zeitviewProfile
+    ? zeitviewSyncStatus(
+        {
+          zeitviewAvailable: true,
+          zeitviewLastSyncedAt: zeitviewProfile.lastSyncedAt,
+          zeitviewLastResult: zeitviewProfile.lastResult,
+          zeitviewLastError: zeitviewProfile.lastError,
+          zeitviewObserved: zeitviewProfile.observed,
+        },
+        (value) => {
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+        }
+      )
+    : null;
+
   if (loading) {
     return (
       <div className="py-12 text-center text-gray-600 dark:text-gray-300">Loading bot rules...</div>
@@ -646,6 +701,21 @@ export default function BotRulesSection() {
             Last saved {new Date(updatedAt).toLocaleString()}
             {updatedBy ? ` by ${updatedBy}` : ""}.
           </p>
+        ) : null}
+        {zeitviewSync?.state === "ok" ? (
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300" data-zeitview-sync>
+            Zeitview profile sync. {zeitviewSync.text}
+          </p>
+        ) : null}
+        {zeitviewSync?.state === "failed" ? (
+          <div
+            className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+            role="alert"
+            data-zeitview-sync
+          >
+            <p className="font-medium">{zeitviewSync.title}</p>
+            {zeitviewSync.detail ? <p className="mt-1">{zeitviewSync.detail}</p> : null}
+          </div>
         ) : null}
       </div>
 
@@ -688,7 +758,7 @@ export default function BotRulesSection() {
           </div>
         )}
         <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
-          {RULES.map((rule) => {
+          {RULES.filter((rule) => rule.id !== "zeitviewRadiusMiles" || form.zeitviewAvailable).map((rule) => {
             const help = rule.id === "homeAddress" && editing && mapsKeyConfigured
               ? "Drive time is measured from here. Start typing, then choose the address from the list."
               : rule.help;
@@ -717,6 +787,23 @@ export default function BotRulesSection() {
                     />
                     {form.autoAcceptEnabled ? "Auto-accept is on" : "Auto-accept is off"}
                   </label>
+                ) : null}
+                {rule.kind === "select" ? (
+                  <select
+                    id={rule.id}
+                    className={`${inputClass} cursor-pointer`}
+                    value={form[rule.id]}
+                    aria-describedby={describedBy(rule.id)}
+                    aria-invalid={Boolean(fieldErrors[rule.id])}
+                    disabled={saving}
+                    onChange={(event) => setField(rule.id, event.target.value)}
+                  >
+                    {rule.options.map((option) => (
+                      <option key={option.value || "current"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 ) : null}
                 {rule.kind === "decimal" || rule.kind === "whole" ? (
                   <input
