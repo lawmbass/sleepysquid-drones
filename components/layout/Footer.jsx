@@ -24,16 +24,16 @@ const Footer = () => {
                 <Link href="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
               </li>
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Services</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Services</Link>
               </li>
               <li>
-                <Link href="#portfolio" className="text-gray-400 hover:text-white transition-colors">Portfolio</Link>
+                <Link href="/#portfolio" className="text-gray-400 hover:text-white transition-colors">Portfolio</Link>
               </li>
               <li>
-                <Link href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</Link>
+                <Link href="/#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</Link>
               </li>
               <li>
-                <Link href="#contact" className="text-gray-400 hover:text-white transition-colors">Contact</Link>
+                <Link href="/#contact" className="text-gray-400 hover:text-white transition-colors">Contact</Link>
               </li>
             </ul>
           </div>
@@ -43,19 +43,19 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Our Services</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Aerial Photography & Videography</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Aerial Photography & Videography</Link>
               </li>
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Mapping & Surveying</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Mapping & Surveying</Link>
               </li>
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Real Estate Tours</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Real Estate Tours</Link>
               </li>
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Inspection Services</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Inspection Services</Link>
               </li>
               <li>
-                <Link href="#services" className="text-gray-400 hover:text-white transition-colors">Event Coverage</Link>
+                <Link href="/#services" className="text-gray-400 hover:text-white transition-colors">Event Coverage</Link>
               </li>
             </ul>
           </div>
