@@ -141,6 +141,19 @@ export function classifyAirspace(input) {
     surfaceControlled,
   });
 
+  const checklist = buildChecklist({
+    insideFrz,
+    insideSfra,
+    insideP56,
+    insideNps,
+    zeroGrid,
+    lowCeiling,
+    gridControlled,
+    surfaceControlled,
+    facility,
+    nps,
+  });
+
   return {
     verdict,
     summary,
@@ -156,7 +169,106 @@ export function classifyAirspace(input) {
       : null,
     shelfNote: shelfNote(airspace),
     failures,
+    checklist,
   };
+}
+
+const ITEM_LINKS = {
+  laanc: ["https://www.faa.gov/uas/getting_started/laanc", "FAA LAANC"],
+  dronezone: ["https://faadronezone.faa.gov/", "FAA DroneZone"],
+  frz: ["https://www.faa.gov/uas/resources/community_engagement/no_drone_zone/dc", "FAA DC Flight Restricted Zone"],
+  nps: ["https://www.nps.gov/articles/unmanned-aircraft-in-the-national-parks.htm", "NPS unmanned aircraft policy"],
+  p56: ["https://www.faa.gov/uas/getting_started/where_can_i_fly/airspace_restrictions", "FAA airspace restrictions"],
+  sfra: ["https://www.ecfr.gov/current/title-14/chapter-I/subchapter-F/part-93/subpart-V/section-93.335", "14 CFR 93.335"],
+  part107: ["https://www.faa.gov/uas/commercial_operators/become_a_drone_pilot", "FAA Part 107 certificate"],
+  insurance: ["https://www.faa.gov/uas/commercial_operators", "FAA commercial operations"],
+  b4ufly: ["https://www.faa.gov/uas/getting_started/b4ufly", "B4UFLY"],
+};
+
+function item(id, label, why) {
+  const [href, linkLabel] = ITEM_LINKS[id];
+  return { id, label, why, href, linkLabel };
+}
+
+export function alwaysOnChecklist() {
+  return [
+    item(
+      "part107",
+      "Part 107 certificate current",
+      "The remote pilot certificate has to be current before this flight is quoted."
+    ),
+    item(
+      "insurance",
+      "Insurance check",
+      "Confirm the company policy covers this job. The certificate does not replace that check."
+    ),
+    item(
+      "b4ufly",
+      "B4UFLY or LAANC app confirmation",
+      "Check again the day of the flight. Airspace and notices can change after this quote."
+    ),
+  ];
+}
+
+function buildChecklist({
+  insideFrz,
+  insideSfra,
+  insideP56,
+  insideNps,
+  zeroGrid,
+  lowCeiling,
+  gridControlled,
+  surfaceControlled,
+  facility,
+  nps,
+}) {
+  const items = [];
+  const noLaunch = insideFrz || insideP56 || insideNps;
+  if (insideFrz) {
+    items.push(item(
+      "frz",
+      "Special FAA/TSA waiver (FRZ)",
+      "The point is inside the DC Flight Restricted Zone. These waivers are rarely approved for real estate or promo flights."
+    ));
+  }
+  if (insideP56) {
+    items.push(item(
+      "p56",
+      "No takeoff — P-56",
+      "The point is inside P-56 prohibited airspace. There is no routine authorization to launch here."
+    ));
+  }
+  if (insideNps) {
+    const names = nps.units?.length ? nps.units.join(", ") : "National Park Service land";
+    items.push(item(
+      "nps",
+      "NPS permission",
+      `No takeoff on ${names} without National Park Service permission.`
+    ));
+  }
+  if (zeroGrid && !insideFrz) {
+    items.push(item(
+      "dronezone",
+      "FAA DroneZone authorization",
+      "The facility-map grid is 0 ft, so LAANC cannot approve this flight."
+    ));
+  }
+  if (!noLaunch && !zeroGrid && (lowCeiling || gridControlled || surfaceControlled)) {
+    const ceiling = facility.ok ? facility.ceilingFt : null;
+    const label = ceiling != null ? `LAANC authorization (up to ${ceiling} ft)` : "LAANC authorization";
+    const why = ceiling != null
+      ? `Free, and usually instant, up to ${ceiling} ft. FAA DroneZone is the fallback if LAANC is unavailable.`
+      : "The facility map has no cell here, so confirm the ceiling in a LAANC app. FAA DroneZone is the fallback.";
+    items.push(item("laanc", label, why));
+  }
+  if (insideSfra) {
+    items.push(item(
+      "sfra",
+      "DC SFRA notes",
+      "Outside the FRZ, normal Part 107 rules still apply, plus the SFRA operating notes. This is not the special waiver."
+    ));
+  }
+  return [...items, ...alwaysOnChecklist()];
 }
 
 function summaryFor({ verdict, insideFrz, insideP56, insideNps, failures, facility }) {

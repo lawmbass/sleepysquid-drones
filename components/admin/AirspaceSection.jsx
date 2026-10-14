@@ -79,14 +79,10 @@ export default function AirspaceSection() {
 function AirspaceResult({ result }) {
   const style = VERDICT_STYLE[result.verdict] || VERDICT_STYLE["Couldn't verify"];
   const airspace = result.facility?.airspace?.length ? `Class ${result.facility.airspace.join(", ")}` : null;
+  const checklistKey = `${result.query}|${result.formattedAddress || ""}|${result.verdict}`;
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${style}`}>{result.verdict}</span>
-        <p className="text-gray-900 dark:text-white font-medium">{result.summary}</p>
-      </div>
-
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
       {result.formattedAddress ? (
         <p className="text-sm text-gray-600 dark:text-gray-300">
           {result.formattedAddress}
@@ -94,16 +90,13 @@ function AirspaceResult({ result }) {
         </p>
       ) : null}
 
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Authorization before quoting</h2>
-        <p className="mt-1 text-gray-700 dark:text-gray-300">{result.authorization}</p>
-        {result.sfraNote ? <p className="mt-2 text-gray-700 dark:text-gray-300">{result.sfraNote}</p> : null}
-        {result.shelfNote ? <p className="mt-2 text-gray-700 dark:text-gray-300">{result.shelfNote}</p> : null}
-      </section>
+      <Checklist key={checklistKey} items={result.checklist || []} />
+
+      {result.shelfNote ? <p className="text-sm text-gray-600 dark:text-gray-300">{result.shelfNote}</p> : null}
 
       <section>
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Facility map ceiling</h2>
-        <p className="mt-1 text-gray-700 dark:text-gray-300">
+        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
           {result.ceilingText}
           {airspace ? ` · ${airspace}` : ""}
           {result.facility?.airport ? ` · ${result.facility.airport}` : ""}
@@ -111,31 +104,74 @@ function AirspaceResult({ result }) {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Zones</h2>
-        <ul className="mt-2 space-y-1 text-gray-700 dark:text-gray-300">
-          <li>DC FRZ: {result.zones.frz.detail}</li>
-          <li>DC SFRA: {result.zones.sfra.detail}</li>
-          <li>P-56: {result.zones.p56.detail}</li>
-          <li>NPS land: {result.zones.nps.detail}</li>
-        </ul>
-      </section>
-
-      <section>
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Sources</h2>
-        <ul className="mt-2 space-y-3">
+        <ul className="mt-2 space-y-2">
           {result.sources.map((source) => (
             <li key={source.id} className="text-sm text-gray-700 dark:text-gray-300">
               <a href={source.url} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 underline">
                 {source.name}
               </a>
               <span className="text-gray-500 dark:text-gray-400"> · {source.status}</span>
-              <p>{source.limit}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400">{result.disclaimer}</p>
+      <section className="border-t border-gray-200 dark:border-gray-700 pt-5">
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Verdict</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${style}`}>{result.verdict}</span>
+          <p className="text-gray-900 dark:text-white font-medium">{result.summary}</p>
+        </div>
+        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{result.disclaimer}</p>
+      </section>
     </div>
+  );
+}
+
+function Checklist({ items }) {
+  const [done, setDone] = useState({});
+
+  const toggle = (id) => {
+    setDone((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Before quoting</h2>
+      <ul className="mt-3 divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">
+        {items.map((entry) => {
+          const checked = Boolean(done[entry.id]);
+          const inputId = `airspace-item-${entry.id}`;
+          return (
+            <li key={entry.id} className={`flex gap-3 px-3 py-3 ${checked ? "bg-gray-50 dark:bg-gray-900/40" : ""}`}>
+              <input
+                id={inputId}
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggle(entry.id)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="min-w-0">
+                <label htmlFor={inputId} className="block cursor-pointer">
+                  <span className={`block font-medium ${checked ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}>
+                    {entry.label}
+                  </span>
+                  <span className="block mt-0.5 text-sm text-gray-600 dark:text-gray-300">{entry.why}</span>
+                </label>
+                <a
+                  href={entry.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block mt-1 text-sm text-blue-600 dark:text-blue-400 underline"
+                >
+                  {entry.linkLabel}
+                </a>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
