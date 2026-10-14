@@ -721,6 +721,46 @@ function inRange(value, fromMs, toMs) {
   return true;
 }
 
+const ANALYTICS_PERIOD_DAYS = {
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+  "365d": 365,
+};
+
+/**
+ * Bounds for the analytics range selector. "all" is every job that has an
+ * event date. The day windows count back from now. A job with no event date
+ * stays out, so an import timestamp cannot put it in the range.
+ */
+export function analyticsDateRange(period = "all", now = new Date()) {
+  if (period === "all") return { dateFrom: null, dateTo: null };
+  const days = ANALYTICS_PERIOD_DAYS[period] ?? ANALYTICS_PERIOD_DAYS["30d"];
+  const end = new Date(now);
+  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+  return { dateFrom: start.toISOString(), dateTo: end.toISOString() };
+}
+
+export function selectAnalyticsJobs(jobs, {
+  period = "all",
+  now = new Date(),
+  source,
+  status,
+  dateFrom,
+  dateTo,
+} = {}) {
+  const explicitRange = dateFrom || dateTo;
+  const range = explicitRange
+    ? { dateFrom: dateFrom || null, dateTo: dateTo || null }
+    : analyticsDateRange(period, now);
+  return filterJobs(jobs, {
+    source,
+    status,
+    dateFrom: range.dateFrom,
+    dateTo: range.dateTo,
+  }).filter((job) => job.date);
+}
+
 export function filterJobs(jobs, filters = {}) {
   const fromMs = filters.dateFrom || filters.startDate ? new Date(filters.dateFrom || filters.startDate).getTime() : null;
   const toMs = filters.dateTo || filters.endDate ? new Date(filters.dateTo || filters.endDate).getTime() : null;
