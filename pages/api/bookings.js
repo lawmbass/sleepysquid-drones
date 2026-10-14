@@ -1,4 +1,5 @@
 import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
+import { estimatedPriceForPackage } from "@/libs/manualBooking";
 import { findSameDayBooking, insertBooking } from "@/libs/db/bookings";
 import { findUserByEmail } from "@/libs/db/users";
 import { calculateDiscountedPrice, getActivePromo } from "@/libs/db/promos";
@@ -187,27 +188,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // Estimate price based on package or default pricing
+    // Listing tiers are fixed prices. Event and mapping from-prices are the quote minimum.
     let estimatedPrice = null;
     if (sanitizedData.package) {
-      const validPackages = ['basic', 'standard', 'premium'];
-      if (!validPackages.includes(sanitizedData.package)) {
+      estimatedPrice = estimatedPriceForPackage(sanitizedData.package);
+      if (estimatedPrice == null) {
         return res.status(400).json({
           error: 'Invalid package',
           message: 'Please select a valid package type'
         });
-      }
-      
-      switch (sanitizedData.package) {
-        case 'basic':
-          estimatedPrice = 199;
-          break;
-        case 'standard':
-          estimatedPrice = 399;
-          break;
-        case 'premium':
-          estimatedPrice = 799;
-          break;
       }
     }
 

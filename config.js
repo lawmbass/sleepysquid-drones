@@ -3,7 +3,7 @@ const config = {
   appName: "SleepySquid Drones",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "Professional drone photography, videography, and specialized aerial services. Stunning aerial perspectives for real estate, construction, events, and mapping projects.",
+    "Professional drone photography, videography, and specialized aerial services. Stunning aerial perspectives for real estate, events, and mapping projects.",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
   domainName: "drones.sleepysquid.com",
   crisp: {
@@ -22,50 +22,29 @@ const config = {
             ? "price_basic_drone_service"
             : "price_basic_drone_service_prod",
         //  REQUIRED - Name of the plan, displayed on the pricing page
-        name: "Basic",
-        // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects",
-        // The price you want to display, the one user will be charged on Stripe.
+        name: "Listing Photos",
+        description: "15-20 edited photos, 48-hour delivery.",
         price: 199,
-        // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
         priceAnchor: null,
         features: [
-          {
-            name: "Up to 1 hour flight time",
-          },
-          { name: "15-20 high-resolution photos" },
-          { name: "Key angle coverage (4-8 shots)" },
-          { name: "Birds eye overview shots" },
-          { name: "Property/subject elevation views" },
-          { name: "Basic photo editing & color correction" },
-          { name: "Digital delivery within 48 hours" },
-          { name: "Commercial usage rights included" },
+          { name: "15-20 edited photos" },
+          { name: "48-hour delivery" },
         ],
       },
       {
-        // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
         isFeatured: true,
         priceId:
           process.env.NODE_ENV === "development"
             ? "price_standard_drone_service"
             : "price_standard_drone_service_prod",
-        name: "Standard",
-        description: "Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects",
+        name: "Listing Photos + Video",
+        description: "15-20 edited photos and a short edited video up to 2 min, 48-hour delivery.",
         price: 399,
         priceAnchor: null,
         features: [
-          {
-            name: "Up to 2 hours flight time",
-          },
-          { name: "20-30 high-resolution photos" },
-          { name: "Comprehensive angle coverage (8+ positions)" },
-          { name: "Multiple altitude perspectives" },
-          { name: "Detail and overview combinations" },
-          { name: "2-3 minute edited highlight video" },
-          { name: "Advanced photo editing & color grading" },
-          { name: "Next-day digital delivery" },
-          { name: "Raw files included" },
-          { name: "Commercial usage rights" },
+          { name: "15-20 edited photos" },
+          { name: "Short edited video up to 2 min" },
+          { name: "48-hour delivery" },
         ],
       },
       {
@@ -73,24 +52,26 @@ const config = {
           process.env.NODE_ENV === "development"
             ? "price_premium_drone_service"
             : "price_premium_drone_service_prod",
-        name: "Premium",
-        description: "Professional-grade package designed for mapping, commercial inspections, or premium documentation needs",
-        price: 799,
+        name: "Event Aerials",
+        description: "From $500. Photo and video coverage, priced by event.",
+        price: 500,
         priceAnchor: null,
         features: [
-          {
-            name: "Up to 4 hours flight time",
-          },
-          { name: "Comprehensive photo coverage (50+ images)" },
-          { name: "Automated flight planning for precision" },
-          { name: "Specialized data collection (mapping/3D)" },
-          { name: "Complete 360° coverage at multiple altitudes" },
-          { name: "Custom flight path planning" },
-          { name: "5+ minute professional video production" },
-          { name: "Advanced analytics & measurements" },
-          { name: "Same-day rush delivery available" },
-          { name: "Raw footage & source files" },
-          { name: "Extended commercial licensing" },
+          { name: "Photo and video coverage" },
+          { name: "Priced by event" },
+        ],
+      },
+      {
+        priceId:
+          process.env.NODE_ENV === "development"
+            ? "price_mapping_drone_service"
+            : "price_mapping_drone_service_prod",
+        name: "Mapping & 3D",
+        description: "From $900, by quote.",
+        price: 900,
+        priceAnchor: null,
+        features: [
+          { name: "By quote" },
         ],
       },
     ],

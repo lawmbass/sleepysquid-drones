@@ -119,14 +119,14 @@ export const renderSchemaTags = () => {
     description: safeAppDescription,
     image: safeImageURL,
     url: safeAppURL,
-    serviceType: ["Drone Photography", "Aerial Videography", "Real Estate Photography", "Construction Documentation", "Mapping Services"],
+    serviceType: ["Drone Photography", "Aerial Videography", "Real Estate Photography", "Mapping Services"],
     areaServed: "United States",
           founder: {
             "@type": "Person",
             name: "Lawrence Bass",
           },
           datePublished: "2023-08-01",
-          priceRange: "$199-$799",
+          priceRange: "$199-$900",
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: "4.9",
@@ -135,24 +135,31 @@ export const renderSchemaTags = () => {
           offers: [
             {
               "@type": "Service",
-              name: "Basic Drone Photography Package",
+              name: "Listing Photos",
               price: "199.00",
               priceCurrency: "USD",
-              description: "Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects"
-            },
-            {
-              "@type": "Service", 
-              name: "Standard Drone Services Package",
-              price: "399.00",
-              priceCurrency: "USD",
-              description: "Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects"
+              description: "15-20 edited photos, 48-hour delivery"
             },
             {
               "@type": "Service",
-              name: "Premium Drone Services Package", 
-              price: "799.00",
+              name: "Listing Photos + Video",
+              price: "399.00",
               priceCurrency: "USD",
-              description: "Professional-grade package designed for mapping, commercial inspections, or premium documentation needs"
+              description: "15-20 edited photos and a short edited video up to 2 min, 48-hour delivery"
+            },
+            {
+              "@type": "Service",
+              name: "Event Aerials",
+              price: "500.00",
+              priceCurrency: "USD",
+              description: "From $500. Photo and video coverage, priced by event"
+            },
+            {
+              "@type": "Service",
+              name: "Mapping & 3D",
+              price: "900.00",
+              priceCurrency: "USD",
+              description: "From $900, by quote"
             }
           ],
   };

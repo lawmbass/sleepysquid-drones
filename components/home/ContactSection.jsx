@@ -297,7 +297,7 @@ const ContactSection = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
                   <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">📧 Preferred Contact Method</h4>
                   <p className="text-blue-700 dark:text-blue-400 text-sm">
-                    Please use the contact form for the fastest response. We typically respond within 2-4 hours during business hours.
+                    Please use the contact form for the fastest response.
                   </p>
                 </div>
               </div>

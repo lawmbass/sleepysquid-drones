@@ -5,6 +5,7 @@ import { FiCalendar, FiMapPin, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX }
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 import AddressAutocomplete from '@/components/booking/AddressAutocomplete';
+import { BOOKING_PACKAGES, packageMenuLabel } from '@/libs/manualBooking';
 
 const services = [
   { id: 'aerial-media', name: 'Aerial Photography & Videography' },
@@ -140,31 +141,12 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     }
   }, [selectedPackage, onPackageSelect]);
 
-  // Helper function to get available packages for a service type
-  const getAvailablePackages = (serviceType) => {
-    const basePackages = [
-      { id: 'basic', basePrice: 199, name: 'Basic Package', description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects' },
-      { id: 'standard', basePrice: 399, name: 'Standard Package', description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects' },
-      { id: 'premium', basePrice: 799, name: 'Premium Package', description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs' }
-    ];
-
-    // Services that require at least Standard package (no Basic)
-    const standardMinServices = ['mapping-surveying', 'inspection', 'event-coverage', 'custom'];
-    
-    const availablePackages = standardMinServices.includes(serviceType) 
-      ? basePackages.filter(pkg => pkg.id !== 'basic')
-      : basePackages;
-
-    // Add pricing to package names based on active promo
-    return availablePackages.map(pkg => {
-      const finalPrice = calculateDiscountedPrice(pkg.basePrice);
-      const priceDisplay = activePromo && finalPrice < pkg.basePrice 
-        ? `$${finalPrice} (was $${pkg.basePrice})`
-        : `$${pkg.basePrice}`;
-      
+  const getAvailablePackages = () => {
+    return BOOKING_PACKAGES.map((pkg) => {
+      const discounted = activePromo ? calculateDiscountedPrice(pkg.basePrice) : null;
       return {
         ...pkg,
-        name: `${pkg.name} - ${priceDisplay}`
+        name: packageMenuLabel(pkg, discounted),
       };
     });
   };
@@ -634,7 +616,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   </div>
                   {formData.package && (
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                      {getAvailablePackages(formData.service).find(pkg => pkg.id === formData.package)?.description}
+                      {getAvailablePackages().find(pkg => pkg.id === formData.package)?.details?.join(' · ')}
                     </p>
                   )}
                 </div>
@@ -1007,81 +989,27 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
               )}
               
               <div className="grid gap-4 lg:gap-6">
-                {getAvailablePackages(formData.service).find(pkg => pkg.id === 'basic') ? (
-                  <div className="border rounded-lg p-4 lg:p-5 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 lg:mb-3 text-lg">
-                      Basic Package - {activePromo ? `$${calculateDiscountedPrice(199)}` : '$199'}
-                      {activePromo && calculateDiscountedPrice(199) < 199 && (
-                        <span className="text-sm text-green-600 dark:text-green-400 ml-2">(was $199)</span>
-                      )}
+                {getAvailablePackages().map((pkg) => (
+                  <div key={pkg.id} className="border rounded-lg p-4 lg:p-5 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 lg:mb-3 text-lg">
+                      {pkg.name}
+                      {pkg.badge ? <span className="ml-2 text-sm font-medium text-blue-600 dark:text-blue-300">{pkg.badge}</span> : null}
                     </h4>
-                    <ul className="text-sm lg:text-base text-green-700 dark:text-green-300 space-y-1 lg:space-y-2">
-                      <li>• <strong>1 hour</strong> of flight time</li>
-                      <li>• 10-15 high-resolution photos</li>
-                      <li>• Basic editing included</li>
-                      <li>• Digital delivery within 3-5 days</li>
-                      <li>• Perfect for small properties or simple shots</li>
+                    <ul className="text-sm lg:text-base text-gray-700 dark:text-gray-300 space-y-1 lg:space-y-2">
+                      {pkg.details.map((detail) => (
+                        <li key={detail}>• {detail}</li>
+                      ))}
                     </ul>
                   </div>
-                ) : formData.service && (
-                  <div className="border rounded-lg p-4 lg:p-5 bg-gray-100 dark:bg-gray-800 opacity-60 border-gray-300 dark:border-gray-600">
-                    <h4 className="font-semibold text-gray-600 dark:text-gray-400 mb-2 lg:mb-3 text-lg">Basic Package - $199 (Not Available)</h4>
-                    <p className="text-sm lg:text-base text-gray-500 dark:text-gray-400 mb-2 lg:mb-3">
-                      Not available for {formData.service.split('-').map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(' ')} services due to complexity requirements.
-                    </p>
-                    <ul className="text-sm lg:text-base text-gray-500 dark:text-gray-400 space-y-1 lg:space-y-2">
-                      <li>• Up to 1 hour of flight time</li>
-                      <li>• 10-15 high-resolution photos</li>
-                      <li>• Basic editing included</li>
-                      <li>• Digital delivery within 3-5 days</li>
-                    </ul>
-                  </div>
-                )}
-                
-                <div className="border rounded-lg p-4 lg:p-5 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 lg:mb-3 text-lg">
-                    Standard Package - {activePromo ? `$${calculateDiscountedPrice(399)}` : '$399'}
-                    {activePromo && calculateDiscountedPrice(399) < 399 && (
-                      <span className="text-sm text-blue-600 dark:text-blue-400 ml-2">(was $399)</span>
-                    )}
-                  </h4>
-                  <ul className="text-sm lg:text-base text-blue-700 dark:text-blue-300 space-y-1 lg:space-y-2">
-                    <li>• <strong>2 hours</strong> of flight time</li>
-                    <li>• 25-30 high-resolution photos</li>
-                    <li>• 2-3 minutes of edited video</li>
-                    <li>• Professional editing and color correction</li>
-                    <li>• Digital delivery within 2-3 days</li>
-                    <li>• Ideal for real estate and events</li>
-                  </ul>
-                </div>
-                
-                <div className="border rounded-lg p-4 lg:p-5 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 lg:mb-3 text-lg">
-                    Premium Package - {activePromo ? `$${calculateDiscountedPrice(799)}` : '$799'}
-                    {activePromo && calculateDiscountedPrice(799) < 799 && (
-                      <span className="text-sm text-purple-600 dark:text-purple-400 ml-2">(was $799)</span>
-                    )}
-                  </h4>
-                  <ul className="text-sm lg:text-base text-purple-700 dark:text-purple-300 space-y-1 lg:space-y-2">
-                    <li>• <strong>4 hours</strong> of flight time</li>
-                    <li>• 50+ high-resolution photos</li>
-                    <li>• 5-10 minutes of cinematic video</li>
-                    <li>• Advanced editing with music and transitions</li>
-                    <li>• Same-day or next-day delivery</li>
-                    <li>• Multiple angles and creative shots</li>
-                    <li>• Perfect for commercial projects</li>
-                  </ul>
-                </div>
+                ))}
               </div>
-              
+
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 lg:p-4 space-y-2">
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                  <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
+                  <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits.
                 </p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                  <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
+                  Travel fees may apply. Weather delays may affect delivery times.
                 </p>
               </div>
             </div>
