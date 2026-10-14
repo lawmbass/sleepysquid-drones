@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/libs/adminRequest";
+import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 import { insertBooking } from "@/libs/db/bookings";
 import { validateManualBooking } from "@/libs/manualBooking";
 
@@ -19,8 +20,24 @@ export default async function handler(req, res) {
     });
   }
 
+  const address = await resolveUsBookingAddress({
+    placeId: req.body?.placeId,
+    location: result.value.location,
+  });
+  if (!address.ok) {
+    const failure = bookingAddressError(address.reason);
+    return res.status(failure.status).json({
+      error: "Invalid location",
+      message: failure.message,
+    });
+  }
+
   try {
-    const booking = await insertBooking(result.value);
+    const booking = await insertBooking({
+      ...result.value,
+      location: address.location,
+      coordinates: { lat: address.lat, lng: address.lng },
+    });
     return res.status(201).json({
       success: true,
       data: { booking },

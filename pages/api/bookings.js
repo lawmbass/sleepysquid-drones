@@ -1,3 +1,4 @@
+import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 import { findSameDayBooking, insertBooking } from "@/libs/db/bookings";
 import { findUserByEmail } from "@/libs/db/users";
 import { calculateDiscountedPrice, getActivePromo } from "@/libs/db/promos";
@@ -232,6 +233,19 @@ export default async function handler(req, res) {
       }
     }
 
+    const address = await resolveUsBookingAddress({
+      placeId: req.body?.placeId,
+      location: sanitizedData.location,
+    });
+    if (!address.ok) {
+      const failure = bookingAddressError(address.reason);
+      return res.status(failure.status).json({
+        error: 'Invalid location',
+        message: failure.message,
+      });
+    }
+    sanitizedData.location = address.location;
+
     // Check for duplicate bookings (same email and date)
     // Create separate date objects to prevent mutation of the original bookingDate
     const startOfDay = new Date(bookingDate);
@@ -260,6 +274,7 @@ export default async function handler(req, res) {
       package: sanitizedData.package,
       date: bookingDate.toISOString(),
       location: sanitizedData.location,
+      coordinates: { lat: address.lat, lng: address.lng },
       details: sanitizedData.details,
       name: sanitizedData.name,
       email: sanitizedData.email,

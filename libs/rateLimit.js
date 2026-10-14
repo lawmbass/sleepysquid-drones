@@ -50,6 +50,16 @@ export const adminRateLimit = createRateLimit({
   }
 });
 
+export const placesRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: {
+    error: "Too many address searches",
+    message: "Too many address searches. Please wait a few minutes and try again.",
+  },
+  keyGenerator: (req) => `${req.ip}:places`,
+});
+
 export const generalApiRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // general API limit

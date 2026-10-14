@@ -21,6 +21,13 @@ export default async function handler(req, res) {
     return res.status(failure.status).json(failure.body);
   }
 
+  if (lookup.countryCode && lookup.countryCode !== "US") {
+    return res.status(400).json({
+      error: "Invalid address",
+      message: "Choose a US address from the list.",
+    });
+  }
+
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({
     success: true,
@@ -28,6 +35,7 @@ export default async function handler(req, res) {
       formattedAddress: lookup.formattedAddress,
       lat: lookup.lat,
       lng: lookup.lng,
+      countryCode: lookup.countryCode,
     },
   });
 }

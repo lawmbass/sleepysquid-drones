@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { FiCalendar, FiMapPin, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
+import AddressAutocomplete from '@/components/booking/AddressAutocomplete';
 
 const services = [
   { id: 'aerial-media', name: 'Aerial Photography & Videography' },
@@ -23,6 +24,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     package: '',
     date: '',
     location: '',
+    placeId: '',
     details: '',
     name: '',
     email: '',
@@ -209,6 +211,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
         newErrors.date = 'Please select a date that is at least 2 days from today';
       }
       if (!formData.location) newErrors.location = 'Please enter a location';
+      else if (!formData.placeId) newErrors.location = 'Choose a US address from the list';
     }
     
     if (currentStep === 2) {
@@ -234,7 +237,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   // Helper function to check if Step 1 is ready for next step
   const isStep1ReadyForNext = () => {
-    return formData.service && formData.date && formData.location;
+    return formData.service && formData.date && formData.location && formData.placeId;
   };
 
   // Helper function to check if form is ready for submission
@@ -686,22 +689,25 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       Location*
                     </div>
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      id="location"
-                      name="location"
-                      placeholder="Enter service location"
-                      value={formData.location}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border ${errors.location ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <FiMapPin className="text-gray-500" />
-                    </div>
-                  </div>
+                  <AddressAutocomplete
+                    id="location"
+                    value={formData.location}
+                    placeholder="Start typing a US address"
+                    selected={Boolean(formData.placeId)}
+                    autocompletePath="/api/places/autocomplete"
+                    detailsPath="/api/places/details"
+                    inputClassName={`w-full px-4 py-3 rounded-lg border ${errors.location ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring focus:ring-blue-200 dark:focus:ring-blue-800 focus:ring-opacity-50`}
+                    onChange={(text) => {
+                      setFormData(prev => ({ ...prev, location: text, placeId: '' }));
+                      if (errors.location) setErrors(prev => ({ ...prev, location: '' }));
+                    }}
+                    onSelect={(place) => {
+                      setFormData(prev => ({ ...prev, location: place.location, placeId: place.placeId }));
+                      if (errors.location) setErrors(prev => ({ ...prev, location: '' }));
+                    }}
+                  />
                   {errors.location && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.location}</p>}
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter a complete address for accurate service planning</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Start typing, then choose a US address from the list.</p>
                 </div>
 
 
@@ -945,6 +951,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       package: '',
                       date: '',
                       location: '',
+                      placeId: '',
                       details: '',
                       name: '',
                       email: '',
