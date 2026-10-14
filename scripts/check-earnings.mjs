@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
-const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts } = await import("../libs/jobs.js");
+const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts, analyticsDateRange, selectAnalyticsJobs } = await import("../libs/jobs.js");
 const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 const { ZEITVIEW_FLIGHT_WINDOWS } = await import("../libs/zeitviewFlights.js");
@@ -602,5 +602,70 @@ const customerQuote = missionDetailAmounts({
 assert.equal(customerQuote.payout, 100);
 assert.equal(customerQuote.finalPrice, null);
 assert.equal(customerQuote.finalPriceFallsBack, false);
+
+const now = new Date("2026-10-14T12:00:00.000Z");
+assert.equal(analyticsDateRange("all", now).dateFrom, null);
+assert.equal(analyticsDateRange("30d", now).dateFrom, "2026-09-14T12:00:00.000Z");
+assert.equal(analyticsDateRange("30d", now).dateTo, now.toISOString());
+
+function flownGig(id, start, payout, miles) {
+  return listingToJob({
+    id,
+    status: "accepted",
+    bookingId: null,
+    source: "zeitview",
+    payout,
+    travelDistance: miles,
+    travelTime: miles * 2,
+    dueWindowStart: start,
+    lastSeenAt: "2026-10-11T16:00:00.000Z",
+    firstSeenAt: "2026-10-11T16:00:00.000Z",
+    externalMissionId: id,
+  });
+}
+const pastFlights = [
+  flownGig("DBM9380917324", "2024-01-25T19:30:00.000Z", 70, 10),
+  flownGig("DBM5272171280", "2024-08-28T19:00:00.000Z", 150, 20),
+  flownGig("DBM8900777480", "2024-09-12T14:30:00.000Z", 80, 15),
+  flownGig("DBM0284367500", "2024-10-31T16:30:00.000Z", 70, 12),
+  flownGig("DBM6932649899", "2025-02-24T17:30:00.000Z", 60, 8),
+  flownGig("DBM5171408909", "2025-05-27T18:30:00.000Z", 70, 11),
+];
+const importOnly = listingToJob({
+  id: "import-only",
+  status: "accepted",
+  bookingId: null,
+  source: "zeitview",
+  payout: 1000,
+  travelDistance: 5,
+  lastSeenAt: "2026-10-11T16:00:00.000Z",
+  firstSeenAt: "2026-10-11T16:00:00.000Z",
+});
+assert.equal(importOnly.date, null);
+const recent = flownGig("recent", "2026-10-01T15:00:00.000Z", 40, 4);
+const analyticsJobs = [...pastFlights, importOnly, recent];
+
+const lastMonth = selectAnalyticsJobs(analyticsJobs, { period: "30d", now });
+assert.deepEqual(lastMonth.map((job) => job.id), ["recent"]);
+
+const allTime = selectAnalyticsJobs(analyticsJobs, { period: "all", now });
+assert.equal(allTime.some((job) => job.id === "import-only"), false);
+assert.equal(allTime.length, 7);
+
+const allPast = summarizeAnalytics(selectAnalyticsJobs(pastFlights, { period: "all", now }));
+assert.equal(allPast.summary.totalMissions, 6);
+assert.equal(allPast.summary.totalRevenue, 500);
+assert.equal(allPast.summary.completionRate, 100);
+assert.equal(allPast.summary.revenuePerMile, 6.58);
+assert.equal(allPast.performanceMetrics.completedMissions, 6);
+assert.equal(allPast.performanceMetrics.totalTravelDistance, 76);
+assert.equal(allPast.performanceMetrics.totalTravelTime, 152);
+assert.equal(allPast.performanceMetrics.maxPayout, 150);
+assert.equal(allPast.performanceMetrics.minPayout, 60);
+assert.equal(allPast.summary.statusCounts.completed, 6);
+const months = allPast.revenueByMonth.map((month) => `${month.year}-${month.month}`);
+assert.deepEqual(months, ["2024-1", "2024-8", "2024-9", "2024-10", "2025-2", "2025-5"]);
+assert.equal(months.includes("2026-10"), false);
+assert.equal(summarizeAnalytics(lastMonth).summary.totalMissions, 1);
 
 console.log("Admin role and unlinked earnings checks passed.");

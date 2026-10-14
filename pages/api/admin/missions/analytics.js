@@ -1,5 +1,5 @@
 import { loadJobs } from "@/libs/db/jobs";
-import { filterJobs, summarizeAnalytics } from "@/libs/jobs";
+import { analyticsDateRange, selectAnalyticsJobs, summarizeAnalytics } from "@/libs/jobs";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -68,36 +68,20 @@ export default async function handler(req, res) {
       endDate,
       source,
       status,
-      period = '30d' // Default to last 30 days
+      period = 'all'
     } = req.query;
 
-    // Build filter object
     const filters = {};
-    
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
     if (source) filters.source = source;
     if (status) filters.status = status;
 
-    // If no date range provided, use period
-    if (!startDate && !endDate) {
-      const periodMap = {
-        '7d': 7,
-        '30d': 30,
-        '90d': 90,
-        '365d': 365
-      };
-      
-      const days = periodMap[period] || 30;
-      const endDateTime = new Date();
-      const startDateTime = new Date();
-      startDateTime.setDate(endDateTime.getDate() - days);
-      
-      filters.startDate = startDateTime.toISOString();
-      filters.endDate = endDateTime.toISOString();
-    }
-
-    const jobs = filterJobs(await loadJobs(), {
+    const range = (filters.startDate || filters.endDate)
+      ? { dateFrom: filters.startDate || null, dateTo: filters.endDate || null }
+      : analyticsDateRange(period);
+    const jobs = selectAnalyticsJobs(await loadJobs(), {
+      period,
       source: filters.source,
       status: filters.status,
       dateFrom: filters.startDate,
@@ -117,8 +101,8 @@ export default async function handler(req, res) {
         performanceMetrics: report.performanceMetrics,
         locationInsights: report.locationInsights,
         filters: {
-          startDate: filters.startDate,
-          endDate: filters.endDate,
+          startDate: range.dateFrom,
+          endDate: range.dateTo,
           source,
           status,
           period
