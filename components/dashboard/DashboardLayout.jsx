@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 // Link removed as we're using router.push instead
 import { useRouter } from 'next/router';
-import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
 import OptimizedImage from '../common/OptimizedImage';
 
@@ -21,7 +21,8 @@ const iconMap = {
   FiActivity,
   FiClipboard,
   FiPercent,
-  FiSliders
+  FiSliders,
+  FiMapPin
 };
 
 export default function DashboardLayout({ children, user, onSignOut, userRole }) {

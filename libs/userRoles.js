@@ -272,6 +272,7 @@ export const userRoles = {
           { name: 'Bookings', href: '/dashboard?section=bookings', icon: 'FiCalendar' },
           { name: 'Listings', href: '/dashboard?section=listings', icon: 'FiClipboard' },
           { name: 'Bot rules', href: '/dashboard?section=bot-rules', icon: 'FiSliders' },
+          { name: 'Airspace', href: '/dashboard?section=airspace', icon: 'FiMapPin' },
           { name: 'Promos', href: '/dashboard?section=promos', icon: 'FiPercent' },
           { name: 'Analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
