@@ -9,6 +9,7 @@ import PromoManagement from '@/components/admin/PromoManagement';
 import ListingsSection from '@/components/admin/ListingsSection';
 import BotRulesSection from '@/components/admin/BotRulesSection';
 import AddBookingForm from '@/components/admin/AddBookingForm';
+import AirspaceSection from '@/components/admin/AirspaceSection';
 import AccessStatusBanner from './AccessStatusBanner';
 import {
   OVERVIEW_STATUS_FILTERS,
@@ -281,6 +282,9 @@ export default function AdminContent({ user, onUpdate }) {
 
       case 'bot-rules':
         return <BotRulesSection />;
+
+      case 'airspace':
+        return <AirspaceSection />;
       
       default:
         return (
