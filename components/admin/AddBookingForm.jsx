@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
+import AddressAutocomplete from "@/components/booking/AddressAutocomplete";
 import {
   BOOKING_SERVICES,
   BOOKING_STATUSES,
@@ -15,6 +16,7 @@ const emptyForm = {
   package: "",
   date: "",
   location: "",
+  placeId: "",
   details: "",
   name: "",
   email: "",
@@ -62,6 +64,14 @@ export default function AddBookingForm({ onCreated }) {
     event.preventDefault();
     setNotice("");
     const result = validateManualBooking(form);
+    if (!form.placeId) {
+      result.ok = false;
+      result.errors = {
+        ...result.errors,
+        location: "Choose a US address from the list",
+      };
+      result.value = null;
+    }
     if (!result.ok) {
       setErrors(result.errors);
       return;
@@ -184,14 +194,24 @@ export default function AddBookingForm({ onCreated }) {
 
           <div>
             <label htmlFor="add-booking-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-            <input
+            <AddressAutocomplete
               id="add-booking-location"
-              type="text"
-              maxLength={200}
               value={form.location}
-              onChange={(event) => update("location", event.target.value)}
-              className={fieldClass}
+              selected={Boolean(form.placeId)}
+              placeholder="Start typing a US address"
+              autocompletePath="/api/admin/places/autocomplete"
+              detailsPath="/api/admin/places/details"
+              inputClassName={fieldClass}
+              onChange={(text) => {
+                setForm((prev) => ({ ...prev, location: text, placeId: "" }));
+                setErrors((prev) => ({ ...prev, location: "", general: "" }));
+              }}
+              onSelect={(place) => {
+                setForm((prev) => ({ ...prev, location: place.location, placeId: place.placeId }));
+                setErrors((prev) => ({ ...prev, location: "", general: "" }));
+              }}
             />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Start typing, then choose a US address from the list.</p>
             <FieldError message={errors.location} />
           </div>
 

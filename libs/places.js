@@ -16,7 +16,7 @@ const AUTOCOMPLETE_MASK = [
   "suggestions.placePrediction.structuredFormat",
 ].join(",");
 
-const DETAILS_MASK = "formattedAddress,shortFormattedAddress,location";
+const DETAILS_MASK = "formattedAddress,shortFormattedAddress,location,addressComponents";
 
 const HOME_BIAS = {
   circle: {
@@ -69,6 +69,13 @@ export function suggestionsFromAutocomplete(body) {
     if (suggestions.length >= 5) break;
   }
   return suggestions;
+}
+
+export function countryCodeFromPlace(body) {
+  const components = Array.isArray(body?.addressComponents) ? body.addressComponents : [];
+  const country = components.find((item) => Array.isArray(item?.types) && item.types.includes("country"));
+  const code = String(country?.shortText || "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
 }
 
 export function pinFromPlaceDetails(body) {
@@ -136,7 +143,7 @@ export async function placeDetails(placeId, sessionToken) {
   }
   const pin = pinFromPlaceDetails(body);
   if (!pin) return { ok: false, reason: "empty" };
-  return { ok: true, ...pin };
+  return { ok: true, ...pin, countryCode: countryCodeFromPlace(body) };
 }
 
 export async function staticMapImage(lat, lng) {
