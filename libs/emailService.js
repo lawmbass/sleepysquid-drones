@@ -1,5 +1,6 @@
 import config from "@/config";
 import { sendEmail } from "@/libs/mailgun";
+import { isQuotePackage, packageLabel } from "@/libs/manualBooking";
 
 /**
  * Sends a booking confirmation email to the customer
@@ -14,7 +15,10 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
   const subject = `Booking Confirmation - ${booking.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Service`;
   
   const serviceDisplayName = booking.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  const packageDisplayName = booking.package ? booking.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : null;
+  const packageDisplayName = booking.package ? packageLabel(booking.package) : null;
+  const estimatedPriceLabel = booking.estimatedPrice
+    ? `${isQuotePackage(booking.package) ? "from " : ""}$${booking.estimatedPrice}`
+    : null;
   const formattedDate = new Date(booking.date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -56,7 +60,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
           <span style="margin-right: 10px;">✅</span> Booking Confirmed!
         </h2>
         <p style="color: #166534; margin: 0; font-size: 16px;">
-          Thank you ${booking.name}! We've received your booking request and will contact you within 24 hours to confirm the details.
+          Thank you ${booking.name}! We've received your booking request and will contact you to confirm the details.
         </p>
       </div>
 
@@ -87,10 +91,10 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
             <td style="padding: 12px 0; color: #1f2937;">${booking.location}</td>
           </tr>
 
-          ${booking.estimatedPrice ? `
+          ${estimatedPriceLabel ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Estimated Price:</td>
-            <td style="padding: 12px 0; color: #1f2937; font-weight: 600;">$${booking.estimatedPrice}</td>
+            <td style="padding: 12px 0; color: #1f2937; font-weight: 600;">${estimatedPriceLabel}</td>
           </tr>
           ` : ''}
           <tr>
@@ -119,7 +123,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
         <h3 style="color: #1f2937; margin-top: 0;">What happens next?</h3>
         <ol style="color: #4b5563; padding-left: 20px;">
           <li style="margin-bottom: 8px;">Our team will review your booking request</li>
-          <li style="margin-bottom: 8px;">We'll contact you within 24 hours to confirm availability</li>
+          <li style="margin-bottom: 8px;">We'll contact you to confirm availability</li>
           <li style="margin-bottom: 8px;">We'll discuss any specific requirements and finalize details</li>
           <li style="margin-bottom: 8px;">You'll receive a final confirmation with payment instructions</li>
         </ol>
@@ -143,7 +147,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
   const textContent = `
 ${config.appName} - Booking Confirmation
 
-Thank you ${booking.name}! We've received your booking request and will contact you within 24 hours to confirm the details.
+Thank you ${booking.name}! We've received your booking request and will contact you to confirm the details.
 
 BOOKING DETAILS:
 ================
@@ -151,7 +155,7 @@ Booking ID: ${booking._id}
 Service: ${serviceDisplayName}
 ${packageDisplayName ? `Package: ${packageDisplayName}\n` : ''}Date: ${formattedDate}
 Location: ${booking.location}
-${booking.estimatedPrice ? `Estimated Price: $${booking.estimatedPrice}\n` : ''}Status: Pending Confirmation
+${estimatedPriceLabel ? `Estimated Price: ${estimatedPriceLabel}\n` : ''}Status: Pending Confirmation
 
 ${booking.details ? `Additional Details: ${booking.details}\n\n` : ''}
 
@@ -164,7 +168,7 @@ Your booking ID: ${booking._id}
 ` : ''}WHAT HAPPENS NEXT:
 ==================
 1. Our team will review your booking request
-2. We'll contact you within 24 hours to confirm availability  
+2. We'll contact you to confirm availability  
 3. We'll discuss any specific requirements and finalize details
 4. You'll receive a final confirmation with payment instructions
 

@@ -17,12 +17,48 @@ export const BOOKING_SERVICES = [
 ];
 
 export const BOOKING_PACKAGES = [
-  { id: "basic", basePrice: 199, name: "Basic Package" },
-  { id: "standard", basePrice: 399, name: "Standard Package" },
-  { id: "premium", basePrice: 799, name: "Premium Package" },
+  {
+    id: "listing-photos",
+    basePrice: 199,
+    name: "Listing Photos",
+    quote: false,
+    details: ["15-20 edited photos", "48-hour delivery"],
+  },
+  {
+    id: "listing-video",
+    basePrice: 399,
+    name: "Listing Photos + Video",
+    quote: false,
+    badge: "Best for listings",
+    details: ["15-20 edited photos", "Short edited video up to 2 min", "48-hour delivery"],
+  },
+  {
+    id: "event-aerials",
+    basePrice: 500,
+    name: "Event Aerials",
+    quote: true,
+    details: ["Photo and video coverage", "Priced by event"],
+  },
+  {
+    id: "mapping-3d",
+    basePrice: 900,
+    name: "Mapping & 3D",
+    quote: true,
+    details: ["By quote"],
+  },
 ];
 
-export const STANDARD_MIN_SERVICES = ["mapping-surveying", "inspection", "event-coverage", "custom"];
+const LEGACY_PACKAGE_PRICES = {
+  basic: 199,
+  standard: 399,
+  premium: 799,
+};
+
+const LEGACY_PACKAGE_LABELS = {
+  basic: "Basic (previous tier)",
+  standard: "Standard (previous tier)",
+  premium: "Premium (previous tier)",
+};
 
 export const BOOKING_STATUSES = [
   { value: "pending", label: "Pending" },
@@ -34,11 +70,52 @@ export const BOOKING_STATUSES = [
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
-export function availablePackages(serviceType) {
-  if (STANDARD_MIN_SERVICES.includes(serviceType)) {
-    return BOOKING_PACKAGES.filter((pkg) => pkg.id !== "basic");
-  }
+export function availablePackages() {
   return BOOKING_PACKAGES;
+}
+
+export function packageMenuLabel(pkg, discounted) {
+  const from = pkg.quote ? "from " : "";
+  if (discounted != null && discounted < pkg.basePrice) {
+    return `${pkg.name} - ${from}$${discounted} (was $${pkg.basePrice})`;
+  }
+  return `${pkg.name} - ${from}$${pkg.basePrice}`;
+}
+
+/** Fixed project price, or the from-price minimum for a quote package. */
+export function estimatedPriceForPackage(packageId) {
+  const current = BOOKING_PACKAGES.find((pkg) => pkg.id === packageId);
+  if (current) return current.basePrice;
+  if (Object.prototype.hasOwnProperty.call(LEGACY_PACKAGE_PRICES, packageId)) {
+    return LEGACY_PACKAGE_PRICES[packageId];
+  }
+  return null;
+}
+
+/** Current package name, or a readable label for an older row. */
+export function packageLabel(packageId) {
+  if (!packageId) return "";
+  const current = BOOKING_PACKAGES.find((pkg) => pkg.id === packageId);
+  if (current) return current.name;
+  if (LEGACY_PACKAGE_LABELS[packageId]) return LEGACY_PACKAGE_LABELS[packageId];
+  return String(packageId)
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function isQuotePackage(packageId) {
+  return BOOKING_PACKAGES.some((pkg) => pkg.id === packageId && pkg.quote);
+}
+
+/** Dollar amount for a booking. Quote packages say "from" until a final price is set. */
+export function formatBookingPrice(packageId, estimatedPrice, finalPrice) {
+  const hasFinal = finalPrice != null && finalPrice !== "";
+  const amount = hasFinal ? finalPrice : estimatedPrice;
+  if (amount == null || amount === "") return "";
+  const from = !hasFinal && isQuotePackage(packageId) ? "from " : "";
+  const numeric = Number(amount);
+  const shown = Number.isFinite(numeric) ? numeric.toLocaleString("en-US") : String(amount);
+  return `${from}$${shown}`;
 }
 
 export function minBookingDateTime(now = Date.now()) {

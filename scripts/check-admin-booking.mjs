@@ -6,6 +6,10 @@ const {
   MANUAL_SOURCE,
   MANUAL_SOURCE_LABEL,
   availablePackages,
+  estimatedPriceForPackage,
+  formatBookingPrice,
+  isQuotePackage,
+  packageLabel,
   bookingSourceLabel,
   isMissionSource,
   jobIsMission,
@@ -20,7 +24,7 @@ const far = new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString();
 function payload(overrides = {}) {
   return {
     service: "aerial-media",
-    package: "basic",
+    package: "listing-photos",
     date: far,
     location: "123 Harbor Rd",
     details: "Roof photos",
@@ -40,7 +44,7 @@ assert.equal(saved.value.source, MANUAL_SOURCE);
 assert.equal(saved.value.source, "manual");
 assert.equal(saved.value.email, "ada@example.com");
 assert.equal(saved.value.finalPrice, 250);
-assert.equal(saved.value.package, "basic");
+assert.equal(saved.value.package, "listing-photos");
 assert.equal(saved.value.status, "confirmed");
 assert.deepEqual(Object.keys(saved.value).sort(), [
   "adminNotes",
@@ -75,7 +79,27 @@ assert.equal(validateManualBooking(payload({ phone: "" }), now).errors.phone, "P
 assert.equal(validateManualBooking(payload({ status: "accepted" }), now).errors.status, "Please select a status");
 assert.equal(validateManualBooking(payload({ service: "aerial-photography" }), now).errors.service, "Please select a service");
 assert.equal(validateManualBooking(payload({ service: "inspection", package: "basic" }), now).errors.package, "Please select a valid package for this service");
-assert.equal(validateManualBooking(payload({ service: "inspection", package: "standard" }), now).ok, true);
+assert.equal(validateManualBooking(payload({ service: "inspection", package: "listing-video" }), now).ok, true);
+assert.equal(estimatedPriceForPackage("listing-photos"), 199);
+assert.equal(estimatedPriceForPackage("listing-video"), 399);
+assert.equal(estimatedPriceForPackage("event-aerials"), 500);
+assert.equal(estimatedPriceForPackage("mapping-3d"), 900);
+assert.equal(estimatedPriceForPackage("premium"), 799);
+assert.equal(estimatedPriceForPackage("basic"), 199);
+assert.equal(estimatedPriceForPackage("standard"), 399);
+assert.equal(estimatedPriceForPackage("unknown"), null);
+assert.equal(packageLabel("listing-video"), "Listing Photos + Video");
+assert.equal(packageLabel("mapping-3d"), "Mapping & 3D");
+assert.equal(packageLabel("basic"), "Basic (previous tier)");
+assert.equal(packageLabel("standard"), "Standard (previous tier)");
+assert.equal(packageLabel("premium"), "Premium (previous tier)");
+assert.equal(isQuotePackage("event-aerials"), true);
+assert.equal(isQuotePackage("listing-photos"), false);
+assert.equal(isQuotePackage("premium"), false);
+assert.equal(formatBookingPrice("event-aerials", 500, null), "from $500");
+assert.equal(formatBookingPrice("event-aerials", 500, 650), "$650");
+assert.equal(formatBookingPrice("listing-photos", 199, null), "$199");
+assert.equal(formatBookingPrice("premium", 799, null), "$799");
 assert.equal(validateManualBooking(payload({ service: "real-estate", package: "" }), now).value.package, null);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(201) }), now).ok, false);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(200) }), now).ok, true);
@@ -106,8 +130,12 @@ assert.deepEqual(BOOKING_SERVICES.map((service) => service.id), [
   "event-coverage",
   "custom",
 ]);
-assert.deepEqual(availablePackages("mapping-surveying").map((pkg) => pkg.id), ["standard", "premium"]);
-assert.deepEqual(availablePackages("aerial-media").map((pkg) => pkg.id), ["basic", "standard", "premium"]);
+assert.deepEqual(availablePackages().map((pkg) => pkg.id), [
+  "listing-photos",
+  "listing-video",
+  "event-aerials",
+  "mapping-3d",
+]);
 
 assert.equal(isMissionSource("manual"), false);
 assert.equal(isMissionSource("customer"), false);
@@ -149,8 +177,7 @@ assert.equal(summary.missionStats.avgTravelDistance, 10);
 
 const publicForm = fs.readFileSync(new URL("../components/home/BookingSection.jsx", import.meta.url), "utf8");
 assert.match(publicForm, /id: 'aerial-media'/);
-assert.match(publicForm, /mapping-surveying', 'inspection', 'event-coverage', 'custom'/);
-assert.doesNotMatch(publicForm, /manualBooking/);
+assert.match(publicForm, /BOOKING_PACKAGES/);
 assert.doesNotMatch(publicForm, /\/api\/admin\/bookings\/create/);
 
 const publicApi = fs.readFileSync(new URL("../pages/api/bookings.js", import.meta.url), "utf8");

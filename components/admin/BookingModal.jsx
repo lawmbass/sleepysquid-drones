@@ -4,7 +4,7 @@ import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage,
 import ConfirmationDialog from './ConfirmationDialog';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState, missionDetailAmounts } from '@/libs/jobs';
-import { bookingSourceLabel } from '@/libs/manualBooking';
+import { bookingSourceLabel, isQuotePackage, packageLabel } from '@/libs/manualBooking';
 
 const statuses = [
   { value: 'pending', label: 'Pending' },
@@ -265,8 +265,8 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 </div>
                 {booking.package && (
                   <div>
-                    <span className="text-sm text-gray-900 capitalize">
-                      {booking.package} Package
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {packageLabel(booking.package)}
                     </span>
                   </div>
                 )}
@@ -342,7 +342,9 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               {/* Estimated Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {customerLike ? 'Estimated Price' : 'Mission Payout'} ($)
+                  {customerLike
+                    ? (isQuotePackage(booking.package) ? 'Estimated Price (from)' : 'Estimated Price')
+                    : 'Mission Payout'} ($)
                 </label>
                 <input
                   type="number"

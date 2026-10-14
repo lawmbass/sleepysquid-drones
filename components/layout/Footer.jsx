@@ -12,7 +12,7 @@ const Footer = () => {
           <div>
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-teal-400 bg-clip-text text-transparent">SleepySquid Drones</h3>
             <p className="text-gray-400 mb-4">
-              Professional drone services for photography, videography, mapping, and more. Elevating perspectives since 2020.
+              Professional drone services for photography, videography, mapping, and more.
             </p>
           </div>
 

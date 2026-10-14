@@ -42,7 +42,7 @@ const services = [
     id: 5,
     title: 'Event Coverage',
     serviceId: 'event-coverage',
-    description: 'Dynamic aerial documentation of weddings, sports events, festivals, and special occasions.',
+    description: 'Dynamic aerial documentation of weddings, festivals, and special occasions.',
     icon: <FiActivity className="text-4xl text-blue-500" />,
     image: '/images/service-events.jpg'
   }
@@ -78,6 +78,7 @@ const ServicesSection = ({ onServiceSelect }) => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Our Drone Services</h2>
+          <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3">FAA Part 107 Certified</p>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Discover how our professional drone services can transform your projects with stunning aerial perspectives
           </p>

@@ -1,4 +1,5 @@
 import { deleteBooking, findCustomerBooking, listAllBookings, listBookings, updateBooking } from "@/libs/db/bookings";
+import { estimatedPriceForPackage } from "@/libs/manualBooking";
 import { isUuid } from "@/libs/db/shared";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -142,21 +143,17 @@ export default async function handler(req, res) {
         }
       }
 
-      // Update estimated price if package changed
+      // Update estimated price if package changed. Quote tiers store the from-price minimum.
+      // Older rows may keep basic, standard, or premium; those still price at their previous amounts.
       if (sanitizedUpdates.package) {
-        switch (sanitizedUpdates.package) {
-          case 'basic':
-            sanitizedUpdates.estimatedPrice = 199;
-            break;
-          case 'standard':
-            sanitizedUpdates.estimatedPrice = 399;
-            break;
-          case 'premium':
-            sanitizedUpdates.estimatedPrice = 799;
-            break;
-          default:
-            sanitizedUpdates.estimatedPrice = null;
+        const nextPrice = estimatedPriceForPackage(sanitizedUpdates.package);
+        if (nextPrice == null) {
+          return res.status(400).json({
+            error: 'Invalid package',
+            message: 'Please select a valid package type'
+          });
         }
+        sanitizedUpdates.estimatedPrice = nextPrice;
       }
 
       const updatedJob = await updateBooking(id, sanitizedUpdates);

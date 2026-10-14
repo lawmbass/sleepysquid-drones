@@ -5,65 +5,57 @@ import { FiCheck, FiGift } from 'react-icons/fi';
 
 const pricingPlans = [
   {
-    id: 'basic',
-    name: 'Basic',
+    id: 'listing-photos',
+    name: 'Listing Photos',
     price: 199,
-    serviceId: 'aerial-photography',
-    description: 'Essential aerial package perfect for real estate listings, basic inspections, or simple photography projects',
-    features: [
-      'Up to 1 hour flight time',
-      '15-20 high-resolution photos',
-      'Key angle coverage (4-8 shots)',
-      'Birds eye overview shots',
-      'Property/subject elevation views',
-      'Basic photo editing & color correction',
-      'Digital delivery within 48 hours',
-      'Commercial usage rights included'
-    ],
-    popular: false
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    price: 399,
     serviceId: 'real-estate',
-    description: 'Complete aerial documentation ideal for real estate marketing, event coverage, or comprehensive projects',
+    description: 'Edited listing photos, delivered in 48 hours.',
     features: [
-      'Up to 2 hours flight time',
-      '20-30 high-resolution photos',
-      'Comprehensive angle coverage (8+ positions)',
-      'Multiple altitude perspectives',
-      'Detail and overview combinations',
-      '2-3 minute edited highlight video',
-      'Advanced photo editing & color grading',
-      'Next-day digital delivery',
-      'Raw files included',
-      'Commercial usage rights'
+      '15-20 edited photos',
+      '48-hour delivery',
     ],
-    popular: true
+    quote: false,
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    price: 799,
-    serviceId: 'mapping-surveying',
-    description: 'Professional-grade package designed for mapping, commercial inspections, or premium documentation needs',
+    id: 'listing-video',
+    name: 'Listing Photos + Video',
+    price: 399,
+    serviceId: 'aerial-media',
+    description: 'Listing photos plus a short edited video, delivered in 48 hours.',
     features: [
-      'Up to 4 hours flight time',
-      'Comprehensive photo coverage (50+ images)',
-      'Automated flight planning for precision',
-      'Specialized data collection (mapping/3D)',
-      'Complete 360° coverage at multiple altitudes',
-      'Custom flight path planning',
-      '5+ minute professional video production',
-      'Advanced analytics & measurements',
-      'Same-day rush delivery available',
-      'Raw footage & source files',
-      'Extended commercial licensing'
+      '15-20 edited photos',
+      'Short edited video up to 2 min',
+      '48-hour delivery',
     ],
-    popular: false
-  }
+    quote: false,
+    badge: 'Best for listings',
+  },
+  {
+    id: 'event-aerials',
+    name: 'Event Aerials',
+    price: 500,
+    serviceId: 'event-coverage',
+    description: 'Photo and video coverage, priced by event.',
+    features: [
+      'Photo and video coverage',
+      'Priced by event',
+    ],
+    quote: true,
+  },
+  {
+    id: 'mapping-3d',
+    name: 'Mapping & 3D',
+    price: 900,
+    serviceId: 'mapping-surveying',
+    description: 'Mapping and 3D, by quote.',
+    features: [
+      'By quote',
+    ],
+    quote: true,
+  },
 ];
+
+const addOns = ['Raw files', 'Next-day delivery', 'Longer video edits'];
 
 const PricingSection = ({ onPackageSelect }) => {
   const [ref, inView] = useInView({
@@ -122,7 +114,7 @@ const PricingSection = ({ onPackageSelect }) => {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Simple, Transparent Pricing</h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Choose the perfect drone service package for your needs with our all-inclusive pricing
+            Listing photos, photo and video, events, and mapping. Travel fees may apply.
           </p>
           
           {activePromo && (
@@ -151,7 +143,7 @@ const PricingSection = ({ onPackageSelect }) => {
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-6xl mx-auto"
         >
           {pricingPlans.map((plan) => (
             <PricingCard 
@@ -164,6 +156,15 @@ const PricingSection = ({ onPackageSelect }) => {
             />
           ))}
         </motion.div>
+
+        <div className="max-w-3xl mx-auto mt-12 text-center">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Add-ons on request</h3>
+          <ul className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-6 text-gray-700 dark:text-gray-300">
+            {addOns.map((addOn) => (
+              <li key={addOn}>{addOn}</li>
+            ))}
+          </ul>
+        </div>
 
         <div className="text-center mt-12">
           <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -196,12 +197,12 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
     <motion.div 
       variants={variants}
       className={`bg-white dark:bg-gray-700 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-gray-900/50 transition-all duration-300 border ${
-        plan.popular ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'
+        plan.badge ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'
       }`}
     >
-      {plan.popular && (
+      {plan.badge && (
         <div className="bg-blue-500 dark:bg-blue-600 text-white text-center py-2 font-medium">
-          Most Popular
+          {plan.badge}
         </div>
       )}
       
@@ -213,20 +214,22 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
           {activePromo ? (
             <div className="text-center">
               <div className="text-gray-500 dark:text-gray-400 line-through text-lg">
-                ${plan.price}
+                {plan.quote ? 'from ' : ''}${plan.price}
               </div>
               <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
                 ${calculateDiscountedPrice(plan.price)}
               </div>
               <div className="text-green-600 dark:text-green-400 font-medium">
                 Save ${plan.price - calculateDiscountedPrice(plan.price)}
               </div>
-              <span className="text-gray-500 dark:text-gray-400 text-sm">/ project</span>
+              {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400 text-sm">/ project</span>}
             </div>
           ) : (
             <>
+              {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
               <span className="text-4xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
-              <span className="text-gray-500 dark:text-gray-400"> / project</span>
+              {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400"> / project</span>}
             </>
           )}
         </div>
@@ -243,7 +246,7 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
         <button 
           onClick={handleBookPackage}
           className={`block w-full text-center py-3 px-6 rounded-full font-medium transition-colors ${
-            plan.popular 
+            plan.badge
               ? 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700' 
               : 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
           }`}

@@ -229,13 +229,6 @@ const portfolioItems = [
   //   description: 'Capturing the magic of a mountain-top wedding ceremony'
   // },
   // {
-  //   id: 3,
-  //   title: 'Construction Progress',
-  //   category: 'commercial',
-  //   image: 'https://images.unsplash.com/photo-1590856029826-c7a73142bbf1?q=80&w=2670&auto=format&fit=crop',
-  //   description: 'Monthly progress tracking for large construction project'
-  // },
-  // {
   //   id: 4,
   //   title: 'Agricultural Mapping',
   //   category: 'mapping',

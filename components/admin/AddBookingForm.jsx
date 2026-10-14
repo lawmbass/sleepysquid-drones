@@ -157,7 +157,7 @@ export default function AddBookingForm({ onCreated }) {
               >
                 <option value="">No package</option>
                 {packages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>{pkg.name} - ${pkg.basePrice}</option>
+                  <option key={pkg.id} value={pkg.id}>{pkg.quote ? `${pkg.name} - from $${pkg.basePrice}` : `${pkg.name} - $${pkg.basePrice}`}</option>
                 ))}
               </select>
               <FieldError message={errors.package} />
