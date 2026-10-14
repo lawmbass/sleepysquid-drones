@@ -69,15 +69,6 @@ function minutes(value) {
   return `${Number(value).toLocaleString("en-US", { maximumFractionDigits: 0 })} min`;
 }
 
-function EditHint() {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
-      <FiEdit2 className="h-3.5 w-3.5" aria-hidden="true" />
-      Edit
-    </span>
-  );
-}
-
 function formatDollars(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "—";
@@ -200,7 +191,6 @@ function Rule({
   editing,
   focusField,
   error,
-  onEdit,
   children,
   className = "",
 }) {
@@ -212,28 +202,21 @@ function Rule({
   }, [editing, focusField]);
 
   return (
-    <div className={`border-b border-gray-100 pb-6 last:border-b-0 dark:border-gray-700 ${className}`} data-rule={id}>
-      <div className="flex items-start justify-between gap-3">
-        {editing ? (
-          <label htmlFor={id} className="pt-2 text-sm font-medium text-gray-900 dark:text-white">
-            {label}
-          </label>
-        ) : (
-          <p id={`${id}-label`} className="pt-2 text-sm font-medium text-gray-900 dark:text-white">
+    <div className={`border-b border-gray-100 py-4 last:border-b-0 dark:border-gray-700 ${className}`} data-rule={id}>
+      {editing ? (
+        <label htmlFor={id} className="text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+      ) : (
+        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+          <p id={`${id}-label`} className="text-sm font-medium text-gray-900 dark:text-white">
             {label}
           </p>
-        )}
-        {editing ? null : (
-          <button
-            type="button"
-            className="inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-md px-2 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-blue-950/40"
-            aria-label={`Edit ${label}`}
-            onClick={onEdit}
-          >
-            <EditHint />
-          </button>
-        )}
-      </div>
+          <p className="text-base text-gray-900 dark:text-white sm:text-right" aria-labelledby={`${id}-label`}>
+            {value}
+          </p>
+        </div>
+      )}
       <p id={`${id}-help`} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {help}
       </p>
@@ -246,11 +229,7 @@ function Rule({
             </p>
           ) : null}
         </div>
-      ) : (
-        <p className="mt-2 text-base text-gray-900 dark:text-white" aria-labelledby={`${id}-label`}>
-          {value}
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -333,7 +312,6 @@ export default function BotRulesSection() {
   const savedPreviewRef = useRef(null);
   const previewRequest = useRef(0);
   const editRulesButtonRef = useRef(null);
-  const returnFocusTo = useRef(null);
   const pendingFocusReturn = useRef(false);
   driveTimesUpdatingRef.current = driveTimesUpdating;
 
@@ -417,10 +395,9 @@ export default function BotRulesSection() {
       (JSON.stringify(payloadFromForm(form)) !== savedKey || pinSource !== "saved")
   );
 
-  function beginEdit(opener) {
+  function beginEdit() {
     if (editing || saving) return;
-    returnFocusTo.current = opener;
-    setFocusRuleId(opener === "edit-rules" ? RULES[0].id : opener);
+    setFocusRuleId(RULES[0].id);
     setNotice("");
     setEditing(true);
   }
@@ -550,13 +527,7 @@ export default function BotRulesSection() {
   useEffect(() => {
     if (!editing && pendingFocusReturn.current) {
       pendingFocusReturn.current = false;
-      const opener = returnFocusTo.current;
-      if (opener === "edit-rules") {
-        editRulesButtonRef.current?.focus();
-      } else {
-        const rule = RULES.find((item) => item.id === opener);
-        document.querySelector(`[aria-label="Edit ${rule?.label}"]`)?.focus();
-      }
+      editRulesButtonRef.current?.focus();
     }
   }, [editing]);
 
@@ -705,7 +676,7 @@ export default function BotRulesSection() {
               ref={editRulesButtonRef}
               type="button"
               className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-              onClick={() => beginEdit("edit-rules")}
+              onClick={beginEdit}
             >
               <FiEdit2 className="h-4 w-4" aria-hidden="true" />
               Edit rules
@@ -728,7 +699,6 @@ export default function BotRulesSection() {
                 focusField={focusRuleId === rule.id}
                 error={rule.id === "homeAddress" ? "" : fieldErrors[rule.id]}
                 className={rule.id === "homeAddress" ? "md:col-span-2" : ""}
-                onEdit={() => beginEdit(rule.id)}
               >
                 {rule.kind === "boolean" ? (
                   <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:focus-within:border-blue-400 dark:focus-within:ring-blue-400 sm:text-sm">

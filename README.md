@@ -218,7 +218,7 @@ One row, `id = 1`. Read it with the service role. Do not insert another row. The
 | `updated_at` | timestamptz | Set on update. |
 | `updated_by` | text | Email of the admin who last saved the row. |
 
-Each bot rule is plain text until you press Edit rules or a rule's pencil. That opens every rule. Save changes stores them in one request. Cancel restores the saved values. While the form is open, the last-30-days preview uses the draft. Below 640px each preview mission is a stacked card (id and address, payout and drive, then an Accept, Decline, or Can't tell badge with the reason chips at full width). The table stays on wider screens.
+Each bot rule is a label and its value until you press Edit rules. That opens every field. Save changes stores them in one request. Cancel restores the saved values. While the form is open, the last-30-days preview uses the draft. Below 640px each preview mission is a stacked card (id and address, payout and drive, then an Accept, Decline, or Can't tell badge with the reason chips at full width). The table stays on wider screens.
 
 The dashboard preview counts missions whose `first_seen_at` is in the last 30 days. It uses stored `payout` and, when the home pin is unchanged, stored `travel_time` (minutes). A missing drive time is "can't tell" once the payout is high enough. Minimum notice is applied only when the stored page has a real flight time. The counts still stop at the first failing rule, the same way the bot does. The Decision column lists every rule that row fails, including a missing drive time next to a decline.
 
