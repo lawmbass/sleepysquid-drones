@@ -6,8 +6,11 @@
  * service from mission type, then the client or partner, then the source;
  * date from the scraped flight date (raw_detail schedule), then the mission
  * page (.mission-date/.mission-time, or the date above "You must arrive on
- * time"), then the due window, then the deadline. Last seen is used only
- * when none of those exist. Page times with no zone are US Eastern.
+ * time", including "02:30 PM"), then a Zeitview confirmation or reschedule
+ * sentence in the email or page text, then the due window, then the deadline.
+ * Import timestamps (created_at, first_seen_at, last_seen_at) are never the
+ * event date; the date stays blank when none of the flight sources exist.
+ * Page times with no zone are US Eastern.
  * location from the address; amount from the payout.
  *
  * A listing with booking_id set is already the booking row. It is not added again.
@@ -337,7 +340,7 @@ const ARRIVE_ON_TIME = "you must arrive on time";
 
 function flightFromPageText(text) {
   if (typeof text !== "string" || !text) return null;
-  const pair = /(\d{1,2}\/\d{1,2}\/\d{4})(?:\r?\n| )(\d{1,2}:\d{2}(?:AM|PM))(?![A-Za-z])(?:[ \t]+(EST|EDT|ET|UTC|Z|[+-]\d{2}:?\d{2}))?/gi;
+  const pair = /(\d{1,2}\/\d{1,2}\/\d{4})(?:\r?\n| )(\d{1,2}:\d{2}\s*(?:AM|PM))(?![A-Za-z])(?:[ \t]+(EST|EDT|ET|UTC|Z|[+-]\d{2}:?\d{2}))?/gi;
   const matches = [];
   for (const match of text.matchAll(pair)) {
     matches.push({
@@ -365,12 +368,70 @@ function flightFromStoredPage(detail) {
   return flightFromPageHtml(detail.html) || flightFromPageText(detail.text);
 }
 
+const MONTH_INDEX = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
+};
+
+const CONFIRMATION = /your flight (?:is scheduled|has been rescheduled) for\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday),\s+([a-z]+)\s+(\d{1,2}),\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)(?:\s+(EST|EDT|ET|UTC|Z))?/gi;
+
+function flightFromConfirmation(value) {
+  if (typeof value !== "string" || !value) return null;
+  const text = value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+  const matches = [...text.matchAll(CONFIRMATION)];
+  const match = matches[matches.length - 1];
+  if (!match) return null;
+  const month = MONTH_INDEX[match[1].toLowerCase()];
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (!month || day < 1 || day > 31) return null;
+  let hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const ampm = match[6].toUpperCase();
+  if (ampm === "PM" && hour < 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  if (hour > 23 || minute > 59) return null;
+  return pageSchedule(year, month, day, hour, minute, match[7] || null, "email");
+}
+
+function flightFromEmail(listing) {
+  const chunks = [
+    listing.rawEmailText,
+    listing.raw_email_text,
+    listing.rawEmailHtml,
+    listing.raw_email_html,
+  ];
+  const detail = listing.rawDetail ?? listing.raw_detail;
+  if (typeof detail === "string") chunks.push(detail);
+  else if (detail && typeof detail === "object") {
+    chunks.push(detail.text, detail.html, detail.email, detail.rawEmailText, detail.raw_email_text);
+  }
+  for (const chunk of chunks) {
+    const found = flightFromConfirmation(chunk);
+    if (found) return found;
+  }
+  return null;
+}
+
 export function listingSchedule(listing) {
   if (!listing) return emptySchedule(null, null);
-  const scraped = flightFromDetail(listing.rawDetail);
+  const detail = listing.rawDetail ?? listing.raw_detail;
+  const scraped = flightFromDetail(detail);
   if (scraped?.date) return scraped;
-  const page = flightFromStoredPage(listing.rawDetail);
+  const page = flightFromStoredPage(detail);
   if (page?.date) return page;
+  const email = flightFromEmail(listing);
+  if (email?.date) return email;
   if (listing.dueWindowStart) {
     return {
       date: listing.dueWindowStart,
@@ -395,11 +456,10 @@ export function listingSchedule(listing) {
       scheduleSource: "due_window",
     };
   }
-  const seen = listing.lastSeenAt || listing.firstSeenAt || null;
-  return emptySchedule(seen, seen ? "last_seen" : null);
+  return emptySchedule(null, null);
 }
 
-const REAL_FLIGHT_SOURCES = new Set(["raw_detail", "page_html", "page_text"]);
+const REAL_FLIGHT_SOURCES = new Set(["raw_detail", "page_html", "page_text", "email"]);
 const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
 
 export function scheduledFlightLongPast(listing, now = new Date()) {

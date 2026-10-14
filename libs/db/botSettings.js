@@ -93,7 +93,7 @@ function previewColumns(includeNotice) {
     "longitude",
   ];
   if (includeNotice) {
-    columns.push("raw_detail", "due_window_start", "due_window_end", "deadline", "last_seen_at");
+    columns.push("raw_detail", "raw_email_text", "due_window_start", "due_window_end", "deadline", "last_seen_at");
   }
   return columns.join(", ");
 }
@@ -119,6 +119,7 @@ export async function loadPreviewListings(settings, now = new Date()) {
     latitude: num(row.latitude),
     longitude: num(row.longitude),
     rawDetail: row.raw_detail || null,
+    rawEmailText: row.raw_email_text || null,
     dueWindowStart: row.due_window_start || null,
     dueWindowEnd: row.due_window_end || null,
     deadline: row.deadline || null,

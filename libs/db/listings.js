@@ -1,6 +1,7 @@
 import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from "@/libs/db/shared";
 import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 import { scheduledFlightLongPast } from "@/libs/jobs";
+import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -148,15 +149,39 @@ export async function listListings(filters = {}, { sort = "-lastSeenAt", limit =
   };
 }
 
+async function persistKnownFlightWindows(listings) {
+  const pending = listings.filter((listing) => {
+    if (listing.dueWindowStart || listing.source !== "zeitview") return false;
+    return Boolean(knownZeitviewFlight(listing.externalMissionId));
+  });
+  await Promise.all(pending.map(async (listing) => {
+    const flight = knownZeitviewFlight(listing.externalMissionId);
+    listing.dueWindowStart = flight.start;
+    listing.dueWindowEnd = flight.end;
+    const { error } = await db()
+      .from("mission_listings")
+      .update({
+        due_window_start: flight.start,
+        due_window_end: flight.end,
+      })
+      .eq("source", "zeitview")
+      .eq("external_mission_id", listing.externalMissionId)
+      .is("due_window_start", null);
+    assertNoError(error);
+  }));
+}
+
 export async function listUnlinkedAcceptedListings() {
   const rows = await fetchAll(() =>
     db()
       .from("mission_listings")
-      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, bot_accepted_at, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
+      .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, bot_accepted_at, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, raw_email_text, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .is("booking_id", null)
   );
-  return rows.map(mapListing);
+  const listings = rows.map(mapListing);
+  await persistKnownFlightWindows(listings);
+  return listings;
 }
 
 export async function findListingById(id) {

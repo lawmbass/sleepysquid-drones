@@ -14,8 +14,9 @@
  * The daily cap counts would-accept decisions per America/New_York calendar day
  * of first_seen_at, earliest first.
  * Minimum notice is applied only when the listing has a real flight time
- * (scraped schedule, mission-page HTML, or mission-page text). A due window,
- * deadline, or last-seen time is not a flight time, so notice is not guessed.
+ * (scraped schedule, mission-page HTML, mission-page text, or a Zeitview
+ * confirmation / reschedule sentence). A due window, deadline, or last-seen
+ * time is not a flight time, so notice is not guessed.
  */
 
 import { listingSchedule } from "./jobs.js";
@@ -41,7 +42,7 @@ const MONEY_MAX = 100000;
 const MINUTES_MAX = 24 * 60;
 const NOTICE_MAX = 24 * 7;
 const CAP_MAX = 48;
-const REAL_FLIGHT_SOURCES = new Set(["raw_detail", "page_html", "page_text"]);
+const REAL_FLIGHT_SOURCES = new Set(["raw_detail", "page_html", "page_text", "email"]);
 
 export const DECISION_LABELS = {
   accept: "Would accept",
@@ -415,6 +416,7 @@ function listingNumber(listing, camel, snake) {
 function noticeHours(listing) {
   const schedule = listingSchedule({
     rawDetail: listing.rawDetail || listing.raw_detail || null,
+    rawEmailText: listing.rawEmailText || listing.raw_email_text || null,
     dueWindowStart: listing.dueWindowStart || listing.due_window_start || null,
     dueWindowEnd: listing.dueWindowEnd || listing.due_window_end || null,
     deadline: listing.deadline || null,
