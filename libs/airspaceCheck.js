@@ -1,5 +1,5 @@
 import { geocodeAddress } from "./geocode.js";
-import { DISCLAIMER, checkPoint } from "./airspaceData.mjs";
+import { DISCLAIMER, alwaysOnChecklist, checkPoint } from "./airspaceData.mjs";
 
 /**
  * Geocode with GOOGLE_MAPS_API_KEY, then classify the point.
@@ -40,6 +40,7 @@ export async function checkAddress(address) {
       ],
       disclaimer: DISCLAIMER,
       failures: ["Google Geocoding API"],
+      checklist: alwaysOnChecklist(),
     };
   }
 

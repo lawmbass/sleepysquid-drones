@@ -74,6 +74,51 @@ test("P-56 and NPS land are no-takeoff", () => {
   assert.match(nps.authorization, /Lincoln Memorial/);
 });
 
+test("the checklist keeps only the items that apply, plus the basics", () => {
+  const ids = (result) => result.checklist.map((entry) => entry.id);
+  const frz = classifyAirspace(base({ frz: { ok: true, insideFrz: true, insideSfra: true } }));
+  assert.deepEqual(ids(frz), ["frz", "part107", "insurance", "b4ufly"]);
+  assert.match(frz.checklist[0].why, /rarely approved/);
+  assert.ok(frz.checklist[0].href.startsWith("https://"));
+
+  const clear = classifyAirspace(base());
+  assert.deepEqual(ids(clear), ["part107", "insurance", "b4ufly"]);
+
+  const laanc = classifyAirspace(
+    base({ facilityMap: { ok: true, ceilingFt: 100, airspaces: ["B"], controlled: true, airport: "BWI" } })
+  );
+  assert.equal(laanc.checklist[0].id, "laanc");
+  assert.match(laanc.checklist[0].label, /up to 100 ft/);
+
+  const zero = classifyAirspace(
+    base({ facilityMap: { ok: true, ceilingFt: 0, airspaces: ["B"], controlled: true, airport: "BWI" } })
+  );
+  assert.ok(ids(zero).includes("dronezone"));
+  assert.equal(ids(zero).includes("laanc"), false);
+
+  const nps = classifyAirspace(base({ nps: { ok: true, inside: true, units: ["Lincoln Memorial"] } }));
+  assert.match(nps.checklist.find((entry) => entry.id === "nps").why, /Lincoln Memorial/);
+
+  const sfra = classifyAirspace(
+    base({
+      frz: { ok: true, insideFrz: false, insideSfra: true },
+      facilityMap: { ok: true, ceilingFt: null, airspaces: [], controlled: false, airport: null },
+    })
+  );
+  assert.deepEqual(ids(sfra), ["sfra", "part107", "insurance", "b4ufly"]);
+
+  const frzSurface = classifyAirspace(
+    base({
+      frz: { ok: true, insideFrz: true, insideSfra: true },
+      classAirspace: { ok: true, surfaceClasses: ["B"], shelves: [] },
+    })
+  );
+  assert.equal(ids(frzSurface).includes("laanc"), false);
+
+  const unknown = classifyAirspace(base({ frz: { ok: false } }));
+  assert.deepEqual(ids(unknown), ["part107", "insurance", "b4ufly"]);
+});
+
 test("surface Class B with no grid needs LAANC and does not invent a ceiling", () => {
   const result = classifyAirspace(
     base({
