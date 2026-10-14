@@ -78,6 +78,7 @@ const ServicesSection = ({ onServiceSelect }) => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Our Drone Services</h2>
+          <p className="text-base text-gray-600 dark:text-gray-300 mb-4">FAA Part 107 certified pilot</p>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Discover how our professional drone services can transform your projects with stunning aerial perspectives
           </p>
