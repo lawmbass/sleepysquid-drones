@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { createPortal } from 'react-dom';
 import AccessHistory from './AccessHistory';
+import ConfirmationDialog from './ConfirmationDialog';
 
 export default function UserModal({ user, onClose, onSaved }) {
   const { data: session } = useSession();
@@ -18,6 +19,8 @@ export default function UserModal({ user, onClose, onSaved }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   // Check if current user is admin (only sleepysquid emails)
   const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
@@ -97,6 +100,29 @@ export default function UserModal({ user, onClose, onSaved }) {
       setError(error.message || 'Failed to save user. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user?._id) return;
+    setDeleting(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/users/${user._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body.message || 'Failed to delete user');
+      }
+      setConfirmDelete(false);
+      onSaved();
+    } catch (deleteError) {
+      setConfirmDelete(false);
+      setError(deleteError.message || 'Failed to delete user. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -324,22 +350,33 @@ export default function UserModal({ user, onClose, onSaved }) {
         </div>
 
         {/* Footer - outside scrollable area */}
-        <div className="flex justify-end space-x-3 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="user-form"
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+          {user ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800"
+            >
+              Delete user
+            </button>
+          ) : <span />}
+          <div className="flex space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="user-form"
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
+            >
+              {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -347,5 +384,20 @@ export default function UserModal({ user, onClose, onSaved }) {
 
   // Use portal to render modal outside of dashboard container
   if (typeof window === 'undefined') return null;
-  return createPortal(modalContent, document.body);
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      <ConfirmationDialog
+        isOpen={confirmDelete}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(false)}
+        title="Delete user"
+        message={`Delete ${user?.email}? This removes the account. Bookings and missions stay. This cannot be undone.`}
+        confirmText="Delete user"
+        cancelText="Cancel"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        isLoading={deleting}
+      />
+    </>
+  );
 }

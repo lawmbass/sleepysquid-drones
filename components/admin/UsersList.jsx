@@ -125,12 +125,67 @@ export default function UsersList({
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
-          <button
-            onClick={() => toggleCardExpansion(user._id)}
-            className="flex-shrink-0 p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <FiMoreVertical className="h-5 w-5" />
-          </button>
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={isExpanded}
+              aria-label="User actions"
+              onClick={() => toggleCardExpansion(user._id)}
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <FiMoreVertical className="h-5 w-5" />
+            </button>
+            {isExpanded && isCurrentUserAdmin && (
+              <div
+                role="menu"
+                className="absolute right-0 z-20 mt-1 w-48 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 py-1 shadow-lg"
+              >
+                {isPendingInvitation ? (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleResendInvitation(user)}
+                      disabled={resendingInvitation === user._id}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                    >
+                      Resend invitation
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={deletingUser === user._id}
+                      className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                    >
+                      Cancel invitation
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => onEditUser(user)}
+                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Edit user
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={deletingUser === user._id}
+                      className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                    >
+                      Delete user
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Status and Role Row */}
@@ -259,16 +314,14 @@ export default function UsersList({
                       <FiEdit2 className="h-4 w-4 mr-2" />
                       Edit User
                     </button>
-                    {user.role !== 'admin' && (
-                      <button
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={deletingUser === user._id}
-                        className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                      >
-                        <FiTrash2 className="h-4 w-4 mr-2" />
-                        Delete User
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={deletingUser === user._id}
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
+                    >
+                      <FiTrash2 className="h-4 w-4 mr-2" />
+                      Delete user
+                    </button>
                   </>
                 )}
               </div>
@@ -541,16 +594,15 @@ export default function UsersList({
                                 >
                                   <FiEdit2 className="h-4 w-4" />
                                 </button>
-                                {user.role !== 'admin' && (
-                                  <button
-                                    onClick={() => handleDeleteUser(user)}
-                                    disabled={deletingUser === user._id}
-                                    className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                                    title="Delete user"
-                                  >
-                                    <FiTrash2 className="h-4 w-4" />
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => handleDeleteUser(user)}
+                                  disabled={deletingUser === user._id}
+                                  className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50"
+                                  title="Delete user"
+                                >
+                                  <FiTrash2 className="h-4 w-4 mr-1" />
+                                  Delete user
+                                </button>
                               </>
                             )}
                           </>
@@ -604,9 +656,9 @@ export default function UsersList({
         title={confirmDialog.user?.isPendingInvitation ? 'Cancel Invitation' : 'Delete User'}
         message={confirmDialog.user?.isPendingInvitation 
           ? `Are you sure you want to cancel the invitation for ${confirmDialog.user?.name} (${confirmDialog.user?.email})?`
-          : `Are you sure you want to delete ${confirmDialog.user?.name} (${confirmDialog.user?.email})? This action cannot be undone.`
+          : `Delete ${confirmDialog.user?.email}? This removes the account. Bookings and missions stay. This cannot be undone.`
         }
-        confirmText={confirmDialog.user?.isPendingInvitation ? 'Cancel Invitation' : 'Delete User'}
+        confirmText={confirmDialog.user?.isPendingInvitation ? 'Cancel Invitation' : 'Delete user'}
         cancelText="Cancel"
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         isLoading={deletingUser === confirmDialog.user?._id}

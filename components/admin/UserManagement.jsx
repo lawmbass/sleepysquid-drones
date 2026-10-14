@@ -139,14 +139,15 @@ export default function UserManagement() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP error! status: ${response.status}`);
       }
 
       fetchUsers();
       return true;
     } catch (error) {
       console.error('Error deleting user/invitation:', error);
-      setError(`Failed to ${isPendingInvitation ? 'cancel invitation' : 'delete user'}. Please try again.`);
+      setError(error.message || `Failed to ${isPendingInvitation ? 'cancel invitation' : 'delete user'}. Please try again.`);
       return false;
     }
   };
