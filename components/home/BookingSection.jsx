@@ -5,7 +5,7 @@ import { FiCalendar, FiMapPin, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX }
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 import AddressAutocomplete from '@/components/booking/AddressAutocomplete';
-import { BOOKING_PACKAGES, packageMenuLabel } from '@/libs/manualBooking';
+import { BOOKING_PACKAGES, packageLabel, packageMenuLabel } from '@/libs/manualBooking';
 
 const services = [
   { id: 'aerial-media', name: 'Aerial Photography & Videography' },
@@ -870,7 +870,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Booking Submitted!</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Thank you for booking with SleepySquid Drones. We&apos;ll review your request and contact you within 24 hours to confirm the details.
+                  Thank you for booking with SleepySquid Drones. We&apos;ll review your request and contact you to confirm the details.
                   {bookingResult?.emailSent && (
                     <span className="block mt-2 text-green-600 dark:text-green-400">
                       ✅ A confirmation email has been sent to {formData.email}
@@ -916,7 +916,7 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Service:</span> {services.find(s => s.id === formData.service)?.name || formData.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                   {formData.package && (
-                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {getAvailablePackages(formData.service).find(p => p.id === formData.package)?.name || formData.package.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Package:</span> {packageLabel(formData.package)}</p>
                   )}
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Date:</span> {formatDate(formData.date)}</p>
                   <p className="text-gray-700 dark:text-gray-300"><span className="font-medium">Location:</span> {formData.location}</p>

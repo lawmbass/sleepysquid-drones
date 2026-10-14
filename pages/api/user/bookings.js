@@ -144,8 +144,16 @@ export default async function handler(req, res) {
       }
 
       // Update estimated price if package changed. Quote tiers store the from-price minimum.
+      // Older rows may keep basic, standard, or premium; those still price at their previous amounts.
       if (sanitizedUpdates.package) {
-        sanitizedUpdates.estimatedPrice = estimatedPriceForPackage(sanitizedUpdates.package);
+        const nextPrice = estimatedPriceForPackage(sanitizedUpdates.package);
+        if (nextPrice == null) {
+          return res.status(400).json({
+            error: 'Invalid package',
+            message: 'Please select a valid package type'
+          });
+        }
+        sanitizedUpdates.estimatedPrice = nextPrice;
       }
 
       const updatedJob = await updateBooking(id, sanitizedUpdates);

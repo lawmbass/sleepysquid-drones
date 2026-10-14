@@ -8,10 +8,18 @@ const files = [
   "components/home/BookingSection.jsx",
   "components/home/ServicesSection.jsx",
   "components/home/ContactSection.jsx",
+  "components/home/HeroSection.jsx",
   "components/layout/Footer.jsx",
+  "components/dashboard/ClientContent.jsx",
+  "components/admin/BookingModal.jsx",
+  "components/admin/BookingsList.jsx",
+  "components/admin/AddBookingForm.jsx",
   "libs/seo.js",
+  "libs/emailService.js",
+  "pages/api/contact.js",
   "config.js",
   "libs/manualBooking.js",
+  "README.md",
 ];
 
 const banned = [
@@ -27,6 +35,12 @@ const banned = [
   /Roof & Property Condition/,
   /Construction Progress/,
   /\$799/,
+  /within 24 hours/i,
+  /Basic Package/,
+  /Standard Package/,
+  /Premium Package/,
+  /hour of flight/i,
+  /within 25 miles/i,
 ];
 
 for (const file of files) {
@@ -59,6 +73,21 @@ assert.match(services, /FAA Part 107 Certified/);
 const booking = fs.readFileSync(new URL("components/home/BookingSection.jsx", root), "utf8");
 assert.match(booking, /BOOKING_PACKAGES/);
 assert.match(booking, /Add-ons on request/);
+
+const client = fs.readFileSync(new URL("components/dashboard/ClientContent.jsx", root), "utf8");
+assert.match(client, /BOOKING_PACKAGES/);
+assert.match(client, /packageLabel/);
+assert.match(client, /Add-ons on request/);
+assert.match(client, /Travel fees may apply/);
+
+const email = fs.readFileSync(new URL("libs/emailService.js", root), "utf8");
+assert.match(email, /packageLabel/);
+assert.match(email, /isQuotePackage/);
+assert.match(email, /from /);
+
+const readme = fs.readFileSync(new URL("README.md", root), "utf8");
+assert.match(readme, /listing-photos/);
+assert.match(readme, /previous tiers/);
 
 const schema = fs.readFileSync(new URL("supabase/migrations/20261014050000_booking_package_tiers.sql", root), "utf8");
 for (const id of ["listing-photos", "listing-video", "event-aerials", "mapping-3d", "basic", "standard", "premium"]) {

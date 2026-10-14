@@ -54,6 +54,12 @@ const LEGACY_PACKAGE_PRICES = {
   premium: 799,
 };
 
+const LEGACY_PACKAGE_LABELS = {
+  basic: "Basic (previous tier)",
+  standard: "Standard (previous tier)",
+  premium: "Premium (previous tier)",
+};
+
 export const BOOKING_STATUSES = [
   { value: "pending", label: "Pending" },
   { value: "confirmed", label: "Confirmed" },
@@ -84,6 +90,32 @@ export function estimatedPriceForPackage(packageId) {
     return LEGACY_PACKAGE_PRICES[packageId];
   }
   return null;
+}
+
+/** Current package name, or a readable label for an older row. */
+export function packageLabel(packageId) {
+  if (!packageId) return "";
+  const current = BOOKING_PACKAGES.find((pkg) => pkg.id === packageId);
+  if (current) return current.name;
+  if (LEGACY_PACKAGE_LABELS[packageId]) return LEGACY_PACKAGE_LABELS[packageId];
+  return String(packageId)
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function isQuotePackage(packageId) {
+  return BOOKING_PACKAGES.some((pkg) => pkg.id === packageId && pkg.quote);
+}
+
+/** Dollar amount for a booking. Quote packages say "from" until a final price is set. */
+export function formatBookingPrice(packageId, estimatedPrice, finalPrice) {
+  const hasFinal = finalPrice != null && finalPrice !== "";
+  const amount = hasFinal ? finalPrice : estimatedPrice;
+  if (amount == null || amount === "") return "";
+  const from = !hasFinal && isQuotePackage(packageId) ? "from " : "";
+  const numeric = Number(amount);
+  const shown = Number.isFinite(numeric) ? numeric.toLocaleString("en-US") : String(amount);
+  return `${from}$${shown}`;
 }
 
 export function minBookingDateTime(now = Date.now()) {

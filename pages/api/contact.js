@@ -293,7 +293,7 @@ User Agent: ${userAgent}
     // Return success response
     res.status(200).json({
       success: true,
-      message: 'Message sent successfully! We will get back to you within 24 hours.'
+      message: 'Message sent successfully! We will get back to you as soon as we can.'
     });
 
   } catch (error) {

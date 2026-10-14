@@ -3,7 +3,7 @@ import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNaviga
 import BookingModal from './BookingModal';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState } from '@/libs/jobs';
-import { bookingSourceLabel } from '@/libs/manualBooking';
+import { bookingSourceLabel, isQuotePackage, packageLabel } from '@/libs/manualBooking';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -138,7 +138,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
             {serviceLabels[booking.service] || booking.service}
           </div>
           {booking.package && (
-            <div className="text-xs text-gray-500 capitalize">{booking.package} pkg</div>
+            <div className="text-xs text-gray-500">{packageLabel(booking.package)}</div>
           )}
         </div>
         <div>
@@ -183,7 +183,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               : booking.finalPrice 
                 ? `$${booking.finalPrice.toLocaleString()}` 
                 : booking.estimatedPrice 
-                  ? `~$${booking.estimatedPrice.toLocaleString()}` 
+                  ? `${isQuotePackage(booking.package) ? "from $" : "~$"}${booking.estimatedPrice.toLocaleString()}` 
                   : 'TBD'
             }
           </span>
@@ -370,8 +370,8 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                           {serviceLabels[booking.service] || booking.service}
                         </div>
                         {booking.package && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                            {booking.package} package
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {packageLabel(booking.package)}
                           </div>
                         )}
                       </td>
@@ -412,7 +412,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                             : booking.finalPrice 
                               ? booking.finalPrice.toLocaleString() 
                               : booking.estimatedPrice 
-                                ? `~${booking.estimatedPrice.toLocaleString()}` 
+                                ? `${isQuotePackage(booking.package) ? "from " : "~"}${booking.estimatedPrice.toLocaleString()}` 
                                 : 'TBD'
                           }
                         </div>

@@ -63,7 +63,7 @@ const ContactSection = () => {
         // Success
         setSubmitStatus({
           type: 'success',
-          message: result.message || 'Message sent successfully! We will get back to you within 24 hours.'
+          message: result.message || 'Message sent successfully! We will get back to you as soon as we can.'
         });
         
         // Reset form

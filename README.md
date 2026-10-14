@@ -113,7 +113,7 @@ Authorized redirect URIs:
 | `id` | uuid | `gen_random_uuid()` |
 | `source` | text | `customer` (default), `zeitview`, or `manual` |
 | `service` | text | Required, non-blank. Not limited to the website enum, so the bot is not blocked by it. |
-| `package` | text | `basic`, `standard`, `premium`, or null |
+| `package` | text | `listing-photos`, `listing-video`, `event-aerials`, `mapping-3d`, or null. Older rows may still be `basic`, `standard`, or `premium`. Those stay valid and display as previous tiers. |
 | `mission_id` | text | Unique. Null for customers. Must match `^DBM[0-9]+$` when set. Duplicate insert is Postgres `23505` on `bookings_mission_id_key`; skip that mission. |
 | `payout` | numeric(12,2) | USD. Null allowed. |
 | `travel_distance` | numeric(12,2) | Miles |

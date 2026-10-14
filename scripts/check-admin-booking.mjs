@@ -7,6 +7,9 @@ const {
   MANUAL_SOURCE_LABEL,
   availablePackages,
   estimatedPriceForPackage,
+  formatBookingPrice,
+  isQuotePackage,
+  packageLabel,
   bookingSourceLabel,
   isMissionSource,
   jobIsMission,
@@ -82,7 +85,21 @@ assert.equal(estimatedPriceForPackage("listing-video"), 399);
 assert.equal(estimatedPriceForPackage("event-aerials"), 500);
 assert.equal(estimatedPriceForPackage("mapping-3d"), 900);
 assert.equal(estimatedPriceForPackage("premium"), 799);
+assert.equal(estimatedPriceForPackage("basic"), 199);
+assert.equal(estimatedPriceForPackage("standard"), 399);
 assert.equal(estimatedPriceForPackage("unknown"), null);
+assert.equal(packageLabel("listing-video"), "Listing Photos + Video");
+assert.equal(packageLabel("mapping-3d"), "Mapping & 3D");
+assert.equal(packageLabel("basic"), "Basic (previous tier)");
+assert.equal(packageLabel("standard"), "Standard (previous tier)");
+assert.equal(packageLabel("premium"), "Premium (previous tier)");
+assert.equal(isQuotePackage("event-aerials"), true);
+assert.equal(isQuotePackage("listing-photos"), false);
+assert.equal(isQuotePackage("premium"), false);
+assert.equal(formatBookingPrice("event-aerials", 500, null), "from $500");
+assert.equal(formatBookingPrice("event-aerials", 500, 650), "$650");
+assert.equal(formatBookingPrice("listing-photos", 199, null), "$199");
+assert.equal(formatBookingPrice("premium", 799, null), "$799");
 assert.equal(validateManualBooking(payload({ service: "real-estate", package: "" }), now).value.package, null);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(201) }), now).ok, false);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(200) }), now).ok, true);

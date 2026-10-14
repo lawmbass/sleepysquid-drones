@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, FiEye, FiEdit3, FiCalendar, FiMapPin, FiDollarSign, FiImage, FiDownload, FiX, FiEdit, FiTrash2, FiInfo } from 'react-icons/fi';
 import Settings from './Settings';
+import { BOOKING_PACKAGES, formatBookingPrice, packageLabel, packageMenuLabel } from '@/libs/manualBooking';
+
+function packageChoices(currentPackage) {
+  const choices = BOOKING_PACKAGES.map((pkg) => ({
+    value: pkg.id,
+    label: packageMenuLabel(pkg),
+  }));
+  if (currentPackage && !choices.some((choice) => choice.value === currentPackage)) {
+    choices.unshift({ value: currentPackage, label: packageLabel(currentPackage) });
+  }
+  return choices;
+}
 
 export default function ClientContent({ user, onUpdate }) {
   const router = useRouter();
@@ -369,23 +381,7 @@ export default function ClientContent({ user, onUpdate }) {
     ).join(' ');
   };
 
-  // Helper function to get available packages for a service type
-  const getAvailablePackages = (serviceType) => {
-    const packages = [
-      { value: 'basic', label: 'Basic ($199)', minService: ['aerial-photography', 'real-estate'] },
-      { value: 'standard', label: 'Standard ($399)', minService: ['all'] },
-      { value: 'premium', label: 'Premium ($799)', minService: ['all'] }
-    ];
-
-    // Services that require at least Standard package (no Basic)
-    const standardMinServices = ['drone-videography', 'mapping-surveying', 'inspection', 'event-coverage', 'custom'];
-    
-    if (standardMinServices.includes(serviceType)) {
-      return packages.filter(pkg => pkg.value !== 'basic');
-    }
-    
-    return packages;
-  };
+  const getAvailablePackages = (currentPackage) => packageChoices(currentPackage);
 
   // Handle closing create modal
   const handleCloseCreateModal = () => {
@@ -464,13 +460,7 @@ export default function ClientContent({ user, onUpdate }) {
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
                   value={createFormData.service}
-                  onChange={(e) => {
-                    const newService = e.target.value;
-                    const availablePackages = getAvailablePackages(newService);
-                    // Reset package if current selection is not available for new service
-                    const newPackage = availablePackages.find(pkg => pkg.value === createFormData.package) ? createFormData.package : '';
-                    setCreateFormData({...createFormData, service: newService, package: newPackage});
-                  }}
+                  onChange={(e) => setCreateFormData({...createFormData, service: e.target.value})}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -503,7 +493,7 @@ export default function ClientContent({ user, onUpdate }) {
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
-                  {getAvailablePackages(createFormData.service).map(pkg => (
+                  {getAvailablePackages(createFormData.package).map(pkg => (
                     <option key={pkg.value} value={pkg.value}>
                       {pkg.label}
                     </option>
@@ -632,77 +622,28 @@ export default function ClientContent({ user, onUpdate }) {
                   </button>
                 </div>
                 <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-                  {createFormData.service && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4 mb-4">
-                      <p className="text-sm lg:text-base text-blue-800">
-                        <strong>Available for {createFormData.service.split('-').map(word => 
-                          word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join(' ')}:</strong>
-                      </p>
-                    </div>
-                  )}
-                  
                   <div className="grid gap-4 lg:gap-6">
-                    {getAvailablePackages(createFormData.service).find(pkg => pkg.value === 'basic') ? (
-                      <div className="border rounded-lg p-4 lg:p-5 bg-green-50">
-                        <h4 className="font-semibold text-green-800 mb-2 lg:mb-3 text-lg">Basic Package - $199</h4>
-                        <ul className="text-sm lg:text-base text-green-700 space-y-1 lg:space-y-2">
-                          <li>• <strong>1 hour</strong> of flight time</li>
-                          <li>• 10-15 high-resolution photos</li>
-                          <li>• Basic editing included</li>
-                          <li>• Digital delivery within 3-5 days</li>
-                          <li>• Perfect for small properties or simple shots</li>
+                    {BOOKING_PACKAGES.map((pkg) => (
+                      <div key={pkg.id} className="border rounded-lg p-4 lg:p-5 bg-gray-50">
+                        <h4 className="font-semibold text-gray-900 mb-2 lg:mb-3 text-lg">
+                          {packageMenuLabel(pkg)}
+                          {pkg.badge ? <span className="ml-2 text-sm font-medium text-blue-600">{pkg.badge}</span> : null}
+                        </h4>
+                        <ul className="text-sm lg:text-base text-gray-700 space-y-1 lg:space-y-2">
+                          {pkg.details.map((detail) => (
+                            <li key={detail}>• {detail}</li>
+                          ))}
                         </ul>
                       </div>
-                    ) : createFormData.service && (
-                      <div className="border rounded-lg p-4 lg:p-5 bg-gray-100 opacity-60">
-                        <h4 className="font-semibold text-gray-600 mb-2 lg:mb-3 text-lg">Basic Package - $199 (Not Available)</h4>
-                        <p className="text-sm lg:text-base text-gray-500 mb-2 lg:mb-3">
-                          Not available for {createFormData.service.split('-').map(word => 
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(' ')} services due to complexity requirements.
-                        </p>
-                        <ul className="text-sm lg:text-base text-gray-500 space-y-1 lg:space-y-2">
-                          <li>• Up to 1 hour of flight time</li>
-                          <li>• 10-15 high-resolution photos</li>
-                          <li>• Basic editing included</li>
-                          <li>• Digital delivery within 3-5 days</li>
-                        </ul>
-                      </div>
-                    )}
-                    
-                    <div className="border rounded-lg p-4 lg:p-5 bg-blue-50">
-                      <h4 className="font-semibold text-blue-800 mb-2 lg:mb-3 text-lg">Standard Package - $399</h4>
-                      <ul className="text-sm lg:text-base text-blue-700 space-y-1 lg:space-y-2">
-                        <li>• <strong>2 hours</strong> of flight time</li>
-                        <li>• 25-30 high-resolution photos</li>
-                        <li>• 2-3 minutes of edited video</li>
-                        <li>• Professional editing and color correction</li>
-                        <li>• Digital delivery within 2-3 days</li>
-                        <li>• Ideal for real estate and events</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 lg:p-5 bg-purple-50">
-                      <h4 className="font-semibold text-purple-800 mb-2 lg:mb-3 text-lg">Premium Package - $799</h4>
-                      <ul className="text-sm lg:text-base text-purple-700 space-y-1 lg:space-y-2">
-                        <li>• <strong>4 hours</strong> of flight time</li>
-                        <li>• 50+ high-resolution photos</li>
-                        <li>• 5-10 minutes of cinematic video</li>
-                        <li>• Advanced editing with music and transitions</li>
-                        <li>• Same-day or next-day delivery</li>
-                        <li>• Multiple angles and creative shots</li>
-                        <li>• Perfect for commercial projects</li>
-                      </ul>
-                    </div>
+                    ))}
                   </div>
-                  
+
                   <div className="bg-gray-50 rounded-lg p-3 lg:p-4 space-y-2">
                     <p className="text-xs lg:text-sm text-gray-600">
-                      <strong>Note:</strong> All packages include travel within 25 miles. Additional travel fees may apply for longer distances. Weather delays may affect delivery times.
+                      <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits.
                     </p>
                     <p className="text-xs lg:text-sm text-gray-600">
-                      <strong>Package Availability:</strong> Some services like videography, mapping, inspections, and events require more complex equipment and longer flight times, so Basic package is not available for these services.
+                      Travel fees may apply. Weather delays may affect delivery times.
                     </p>
                   </div>
                 </div>
@@ -742,13 +683,7 @@ export default function ClientContent({ user, onUpdate }) {
                 <label className="block text-sm font-medium text-gray-700">Service Type</label>
                 <select
                   value={editFormData.service}
-                  onChange={(e) => {
-                    const newService = e.target.value;
-                    const availablePackages = getAvailablePackages(newService);
-                    // Reset package if current selection is not available for new service
-                    const newPackage = availablePackages.find(pkg => pkg.value === editFormData.package) ? editFormData.package : '';
-                    setEditFormData({...editFormData, service: newService, package: newPackage});
-                  }}
+                  onChange={(e) => setEditFormData({...editFormData, service: e.target.value})}
                   required
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -771,7 +706,7 @@ export default function ClientContent({ user, onUpdate }) {
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select a package</option>
-                  {getAvailablePackages(editFormData.service).map(pkg => (
+                  {getAvailablePackages(editFormData.package).map(pkg => (
                     <option key={pkg.value} value={pkg.value}>
                       {pkg.label}
                     </option>
@@ -981,7 +916,7 @@ export default function ClientContent({ user, onUpdate }) {
               {selectedJob.package && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Package</label>
-                  <p className="mt-1 text-sm text-gray-900 capitalize">{selectedJob.package}</p>
+                  <p className="mt-1 text-sm text-gray-900">{packageLabel(selectedJob.package)}</p>
                 </div>
               )}
               
@@ -1013,7 +948,7 @@ export default function ClientContent({ user, onUpdate }) {
                   <div className="flex items-center mt-1">
                     <FiDollarSign className="h-4 w-4 text-gray-400 mr-2" />
                     <p className="text-sm text-gray-900">
-                      ${selectedJob.finalPrice || selectedJob.estimatedPrice}
+                      {formatBookingPrice(selectedJob.package, selectedJob.estimatedPrice, selectedJob.finalPrice)}
                     </p>
                   </div>
                 </div>
@@ -1306,7 +1241,7 @@ export default function ClientContent({ user, onUpdate }) {
               <div className="text-xs text-gray-500 mb-1">Price</div>
               <div className="text-sm font-medium text-gray-900 flex items-center">
                 <FiDollarSign className="h-3 w-3 mr-1" />
-                {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
+                {formatBookingPrice(job.package, job.estimatedPrice, job.finalPrice) || 'TBD'}
               </div>
             </div>
           </div>
@@ -1438,7 +1373,7 @@ export default function ClientContent({ user, onUpdate }) {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {job.finalPrice || job.estimatedPrice ? `$${job.finalPrice || job.estimatedPrice}` : 'TBD'}
+                            {formatBookingPrice(job.package, job.estimatedPrice, job.finalPrice) || 'TBD'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center space-x-2">
