@@ -1,5 +1,7 @@
-import { deleteUser, findUserByEmailExcluding, findUserById, patchUser } from "@/libs/db/users";
+import { deleteUser, findUserByEmailExcluding, findUserById, listUserAdminFields, patchUser } from "@/libs/db/users";
 import { deleteOAuthAccountsForUser } from "@/libs/db/accounts";
+import { deleteSessionsForUser } from "@/libs/db/sessions";
+import { userDeletionDecision } from "@/libs/userDeletion";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
@@ -241,29 +243,22 @@ async function handleDeleteUser(req, res, id, session) {
       });
     }
 
-    // Prevent admins from deleting themselves
-    if (user.email === session?.user?.email) {
-      return res.status(400).json({
-        error: 'Invalid operation',
-        message: 'Cannot delete your own account'
+    const decision = userDeletionDecision({
+      actorEmail: session?.user?.email,
+      target: user,
+      admins: await listUserAdminFields(),
+    });
+    if (!decision.allowed) {
+      return res.status(decision.status).json({
+        error: decision.error,
+        message: decision.message,
       });
     }
 
-    // Prevent deleting other admin users
-    const isTargetAdmin = adminConfig.isAdmin(user.email);
-    if (isTargetAdmin) {
-      return res.status(400).json({
-        error: 'Invalid operation',
-        message: 'Cannot delete admin users'
-      });
-    }
-
-    try {
-      await deleteOAuthAccountsForUser(user.id);
-    } catch (cleanupError) {
-      console.error('Error cleaning up OAuth accounts:', cleanupError);
-    }
-
+    // Sign-in links only. Bookings and mission listings are separate rows
+    // and are not deleted with the account.
+    await deleteOAuthAccountsForUser(user.id);
+    await deleteSessionsForUser(user.id);
     await deleteUser(id);
 
     return res.status(200).json({

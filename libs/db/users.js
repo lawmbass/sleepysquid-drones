@@ -250,6 +250,15 @@ export async function deleteUser(id) {
   assertNoError(error);
 }
 
+export async function listUserAdminFields() {
+  const rows = await fetchAll(() => userSelect().select("id, email, role"));
+  return (rows || []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    role: row.role || "client",
+  }));
+}
+
 export async function listUsers({ search, hasAccess, role, sort = "-createdAt", limit = 50, offset = 0 } = {}) {
   let query = userSelect().select("*", { count: "exact" });
 
