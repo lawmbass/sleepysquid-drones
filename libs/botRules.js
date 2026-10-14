@@ -35,6 +35,8 @@ export const DEFAULT_BOT_SETTINGS = {
   minNoticeHours: null,
 };
 
+export const ZEITVIEW_RADIUS_MILES = [10, 25, 50, 100, 200];
+
 const MONEY_MAX = 100000;
 const MINUTES_MAX = 24 * 60;
 const NOTICE_MAX = 24 * 7;
@@ -173,6 +175,132 @@ function parseCoordinate(value, field, label, min, max, errors) {
   return amount;
 }
 
+export function snapZeitviewRadius(value) {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const text = value.trim().toLowerCase();
+    if (text === "" || text === "current" || text === "keep" || text === "keep current") return null;
+    if (!/^\d+(\.\d+)?$/.test(text)) return { error: true };
+    value = Number(text);
+  }
+  const amount = Number(value);
+  if (typeof value === "boolean" || !Number.isFinite(amount) || amount < 0) return { error: true };
+  let best = ZEITVIEW_RADIUS_MILES[0];
+  let bestDistance = Infinity;
+  for (const option of ZEITVIEW_RADIUS_MILES) {
+    const distance = Math.abs(option - amount);
+    if (distance < bestDistance || (distance === bestDistance && option > best)) {
+      best = option;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+export function zeitviewRadiusColumn(settings) {
+  if (!settings || !Object.prototype.hasOwnProperty.call(settings, "zeitviewRadiusMiles")) {
+    return { write: false, value: null };
+  }
+  const snapped = snapZeitviewRadius(settings.zeitviewRadiusMiles);
+  if (snapped && typeof snapped === "object") return { write: false, value: null };
+  return { write: true, value: snapped };
+}
+
+function zeitviewText(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function zeitviewRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value;
+}
+
+export function zeitviewFromRow(row) {
+  if (!row || !Object.prototype.hasOwnProperty.call(row, "zeitview_radius_miles")) {
+    return { zeitviewAvailable: false };
+  }
+  const snapped = row.zeitview_radius_miles == null ? null : snapZeitviewRadius(row.zeitview_radius_miles);
+  return {
+    zeitviewAvailable: true,
+    zeitviewRadiusMiles: snapped && typeof snapped === "object" ? null : snapped,
+    zeitviewLastSyncedAt: row.zeitview_last_synced_at || null,
+    zeitviewLastResult:
+      row.zeitview_last_result === "ok" || row.zeitview_last_result === "failed"
+        ? row.zeitview_last_result
+        : null,
+    zeitviewLastError: typeof row.zeitview_last_error === "string" ? row.zeitview_last_error : null,
+    zeitviewObserved: zeitviewRecord(row.zeitview_observed),
+  };
+}
+
+export function zeitviewObservedPlace(observed) {
+  const row = zeitviewRecord(observed);
+  if (!row) return "";
+  const address = zeitviewRecord(row.address) || zeitviewRecord(row.address_parts) || {};
+  const street = zeitviewText(
+    address.street,
+    address.street_address,
+    address.address_line_1,
+    address.line1,
+    address.address1,
+    row.street,
+    row.street_address,
+    row.address_line_1,
+    row.line1,
+    row.address1
+  );
+  const city = zeitviewText(address.city, address.locality, address.town, row.city, row.locality, row.town);
+  if (street && city) return `${street}, ${city}`;
+  if (typeof row.address === "string") return row.address.trim();
+  return street || city;
+}
+
+export function zeitviewObservedMiles(observed) {
+  const row = zeitviewRecord(observed);
+  if (!row) return null;
+  const nested = zeitviewRecord(row.address);
+  const raw = row.travel_distance ?? row.travelDistance ?? nested?.travel_distance;
+  if (raw == null || raw === "") return null;
+  const amount = typeof raw === "string" ? Number((raw.trim().match(/^(\d+(?:\.\d+)?)/) || [])[1]) : Number(raw);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  const rounded = Math.round(amount * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+export function zeitviewSyncStatus(settings, formatTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}) {
+  if (!settings?.zeitviewAvailable) return null;
+  if (settings.zeitviewLastResult === "failed") {
+    return {
+      state: "failed",
+      title: "Zeitview sync broke, script needs updating",
+      detail: typeof settings.zeitviewLastError === "string" ? settings.zeitviewLastError.trim() : "",
+    };
+  }
+  if (settings.zeitviewLastResult !== "ok" || !settings.zeitviewLastSyncedAt) return null;
+  const place = zeitviewObservedPlace(settings.zeitviewObserved);
+  const miles = zeitviewObservedMiles(settings.zeitviewObserved);
+  const when = formatTime(settings.zeitviewLastSyncedAt);
+  if (!place || miles == null || !when) return null;
+  return {
+    state: "ok",
+    text: `Synced ${when}: ${miles} mi from ${place}`,
+  };
+}
+
 export function validateBotSettings(input) {
   const errors = [];
   const source = input && typeof input === "object" ? input : {};
@@ -224,6 +352,16 @@ export function validateBotSettings(input) {
 
   const homeLat = parseCoordinate(source.homeLat, "homeLat", "the latitude", -90, 90, errors);
   const homeLng = parseCoordinate(source.homeLng, "homeLng", "the longitude", -180, 180, errors);
+  const hasZeitviewRadius = Object.prototype.hasOwnProperty.call(source, "zeitviewRadiusMiles");
+  let zeitviewRadiusMiles = null;
+  if (hasZeitviewRadius) {
+    const snapped = snapZeitviewRadius(source.zeitviewRadiusMiles);
+    if (snapped && typeof snapped === "object") {
+      fail(errors, "zeitviewRadiusMiles", "Choose Keep current, or 10, 25, 50, 100, or 200 miles.");
+    } else {
+      zeitviewRadiusMiles = snapped;
+    }
+  }
 
   if (
     minPayoutUsd != null &&
@@ -255,6 +393,7 @@ export function validateBotSettings(input) {
       homeLng,
       dailyAcceptCap,
       minNoticeHours,
+      ...(hasZeitviewRadius ? { zeitviewRadiusMiles } : {}),
     },
   };
 }
