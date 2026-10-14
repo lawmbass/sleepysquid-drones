@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FiTrendingUp, FiDollarSign, FiMapPin, FiBarChart, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { FiTrendingUp, FiDollarSign, FiMapPin, FiBarChart, FiActivity, FiRefreshCw, FiTarget, FiNavigation } from 'react-icons/fi';
 
 export default function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -56,6 +56,8 @@ export default function Analytics() {
   const formatNumber = (num) => {
     return new Intl.NumberFormat('en-US').format(num || 0);
   };
+
+  const formatMiles = (miles) => `${Number(miles || 0).toFixed(1)} mi`;
 
   const StatCard = ({ title, value, icon: Icon, color = 'blue', subtitle, change }) => {
     // Define color classes explicitly to avoid Tailwind purging
@@ -165,6 +167,21 @@ export default function Analytics() {
             <FiMapPin className="h-5 w-5 text-orange-600 dark:text-orange-400 mx-auto mb-1" />
             <div className="text-sm font-bold text-orange-600 dark:text-orange-400">{formatCurrency(summary.revenuePerMile)}</div>
             <div className="text-xs text-gray-600 dark:text-gray-300">Revenue/Mile</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+            <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatNumber(summary.customerBookings)}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Customer Bookings</div>
+          </div>
+          <div className="text-center p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
+            <div className="text-lg font-bold text-cyan-600 dark:text-cyan-400">{formatNumber(summary.missionBookings)}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Mission Bookings</div>
+          </div>
+          <div className="text-center p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
+            <div className="text-sm font-bold text-teal-600 dark:text-teal-400">{formatMiles(summary.avgMissionTravelDistance)}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">Avg Travel Distance</div>
           </div>
         </div>
       </div>
@@ -499,6 +516,24 @@ export default function Analytics() {
           value={formatCurrency(summary.revenuePerMile)}
           icon={FiMapPin}
           color="orange"
+        />
+        <StatCard
+          title="Customer Bookings"
+          value={formatNumber(summary.customerBookings)}
+          icon={FiTarget}
+          color="blue"
+        />
+        <StatCard
+          title="Mission Bookings"
+          value={formatNumber(summary.missionBookings)}
+          icon={FiActivity}
+          color="purple"
+        />
+        <StatCard
+          title="Avg Travel Distance"
+          value={formatMiles(summary.avgMissionTravelDistance)}
+          icon={FiNavigation}
+          color="green"
         />
       </div>
 

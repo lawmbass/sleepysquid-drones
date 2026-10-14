@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/earnings.js");
-const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts, analyticsDateRange, selectAnalyticsJobs } = await import("../libs/jobs.js");
+const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts, analyticsDateRange, selectAnalyticsJobs, overviewGigStatus, overviewStatusCounts, filterOverviewJobs, openGigsLabel } = await import("../libs/jobs.js");
 const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
 const { ZEITVIEW_FLIGHT_WINDOWS } = await import("../libs/zeitviewFlights.js");
@@ -663,9 +663,91 @@ assert.equal(allPast.performanceMetrics.totalTravelTime, 152);
 assert.equal(allPast.performanceMetrics.maxPayout, 150);
 assert.equal(allPast.performanceMetrics.minPayout, 60);
 assert.equal(allPast.summary.statusCounts.completed, 6);
+assert.equal(allPast.summary.customerBookings, 0);
+assert.equal(allPast.summary.missionBookings, 6);
+assert.equal(allPast.summary.avgMissionTravelDistance, 76 / 6);
+assert.equal(allPast.summary.avgTravelDistance, 76 / 6);
 const months = allPast.revenueByMonth.map((month) => `${month.year}-${month.month}`);
 assert.deepEqual(months, ["2024-1", "2024-8", "2024-9", "2024-10", "2025-2", "2025-5"]);
 assert.equal(months.includes("2026-10"), false);
 assert.equal(summarizeAnalytics(lastMonth).summary.totalMissions, 1);
+
+const customerDrive = {
+  id: "customer-drive",
+  source: "customer",
+  isMission: false,
+  status: "completed",
+  date: "2026-10-02T15:00:00.000Z",
+  travelDistance: 100,
+  payout: 200,
+};
+const noDistance = listingToJob({
+  id: "no-distance",
+  status: "accepted",
+  bookingId: null,
+  source: "zeitview",
+  payout: 25,
+  travelDistance: null,
+  dueWindowStart: "2024-06-01T15:00:00.000Z",
+});
+const zeroMile = listingToJob({
+  id: "zero-mile",
+  status: "accepted",
+  bookingId: null,
+  source: "zeitview",
+  payout: 10,
+  travelDistance: 0,
+  dueWindowStart: "2024-03-01T15:00:00.000Z",
+});
+const zeroOnly = summarizeAnalytics([zeroMile, noDistance]);
+assert.equal(zeroOnly.summary.missionBookings, 2);
+assert.equal(zeroOnly.summary.customerBookings, 0);
+assert.equal(zeroOnly.summary.avgMissionTravelDistance, 0);
+
+const mixedJobs = [...pastFlights, recent, customerDrive, noDistance];
+const mixedMonth = summarizeAnalytics(selectAnalyticsJobs(mixedJobs, { period: "30d", now }));
+assert.equal(mixedMonth.summary.customerBookings, 1);
+assert.equal(mixedMonth.summary.missionBookings, 1);
+assert.equal(mixedMonth.summary.avgMissionTravelDistance, 4);
+assert.equal(mixedMonth.summary.avgTravelDistance, 52);
+const mixedAll = summarizeAnalytics(selectAnalyticsJobs(mixedJobs, { period: "all", now }));
+assert.equal(mixedAll.summary.customerBookings, 1);
+assert.equal(mixedAll.summary.missionBookings, 8);
+assert.equal(mixedAll.summary.avgMissionTravelDistance, (76 + 4) / 7);
+assert.equal(mixedAll.summary.avgTravelDistance, (76 + 4 + 100) / 8);
+
+const overviewJobs = [
+  { id: "p", status: "pending", unlinkedListing: false },
+  { id: "c", status: "confirmed", unlinkedListing: false },
+  { id: "i", status: "in-progress", unlinkedListing: false },
+  { id: "d", status: "completed", unlinkedListing: false },
+  { id: "x", status: "pending", cancelStatus: "cancelled", unlinkedListing: false },
+  listingToJob({
+    id: "flown",
+    status: "accepted",
+    bookingId: null,
+    source: "zeitview",
+    payout: 70,
+    dueWindowStart: "2024-01-25T19:30:00.000Z",
+  }),
+];
+const overviewCounts = overviewStatusCounts(overviewJobs);
+assert.equal(overviewGigStatus(overviewJobs[0]), "pending");
+assert.equal(overviewGigStatus(overviewJobs[4]), "cancelled");
+assert.equal(overviewGigStatus(overviewJobs[5]), "completed");
+assert.equal(overviewCounts.all, 6);
+assert.equal(overviewCounts.pending, 1);
+assert.equal(overviewCounts.confirmed, 1);
+assert.equal(overviewCounts["in-progress"], 1);
+assert.equal(overviewCounts.completed, 2);
+assert.equal(overviewCounts.cancelled, 1);
+assert.equal(overviewCounts.open, 3);
+assert.deepEqual(filterOverviewJobs(overviewJobs, "all").map((job) => job.id), ["p", "c", "i", "d", "x", "flown"]);
+assert.deepEqual(filterOverviewJobs(overviewJobs, "pending").map((job) => job.id), ["p"]);
+assert.deepEqual(filterOverviewJobs(overviewJobs, "open").map((job) => job.id), ["p", "c", "i"]);
+assert.equal(filterOverviewJobs(overviewJobs, "cancelled").length, 1);
+assert.equal(openGigsLabel(3), "3 open gigs need attention");
+assert.equal(openGigsLabel(1), "1 open gig needs attention");
+assert.equal(openGigsLabel(0), "0 open gigs need attention");
 
 console.log("Admin role and unlinked earnings checks passed.");
