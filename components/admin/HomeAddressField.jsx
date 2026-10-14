@@ -38,6 +38,9 @@ export default function HomeAddressField({
   fallbackRequested,
   error,
   disabled,
+  embedded = false,
+  autoFocus = false,
+  describedBy,
   onChange,
 }) {
   const listId = useId();
@@ -199,6 +202,8 @@ export default function HomeAddressField({
       event.preventDefault();
       pick(suggestions[activeIndex]);
     } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
       setOpen(false);
     }
   }
@@ -213,22 +218,27 @@ export default function HomeAddressField({
 
   return (
     <div>
-      <label
-        htmlFor="homeAddress"
-        className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
-      >
-        <span>Home address</span>
-        <EditHint />
-      </label>
-      <p id={helpId} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {mapsAvailable && !searchBroken
-          ? "Drive time is measured from here. Start typing, then choose the address from the list."
-          : "Drive time is measured from here."}
-      </p>
-      <div className="relative mt-2">
+      {embedded ? null : (
+        <>
+          <label
+            htmlFor="homeAddress"
+            className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-gray-900 dark:text-white"
+          >
+            <span>Home address</span>
+            <EditHint />
+          </label>
+          <p id={helpId} className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {mapsAvailable && !searchBroken
+              ? "Drive time is measured from here. Start typing, then choose the address from the list."
+              : "Drive time is measured from here."}
+          </p>
+        </>
+      )}
+      <div className={embedded ? "relative" : "relative mt-2"}>
         <input
           id="homeAddress"
           type="text"
+          autoFocus={autoFocus}
           role="combobox"
           enterKeyHint="search"
           autoComplete="off"
@@ -238,7 +248,7 @@ export default function HomeAddressField({
           aria-expanded={open}
           aria-controls={listId}
           aria-activedescendant={open ? `${listId}-${activeIndex}` : undefined}
-          aria-describedby={error ? `${helpId} homeAddress-error` : helpId}
+          aria-describedby={describedBy || (error ? `${helpId} homeAddress-error` : helpId)}
           aria-invalid={Boolean(error)}
           disabled={disabled}
           className={inputClass}
