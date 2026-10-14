@@ -4,6 +4,7 @@ const { selectUnlinkedEarnings, unlinkedPayoutTotal } = await import("../libs/ea
 const { mergeJobs, summarizeJobs, summarizeAnalytics, listingToJob, listingSchedule, gigCardState, missionDetailAmounts } = await import("../libs/jobs.js");
 const { buildCancelDraft, cancelGigVisibility, gmailComposeUrl, mailtoUrl, flightWarning } = await import("../libs/cancelGig.js");
 const { adminConfig } = await import("../libs/adminConfig.js");
+const { ZEITVIEW_FLIGHT_WINDOWS } = await import("../libs/zeitviewFlights.js");
 
 const linked = {
   status: "accepted",
@@ -187,22 +188,50 @@ const scheduleBeatsPage = listingToJob({
 assert.equal(scheduleBeatsPage.date, "2024-08-28T15:00:00.000Z");
 assert.equal(scheduleBeatsPage.scheduleSource, "raw_detail");
 
-const spacedTimeIgnored = listingToJob({
+const spacedTime = listingToJob({
   id: "spaced-time",
   lastSeenAt: "2026-10-11T23:00:00.000Z",
   rawDetail: { text: "Download KML\n05/27/2025\n02:30 PM\nYou must arrive on time on the scheduled flight date…" },
 });
-assert.equal(spacedTimeIgnored.date, "2026-10-11T23:00:00.000Z");
-assert.equal(spacedTimeIgnored.scheduleSource, "last_seen");
+assert.equal(spacedTime.date, "2025-05-27T18:30:00.000Z");
+assert.equal(spacedTime.hasFlightTime, true);
+assert.equal(spacedTime.scheduleSource, "page_text");
 
 const seenOnly = listingToJob({
   id: "seen-only",
   lastSeenAt: "2026-10-11T23:00:00.000Z",
+  firstSeenAt: "2026-10-11T16:00:00.000Z",
   rawDetail: { title: "No schedule stored" },
 });
-assert.equal(seenOnly.date, "2026-10-11T23:00:00.000Z");
+assert.equal(seenOnly.date, null);
 assert.equal(seenOnly.hasFlightTime, false);
-assert.equal(seenOnly.scheduleSource, "last_seen");
+assert.equal(seenOnly.scheduleSource, null);
+
+const confirmation = listingToJob({
+  id: "cobb-email",
+  lastSeenAt: "2026-10-11T16:00:00.000Z",
+  firstSeenAt: "2026-10-11T16:00:00.000Z",
+  rawEmailText: "Your flight is scheduled for\nThursday, January 25, 2024\n 2:30PM EST - 3:30PM EST\n",
+});
+assert.equal(confirmation.date, "2024-01-25T19:30:00.000Z");
+assert.equal(confirmation.hasFlightTime, true);
+assert.equal(confirmation.wallClock, false);
+assert.equal(confirmation.scheduleSource, "email");
+
+const rescheduled = listingToJob({
+  id: "la-plata-email",
+  lastSeenAt: "2026-10-11T23:00:00.000Z",
+  rawEmailText: [
+    "Your flight is scheduled for",
+    "Tuesday, August 27, 2024",
+    "10:00AM EDT - 11:00AM EDT",
+    "Your flight has been rescheduled for",
+    "Wednesday, August 28, 2024",
+    " 3:00PM EDT - 4:00PM EDT",
+  ].join("\n"),
+});
+assert.equal(rescheduled.date, "2024-08-28T19:00:00.000Z");
+assert.equal(rescheduled.scheduleSource, "email");
 
 const windowed = listingToJob({
   id: "windowed",
@@ -411,8 +440,31 @@ assert.equal(cobbJob.missionId, "DBM9380917324");
 assert.equal(cobbJob.payout, 70);
 assert.equal(cobbJob.location, "Cobb Island");
 assert.equal(cobbJob.unlinkedListing, true);
+assert.equal(cobbJob.date, null);
 assert.equal(cobbJob.hasFlightTime, false);
-assert.equal(cobbJob.scheduleSource, "last_seen");
+assert.equal(cobbJob.scheduleSource, null);
+const cobbWindow = listingToJob({
+  ...cobbListing,
+  dueWindowStart: "2024-01-25T19:30:00.000Z",
+  dueWindowEnd: "2024-01-25T20:30:00.000Z",
+});
+assert.equal(cobbWindow.date, "2024-01-25T19:30:00.000Z");
+assert.equal(cobbWindow.hasFlightTime, true);
+assert.equal(cobbWindow.scheduleSource, "due_window");
+assert.deepEqual(Object.keys(ZEITVIEW_FLIGHT_WINDOWS).sort(), [
+  "DBM0284367500",
+  "DBM5171408909",
+  "DBM5272171280",
+  "DBM6932649899",
+  "DBM8900777480",
+  "DBM9380917324",
+]);
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM9380917324.start, "2024-01-25T19:30:00.000Z");
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM5272171280.start, "2024-08-28T19:00:00.000Z");
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM8900777480.start, "2024-09-12T14:30:00.000Z");
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM0284367500.start, "2024-10-31T16:30:00.000Z");
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM6932649899.start, "2025-02-24T17:30:00.000Z");
+assert.equal(ZEITVIEW_FLIGHT_WINDOWS.DBM5171408909.start, "2025-05-27T18:30:00.000Z");
 assert.equal(cobbJob.status, "completed");
 const cobbCard = gigCardState({ job: cobbJob, listing: cobbListing });
 assert.equal(cobbCard.badgeStatus, "completed");
