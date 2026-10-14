@@ -711,6 +711,66 @@ export function mergeJobs(bookings, listings, linkedListings = []) {
   return jobs;
 }
 
+export const OVERVIEW_STATUS_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "pending", label: "Pending" },
+  { id: "confirmed", label: "Confirmed" },
+  { id: "in-progress", label: "In Progress" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+];
+
+/**
+ * Status the overview chips count. Matches the badge on the gig card.
+ * A cancel recorded on the listing counts as cancelled even when the
+ * booking status is still something else.
+ */
+export function overviewGigStatus(job) {
+  if (!job) return "";
+  if (String(job.cancelStatus || "").toLowerCase() === "cancelled") return "cancelled";
+  const badge = gigCardState({
+    job,
+    booking: job.unlinkedListing ? null : job,
+  }).badgeStatus;
+  return String(badge || job.status || "").toLowerCase();
+}
+
+export function isOpenGig(job) {
+  const status = overviewGigStatus(job);
+  return status !== "completed" && status !== "cancelled";
+}
+
+export function overviewStatusCounts(jobs) {
+  const counts = {
+    all: 0,
+    pending: 0,
+    confirmed: 0,
+    "in-progress": 0,
+    completed: 0,
+    cancelled: 0,
+    open: 0,
+  };
+  for (const job of jobs || []) {
+    counts.all += 1;
+    const status = overviewGigStatus(job);
+    if (Object.prototype.hasOwnProperty.call(counts, status)) counts[status] += 1;
+    if (status !== "completed" && status !== "cancelled") counts.open += 1;
+  }
+  return counts;
+}
+
+export function filterOverviewJobs(jobs, filter = "all") {
+  const list = jobs || [];
+  if (!filter || filter === "all") return list;
+  if (filter === "open") return list.filter(isOpenGig);
+  return list.filter((job) => overviewGigStatus(job) === filter);
+}
+
+export function openGigsLabel(count) {
+  const n = Number(count) || 0;
+  return n === 1 ? "1 open gig needs attention" : `${n} open gigs need attention`;
+}
+
 function inRange(value, fromMs, toMs) {
   if (fromMs == null && toMs == null) return true;
   if (!value) return false;

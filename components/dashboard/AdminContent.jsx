@@ -9,6 +9,12 @@ import PromoManagement from '@/components/admin/PromoManagement';
 import ListingsSection from '@/components/admin/ListingsSection';
 import BotRulesSection from '@/components/admin/BotRulesSection';
 import AccessStatusBanner from './AccessStatusBanner';
+import {
+  OVERVIEW_STATUS_FILTERS,
+  filterOverviewJobs,
+  openGigsLabel,
+  overviewStatusCounts,
+} from '@/libs/jobs';
 // Note: AdminSettings is now an inline component within this file
 
 export default function AdminContent({ user, onUpdate }) {
@@ -28,6 +34,7 @@ export default function AdminContent({ user, onUpdate }) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [overviewFilter, setOverviewFilter] = useState('all');
 
   // Handle redirect for non-SleepySquid admins trying to access user management
   useEffect(() => {
@@ -140,7 +147,9 @@ export default function AdminContent({ user, onUpdate }) {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':
+      case 'dashboard': {
+        const overviewCounts = overviewStatusCounts(recentJobs);
+        const visibleJobs = filterOverviewJobs(recentJobs, overviewFilter);
         return (
           <div className="space-y-6">
             <AccessStatusBanner user={user} />
@@ -148,15 +157,50 @@ export default function AdminContent({ user, onUpdate }) {
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
               <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
+              <button
+                type="button"
+                onClick={() => setOverviewFilter('open')}
+                className={`mt-4 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium ${
+                  overviewFilter === 'open'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50'
+                }`}
+              >
+                {openGigsLabel(overviewCounts.open)}
+              </button>
             </div>
             
             <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white">Recent Bookings</h2>
               </div>
+              <div className="px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-wrap gap-2" role="tablist" aria-label="Gig status">
+                  {OVERVIEW_STATUS_FILTERS.map((chip) => {
+                    const selected = overviewFilter === chip.id;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        onClick={() => setOverviewFilter(chip.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${
+                          selected
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {chip.label}
+                        <span className={selected ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}>{overviewCounts[chip.id] || 0}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <BookingsList 
-                bookings={recentJobs}
-                pagination={{ totalPages: 1, totalCount: recentJobs.length, currentPage: 1 }}
+                bookings={visibleJobs}
+                pagination={{ totalPages: 1, totalCount: visibleJobs.length, currentPage: 1 }}
                 onUpdateBooking={updateBooking}
                 onDeleteBooking={onDeleteBooking}
                 onGigUpdated={fetchBookings}
@@ -166,6 +210,7 @@ export default function AdminContent({ user, onUpdate }) {
             </div>
           </div>
         );
+      }
       
       case 'bookings':
         return (
