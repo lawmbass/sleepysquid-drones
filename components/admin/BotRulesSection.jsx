@@ -104,7 +104,26 @@ function Field({ id, label, help, error, children }) {
 const inputClass =
   "block w-full min-h-11 cursor-text rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/60 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-500 dark:bg-gray-900 dark:text-white dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:border-blue-400 dark:focus:bg-gray-900 dark:focus:ring-blue-400 sm:text-sm";
 
-function ReasonChips({ sample }) {
+const CARD_DECISIONS = {
+  accept: {
+    label: "Accept",
+    className: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+  },
+  decline: {
+    label: "Decline",
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200",
+  },
+  unsure: {
+    label: "Can't tell",
+    className: "bg-amber-100 text-amber-950 dark:bg-amber-900/50 dark:text-amber-100",
+  },
+  skip: {
+    label: "Auto-accept off",
+    className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+  },
+};
+
+function ReasonChips({ sample, fullWidth = false }) {
   const chips = Array.isArray(sample.failures) && sample.failures.length
     ? sample.failures
     : sample.reason
@@ -116,7 +135,7 @@ function ReasonChips({ sample }) {
       : [];
   if (!chips.length) return null;
   return (
-    <ul className="mt-1 flex max-w-[14rem] flex-wrap gap-1 sm:max-w-xs">
+    <ul className={`mt-1 flex flex-wrap gap-1 ${fullWidth ? "w-full" : "max-w-[14rem] sm:max-w-xs"}`}>
       {chips.map((chip) => (
         <li
           key={chip.code}
@@ -631,7 +650,39 @@ export default function BotRulesSection() {
               </p>
             ) : null}
             {!previewError && preview.considered > 0 ? (
-              <div className="mt-4 overflow-x-auto">
+              <>
+              <div className="mt-4 space-y-3 sm:hidden" data-preview-cards>
+                {preview.samples.map((sample) => {
+                  const badge = CARD_DECISIONS[sample.decision] || {
+                    label: sample.decision,
+                    className: CARD_DECISIONS.skip.className,
+                  };
+                  return (
+                    <article
+                      key={sample.id || `${sample.externalMissionId}-${sample.firstSeenAt}`}
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40"
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {sample.externalMissionId || sample.title || "Mission"}
+                      </div>
+                      {sample.address ? (
+                        <div className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{sample.address}</div>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
+                        <span>Payout {money(sample.payout)}</span>
+                        <span>Drive {minutes(sample.travelTime)}</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
+                          {badge.label}
+                        </span>
+                        <ReasonChips sample={sample} fullWidth />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="mt-4 hidden overflow-x-auto sm:block">
                 <table className="min-w-full text-left text-sm">
                   <thead className="text-gray-500 dark:text-gray-400">
                     <tr>
@@ -661,6 +712,7 @@ export default function BotRulesSection() {
                   </tbody>
                 </table>
               </div>
+              </>
             ) : null}
           </>
         ) : null}
