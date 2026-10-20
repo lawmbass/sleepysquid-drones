@@ -233,8 +233,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @keyframes dsqFly{
  0%,8%{transform:translate(0,0)}
  16%{transform:translate(-4vw,-12vh)}
- 28%{transform:translate(-16vw,-22vh)}
- 40%{transform:translate(-6vw,-30vh)}
+ 28%{transform:translate(-16vw,-16vh)}
+ 40%{transform:translate(-6vw,-20vh)}
  52%{transform:translate(12vw,-18vh)}
  64%{transform:translate(14vw,10vh)}
  76%{transform:translate(4vw,28vh)}
@@ -245,7 +245,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
  52%{transform:rotate(12deg)}64%{transform:rotate(8deg)}76%{transform:rotate(-6deg)}86%{transform:rotate(-8deg)}94%,100%{transform:rotate(0)}}
 @keyframes dsqWaves{0%,8%{opacity:1}12%,90%{opacity:0}96%,100%{opacity:1}}
 @media (max-width:767px){
- .dsq-stage{width:150px;margin-top:2.5rem}
+ .dsq-stage{width:130px;margin-top:1.5rem}
  .dsq-fly{animation-name:dsqFlyM}
  @keyframes dsqFlyM{
   0%,8%{transform:translate(0,0)}
