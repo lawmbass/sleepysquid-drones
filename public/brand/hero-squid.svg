@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -60 1960 3500" width="560" height="1000"><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-199 -200 2038 3640" width="560" height="1000"><style>
 .bob{animation:bob 6s ease-in-out infinite;transform-box:view-box;transform-origin:647px 1400px}
 .push{animation:push 4s ease-in-out infinite;transform-box:view-box;transform-origin:647px 1500px}
 .leg{animation:sway 4s ease-in-out infinite;transform-box:view-box}
