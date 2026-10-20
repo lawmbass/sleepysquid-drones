@@ -1,44 +1,37 @@
+// Email sending now goes through Resend (file name kept so existing imports don't change).
 import config from "@/config";
-const formData = require("form-data");
-const Mailgun = require("mailgun.js");
-const mailgun = new Mailgun(formData);
 
-const mg = mailgun.client({
-  username: "api",
-  key: process.env.MAILGUN_API_KEY || "dummy",
-});
-
-if (!process.env.MAILGUN_API_KEY && process.env.NODE_ENV === "development") {
-  console.group("⚠️ MAILGUN_API_KEY missing from .env");
-  console.error("It's not mandatory but it's required to send emails.");
-  console.error("If you don't need it, remove the code from /libs/mailgun.js");
-  console.groupEnd();
+if (!process.env.RESEND_API_KEY && process.env.NODE_ENV === "development") {
+  console.warn("⚠️ RESEND_API_KEY missing from .env: emails will not be sent.");
 }
 
 /**
- * Sends an email using the provided parameters.
- *
- * @async
- * @param {string} to - The recipient's email address.
- * @param {string} subject - The subject of the email.
- * @param {string} text - The plain text content of the email.
- * @param {string} html - The HTML content of the email.
- * @param {string} replyTo - The email address to set as the "Reply-To" address.
- * @returns {Promise} A Promise that resolves when the email is sent.
+ * Sends an email using Resend. Same signature as the old Mailgun helper.
+ * @param {{to: string|string[], subject: string, text?: string, html?: string, replyTo?: string}} params
  */
 export const sendEmail = async ({ to, subject, text, html, replyTo }) => {
-  const data = {
-    from: config.mailgun.fromAdmin,
-    to: [to],
-    subject,
-    text,
-    html,
-    ...(replyTo && { "h:Reply-To": replyTo }),
-  };
-
-  await mg.messages.create(
-    (config.mailgun.subdomain ? `${config.mailgun.subdomain}.` : "") +
-      config.domainName,
-    data
-  );
+  const from =
+    process.env.RESEND_FROM_EMAIL ||
+    config.email?.from ||
+    "SleepySquid Drones <noreply@send.sleepysquid.com>";
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      text,
+      html,
+      ...(replyTo && { reply_to: replyTo }),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Resend send failed: ${res.status} ${body.slice(0, 200)}`);
+  }
+  return res.json();
 };
