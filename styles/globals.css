@@ -245,16 +245,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
  52%{transform:rotate(12deg)}64%{transform:rotate(8deg)}76%{transform:rotate(-6deg)}86%{transform:rotate(-8deg)}94%,100%{transform:rotate(0)}}
 @keyframes dsqWaves{0%,8%{opacity:1}12%,90%{opacity:0}96%,100%{opacity:1}}
 @media (max-width:767px){
- .dsq-stage{width:130px;margin-top:5.5rem}
+ .dsq-stage{width:130px;margin-top:1.5rem}
  .dsq-fly{animation-name:dsqFlyM}
- /* mobile loop stays beside and below the squid, never up into the buttons/text */
  @keyframes dsqFlyM{
   0%,8%{transform:translate(0,0)}
-  20%{transform:translate(-30vw,3vh)}
-  36%{transform:translate(-32vw,14vh)}
-  50%{transform:translate(0,22vh)}
-  64%{transform:translate(30vw,14vh)}
-  78%{transform:translate(28vw,3vh)}
+  20%{transform:translate(-26vw,-6vh)}
+  36%{transform:translate(-30vw,4vh)}
+  50%{transform:translate(0,8vh)}
+  64%{transform:translate(28vw,2vh)}
+  78%{transform:translate(24vw,-6vh)}
   94%,100%{transform:translate(0,0)}}
 }
 @media (prefers-reduced-motion:reduce){.dsq-fly,.dsq-tilt,.dsq-drone,.dsq-waves{animation:none!important}.dsq-waves{opacity:1}}
