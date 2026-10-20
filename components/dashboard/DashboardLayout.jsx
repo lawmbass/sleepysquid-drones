@@ -99,7 +99,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 min-w-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/icon-compact.svg" alt="SleepySquid Drones" className="h-10 w-auto flex-shrink-0" width="24" height="40" />
+              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
               <h1 className="text-lg font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
             </div>
             <button
@@ -174,7 +174,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             <div className="flex items-center flex-shrink-0 px-4">
               <div className="flex items-center gap-2 min-w-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/icon-compact.svg" alt="SleepySquid Drones" className="h-10 w-auto flex-shrink-0" width="24" height="40" />
+              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
             </div>
             </div>
