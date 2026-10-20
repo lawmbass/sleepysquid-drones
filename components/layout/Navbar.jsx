@@ -29,7 +29,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity" aria-label="SleepySquid Drones home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-dark.svg" alt="SleepySquid Drones" className="h-9 md:h-11 w-auto" width="220" height="44" />
+            <img src="/brand/logo-dark.svg" alt="SleepySquid Drones" className="h-11 md:h-14 w-auto" width="161" height="56" />
           </Link>
 
           {/* Desktop Navigation */}
