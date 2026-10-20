@@ -97,7 +97,11 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
         <div className="relative flex flex-col max-w-xs w-full bg-white dark:bg-gray-800 h-full">
           {/* Header with close button */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
+            </div>
             <button
               className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-500 dark:focus:ring-gray-400 rounded-md"
               onClick={() => setSidebarOpen(false)}
@@ -168,7 +172,11 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
         <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
+              <div className="flex items-center gap-2 min-w-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
+            </div>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white dark:bg-gray-800 space-y-1">
               {navigation.map((item) => {
