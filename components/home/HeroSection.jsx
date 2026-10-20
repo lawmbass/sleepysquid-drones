@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { blurProps } from './marketingImageBlur';
+import DroneSquidHero from './DroneSquidHero';
 
 const HeroSection = () => {
   return (
@@ -34,7 +35,9 @@ const HeroSection = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60 dark:from-gray-900/70 dark:via-gray-900/50 dark:to-gray-900/70"></div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 z-10 text-white">
+      <DroneSquidHero />
+
+      <div className="container mx-auto px-4 md:px-6 z-10 text-white relative">
         <div className="max-w-3xl">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
