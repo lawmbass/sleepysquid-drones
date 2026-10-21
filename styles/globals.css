@@ -224,7 +224,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
  background:linear-gradient(to top,rgba(4,47,46,.55),transparent)}
 .dsq-stage{position:relative;justify-self:center;width:min(300px,70%);pointer-events:none}
 .dsq-squid{position:relative;z-index:1;display:block;width:100%;height:auto;filter:drop-shadow(0 18px 40px rgba(56,189,248,.35))}
-.dsq-fly{position:absolute;z-index:2;left:22%;top:-24%;width:62%;animation:dsqFly 14s ease-in-out infinite;will-change:transform}
+/* path Y unit: 1vh, shrunk on short/wide screens so the highest point (-20 units + tilt) stays below the top edge; drone rests at 50vh-396px */
+.dsq-fly{--dsq-y:min(1vh,max(0px,calc((50vh - 440px) / 20)));position:absolute;z-index:2;left:22%;top:-24%;width:62%;animation:dsqFly 14s ease-in-out infinite;will-change:transform}
 .dsq-tilt{animation:dsqTilt 14s ease-in-out infinite;will-change:transform}
 .dsq-drone{display:block;width:100%;height:auto;animation:dsqHover 2.2s ease-in-out infinite}
 .dsq-waves{position:absolute;z-index:2;left:41%;top:-10%;width:22%;animation:dsqWaves 14s ease-in-out infinite}
@@ -232,13 +233,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 /* desktop loop stays over the right column and top band, clear of the headline */
 @keyframes dsqFly{
  0%,8%{transform:translate(0,0)}
- 16%{transform:translate(-4vw,-12vh)}
- 28%{transform:translate(-16vw,-16vh)}
- 40%{transform:translate(-6vw,-20vh)}
- 52%{transform:translate(12vw,-18vh)}
- 64%{transform:translate(14vw,10vh)}
- 76%{transform:translate(4vw,28vh)}
- 86%{transform:translate(-6vw,12vh)}
+ 16%{transform:translate(-4vw,calc(-12 * var(--dsq-y)))}
+ 28%{transform:translate(-16vw,calc(-16 * var(--dsq-y)))}
+ 40%{transform:translate(-6vw,calc(-20 * var(--dsq-y)))}
+ 52%{transform:translate(12vw,calc(-18 * var(--dsq-y)))}
+ 64%{transform:translate(14vw,calc(10 * var(--dsq-y)))}
+ 76%{transform:translate(4vw,calc(28 * var(--dsq-y)))}
+ 86%{transform:translate(-6vw,calc(12 * var(--dsq-y)))}
  94%,100%{transform:translate(0,0)}}
 @keyframes dsqTilt{
  0%,8%{transform:rotate(0)}16%{transform:rotate(-8deg)}28%{transform:rotate(-12deg)}40%{transform:rotate(4deg)}
