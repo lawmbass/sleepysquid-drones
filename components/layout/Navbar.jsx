@@ -60,7 +60,7 @@ const Navbar = () => {
             <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors">
               Book Now
             </Link>
-            <Link href="/login" className={`${loginBtn} px-5 py-2 rounded-full transition-colors`}>
+            <Link href="/login?from=drones" className={`${loginBtn} px-5 py-2 rounded-full transition-colors`}>
               Login
             </Link>
             <DarkModeToggle />
@@ -109,7 +109,7 @@ const Navbar = () => {
           <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors text-center" onClick={() => setIsOpen(false)}>
             Book Now
           </Link>
-          <Link href="/login" className={`${loginBtn} px-5 py-2 rounded-full transition-colors text-center`} onClick={() => setIsOpen(false)}>
+          <Link href="/login?from=drones" className={`${loginBtn} px-5 py-2 rounded-full transition-colors text-center`} onClick={() => setIsOpen(false)}>
             Login
           </Link>
         </div>

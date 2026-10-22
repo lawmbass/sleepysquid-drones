@@ -3,6 +3,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { saveOrigin } from '../libs/origin';
 import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock } from 'react-icons/fi';
 
 export default function Login() {
@@ -16,6 +17,11 @@ export default function Login() {
     email: '',
     password: ''
   });
+
+  // Remember which SleepySquid site sent the user here (cosmetic logo only).
+  useEffect(() => {
+    if (router.isReady && router.query.from) saveOrigin(router.query.from);
+  }, [router.isReady, router.query.from]);
 
   // Helper function to translate NextAuth error codes to user-friendly messages
   const getErrorMessage = (errorCode) => {
