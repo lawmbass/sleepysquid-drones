@@ -37,7 +37,7 @@ export default function AirspaceSection() {
         });
         const body = await response.json().catch(() => ({}));
         if (mine !== seq.current) return;
-        if (!response.ok) { if (response.status === 503) setSearchOff(true); setOpen(false); return; }
+        if (!response.ok) { setSearchOff(true); setOpen(false); return; }
         const next = body.data?.suggestions || [];
         setSuggestions(next); setActive(-1); setOpen(next.length > 0);
       } catch { /* aborted or offline: typing and Enter still work */ }
@@ -162,6 +162,7 @@ export default function AirspaceSection() {
             {loading ? "Checking..." : "Check address"}
           </button>
         </div>
+        {searchOff ? <p className="text-sm text-gray-600 dark:text-gray-300" data-testid="search-off">Address suggestions aren&apos;t available right now. Type the full address and press Check address.</p> : null}
         {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       </form>
 
