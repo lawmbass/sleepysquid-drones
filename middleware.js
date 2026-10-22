@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { adminConfig } from '@/libs/adminConfig';
 
 function matchesRoute(pathname, route) {
   if (route === '/') {
@@ -47,34 +48,30 @@ export async function middleware(request) {
         return NextResponse.redirect(loginUrl);
       }
 
-      if (token.email) {
+      // Fail closed: anything other than a clear "hasAccess: true" denies access, unless the user is an admin.
+      const email = token.email?.toLowerCase() || '';
+      const isAdmin = adminConfig.isAdmin(email);
+      if (!isAdmin) {
+        let hasAccess = false;
         try {
-          const baseUrl = request.nextUrl.origin;
-          const checkAccessUrl = new URL('/api/auth/check-access', baseUrl);
-
-          const accessResponse = await fetch(checkAccessUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email: token.email })
-          });
-
-          if (accessResponse.ok) {
-            const accessData = await accessResponse.json();
-
-            if (!accessData.hasAccess) {
-              const isAdmin = token.email?.toLowerCase()?.endsWith('@sleepysquid.com');
-
-              if (!isAdmin) {
-                const accessDeniedUrl = new URL('/access-denied', request.url);
-                accessDeniedUrl.searchParams.set('reason', 'inactive');
-                return NextResponse.redirect(accessDeniedUrl);
-              }
+          if (email) {
+            const accessResponse = await fetch(new URL('/api/auth/check-access', request.nextUrl.origin), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            if (accessResponse.ok) {
+              const accessData = await accessResponse.json();
+              hasAccess = accessData?.hasAccess === true;
             }
           }
         } catch (apiError) {
-          console.error('API error in middleware:', apiError);
+          console.error('Access check failed; denying access:', apiError?.message);
+        }
+        if (!hasAccess) {
+          const accessDeniedUrl = new URL('/access-denied', request.url);
+          accessDeniedUrl.searchParams.set('reason', 'inactive');
+          return NextResponse.redirect(accessDeniedUrl);
         }
       }
     } catch (error) {

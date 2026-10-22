@@ -9,6 +9,7 @@ export default function VerifyEmail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [accessGranted, setAccessGranted] = useState(false);
 
   const verifyEmail = useCallback(async (verificationToken) => {
     try {
@@ -24,6 +25,7 @@ export default function VerifyEmail() {
 
       if (response.ok) {
         setSuccessMessage(data.message);
+        setAccessGranted(data.user?.hasAccess === true);
         // Redirect to login after 3 seconds
         setTimeout(() => {
           router.push('/login');
@@ -80,7 +82,7 @@ export default function VerifyEmail() {
             <p className="mt-2 text-center text-sm text-gray-600">
               {isLoading ? 'Please wait while we verify your email address' :
                error ? 'There was a problem verifying your email' :
-               'Your email address is confirmed'}
+               (accessGranted ? 'Your email address is confirmed' : 'Your account is awaiting approval')}
             </p>
           </div>
 

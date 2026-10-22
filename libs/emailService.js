@@ -282,10 +282,13 @@ This email was sent to ${email}. If you didn't request this, please ignore this 
  * @param {string} verificationToken - Email verification token
  * @param {string} name - User's name
  */
-export const sendEmailVerification = async (email, verificationToken, name = '') => {
+export const sendEmailVerification = async (email, verificationToken, name = '', { accessGranted = false } = {}) => {
   const verifyUrl = `${process.env.NEXTAUTH_URL || `https://${config.domainName}`}/verify-email?token=${verificationToken}`;
   const subject = 'Verify Your Email - SleepySquid Drones';
   const greeting = name ? `Hi ${name}` : 'Hi there';
+  const nextStepsText = accessGranted
+    ? 'Once verified, you can sign in and use your dashboard right away.'
+    : "Once verified, your account will be reviewed by our team. We'll email or contact you as soon as it's approved, and then you can sign in to your dashboard.";
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -305,7 +308,7 @@ export const sendEmailVerification = async (email, verificationToken, name = '')
       <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 30px; margin-bottom: 30px;">
         <h2 style="color: #1f2937; margin-top: 0;">Welcome to SleepySquid Drones!</h2>
         <p style="color: #4b5563; margin-bottom: 20px;">${greeting},</p>
-        <p style="color: #4b5563; margin-bottom: 20px;">Thank you for creating an account with SleepySquid Drones. To complete your registration and start using our services, please verify your email address by clicking the button below:</p>
+        <p style="color: #4b5563; margin-bottom: 20px;">Thank you for creating an account with SleepySquid Drones. To complete your registration, please verify your email address by clicking the button below:</p>
         
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verifyUrl}" 
@@ -324,13 +327,8 @@ export const sendEmailVerification = async (email, verificationToken, name = '')
         </div>
         
         <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
-          <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">Once verified, you'll be able to:</h3>
-          <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
-            <li style="margin-bottom: 8px;">Access your dashboard</li>
-            <li style="margin-bottom: 8px;">Book drone services</li>
-            <li style="margin-bottom: 8px;">Manage your account settings</li>
-            <li style="margin-bottom: 8px;">Receive important updates</li>
-          </ul>
+          <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">What happens next</h3>
+          <p style="color: #4b5563; margin: 0;">${nextStepsText}</p>
         </div>
         
         <p style="color: #4b5563; margin-bottom: 15px;">If you didn't create this account, you can safely ignore this email.</p>
@@ -356,11 +354,8 @@ ${verifyUrl}
 
 This verification link will expire in 24 hours.
 
-Once verified, you'll be able to:
-- Access your dashboard
-- Book drone services  
-- Manage your account settings
-- Receive important updates
+What happens next:
+${nextStepsText}
 
 If you didn't create this account, you can safely ignore this email.
 

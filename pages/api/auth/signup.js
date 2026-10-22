@@ -111,7 +111,8 @@ export default async function handler(req, res) {
       await sendEmailVerification(
         sanitizedEmail, 
         emailVerification.token, 
-        sanitizedName
+        sanitizedName,
+        { accessGranted: role === 'admin' }
       );
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError);
