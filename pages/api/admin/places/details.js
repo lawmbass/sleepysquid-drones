@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const lookup = await placeDetails(placeId, sessionToken);
   if (!lookup.ok) {
-    console.error("Place details failed", lookup.reason);
+    console.error("Place details failed", lookup.reason, lookup.detail || "");
     const failure = placesError(lookup.reason);
     return res.status(failure.status).json(failure.body);
   }

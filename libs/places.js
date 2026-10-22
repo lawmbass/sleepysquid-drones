@@ -88,6 +88,13 @@ export function pinFromPlaceDetails(body) {
   return { formattedAddress: formatted, lat, lng };
 }
 
+// Google's machine reason (e.g. API_KEY_INVALID, SERVICE_DISABLED, API_KEY_HTTP_REFERRER_BLOCKED).
+// Never includes the key.
+function googleReason(body) {
+  const info = (body?.error?.details || []).find((d) => d?.reason);
+  return info ? String(info.reason).slice(0, 60) : null;
+}
+
 async function googleFetch(url, options) {
   try {
     return await fetch(url, { ...options, signal: AbortSignal.timeout(8000) });
@@ -118,7 +125,7 @@ export async function autocompletePlaces(input, sessionToken) {
   if (!response) return { ok: false, reason: "network" };
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    return { ok: false, reason: body?.error?.status || "http" };
+    return { ok: false, reason: body?.error?.status || "http", detail: googleReason(body) };
   }
   return { ok: true, suggestions: suggestionsFromAutocomplete(body) };
 }
@@ -139,7 +146,7 @@ export async function placeDetails(placeId, sessionToken) {
   if (!response) return { ok: false, reason: "network" };
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    return { ok: false, reason: body?.error?.status || "http" };
+    return { ok: false, reason: body?.error?.status || "http", detail: googleReason(body) };
   }
   const pin = pinFromPlaceDetails(body);
   if (!pin) return { ok: false, reason: "empty" };
