@@ -4,6 +4,7 @@
 // purge {id,confirm_name} (permanent; only for soft-deleted clients, via portal.hard_delete_client).
 import { sessionEmail, isAdmin, portalConfigured, db, enc, badWrite, VALID_ID } from "@/libs/aiPortal/access";
 import { DEFAULT_RATE } from "@/libs/aiPortal/tags";
+import { emailsWithAccounts } from "@/libs/db/users";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "client";
 const rateOf = (v) => (v == null || v === "" ? DEFAULT_RATE : Number(v));
@@ -17,9 +18,13 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const showDeleted = req.query.deleted === "1";
-      const clients = await db(`portal_clients?select=id,name,is_example,deleted_at,hourly_rate&deleted_at=${showDeleted ? "not.is.null" : "is.null"}&order=name`);
+      const clients = await db(`portal_clients?select=id,name,is_example,deleted_at,hourly_rate,created_at&deleted_at=${showDeleted ? "not.is.null" : "is.null"}&order=name`);
       const users = await db("portal_client_users?select=email,client_id");
-      return res.status(200).json({ showDeleted, defaultRate: DEFAULT_RATE, clients: clients.map((c) => ({ ...c, emails: users.filter((u) => u.client_id === c.id).map((u) => u.email) })) });
+      const withEmails = clients.map((c) => ({ ...c, emails: users.filter((u) => u.client_id === c.id).map((u) => u.email) }));
+      // account: true when a login email also has a user account, so User Management shows one row, not two.
+      let accounts = new Set();
+      try { accounts = await emailsWithAccounts(withEmails.flatMap((c) => c.emails)); } catch (e) { console.error("ai-portal admin: account lookup failed:", e?.message); }
+      return res.status(200).json({ showDeleted, defaultRate: DEFAULT_RATE, clients: withEmails.map((c) => ({ ...c, account: c.emails.some((e) => accounts.has(e.toLowerCase())) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
     const bad = badWrite(req); if (bad) return res.status(bad[0]).json({ error: bad[1] });

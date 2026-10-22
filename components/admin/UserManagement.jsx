@@ -5,6 +5,7 @@ import UsersList from './UsersList';
 import UserModal from './UserModal';
 import UserFilters from './UserFilters';
 import UserStats from './UserStats';
+import { useAiClients } from './AiClientControls';
 
 export default function UserManagement() {
   const { data: session } = useSession();
@@ -25,9 +26,22 @@ export default function UserManagement() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDeletedAi, setShowDeletedAi] = useState(false);
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+
+  const [ai, reloadAi] = useAiClients(isCurrentUserAdmin, showDeletedAi);
+  // One row per person: an AI client whose login email matches a user account is shown on that
+  // user's row; AI clients with no account get their own row. Matching is by email, case-insensitive.
+  const aiClients = [...ai.clients, ...ai.deleted];
+  const aiByEmail = {};
+  for (const c of aiClients) for (const e of c.emails) (aiByEmail[e.toLowerCase()] ||= []).push(c);
+  const shownEmails = new Set(users.map((u) => (u.email || '').toLowerCase()));
+  const term = filters.search.trim().toLowerCase();
+  const aiOnly = (filters.role || filters.hasAccess || filters.page > 1) ? [] : aiClients.filter((c) => !c.account
+    && !c.emails.some((e) => shownEmails.has(e.toLowerCase()))
+    && (!term || [c.name, ...c.emails].some((v) => v.toLowerCase().includes(term))));
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -92,13 +106,14 @@ export default function UserManagement() {
     setShowModal(false);
     setSelectedUser(null);
     fetchUsers();
+    reloadAi();
   };
 
 
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchUsers();
+    await Promise.all([fetchUsers(), reloadAi()]);
     setRefreshing(false);
   };
 
@@ -209,7 +224,7 @@ export default function UserManagement() {
               className="inline-flex flex-1 sm:flex-none items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <FiPlus className="mr-2 h-4 w-4" />
-              Invite User
+              Add user
             </button>
           )}
         </div>
@@ -277,6 +292,18 @@ export default function UserManagement() {
         onFilterChange={handleFilterChange}
       />
 
+      {isCurrentUserAdmin && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="ai-bar">
+          <span className="text-gray-600 dark:text-gray-300">
+            {ai.clients.length} AI client{ai.clients.length === 1 ? '' : 's'}. Rows tagged &quot;AI client&quot; can sign in at sleepysquid.com/login to see their AI report.
+          </span>
+          <button type="button" className="text-blue-600 dark:text-blue-400 hover:underline" onClick={() => setShowDeletedAi(!showDeletedAi)} data-testid="ai-show-deleted">
+            {showDeletedAi ? 'Hide deleted AI clients' : 'Show deleted AI clients'}
+          </button>
+        </div>
+      )}
+      {ai.error && <p className="text-sm text-red-700">{ai.error}</p>}
+
       {/* Users List */}
                 <UsersList
             users={users}
@@ -286,6 +313,9 @@ export default function UserManagement() {
             onEditUser={handleEditUser}
             onResendInvitation={resendInvitation}
             onPageChange={handlePageChange}
+            aiByEmail={aiByEmail}
+            aiOnly={aiOnly}
+            onAiChanged={reloadAi}
             loading={loading}
             error={error}
           />
@@ -296,6 +326,8 @@ export default function UserManagement() {
           user={selectedUser}
           onClose={handleCloseModal}
           onSaved={handleUserSaved}
+          aiClient={selectedUser ? (aiByEmail[(selectedUser.email || '').toLowerCase()] || [])[0] || null : null}
+          aiDefaultRate={ai.defaultRate}
         />
       )}
     </div>

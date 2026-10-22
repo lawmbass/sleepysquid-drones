@@ -3,8 +3,9 @@ import { useSession } from 'next-auth/react';
 import { createPortal } from 'react-dom';
 import AccessHistory from './AccessHistory';
 import ConfirmationDialog from './ConfirmationDialog';
+import { AiClientFields, aiCall } from './AiClientControls';
 
-export default function UserModal({ user, onClose, onSaved }) {
+export default function UserModal({ user, onClose, onSaved, aiClient = null, aiDefaultRate = 19 }) {
   const { data: session } = useSession();
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +18,8 @@ export default function UserModal({ user, onClose, onSaved }) {
     hasAccess: false,
     role: 'client'
   });
+  const [ai, setAi] = useState({ on: false, name: '', rate: String(aiDefaultRate), invite: false });
+  const canAddAi = !aiClient;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -61,6 +64,7 @@ export default function UserModal({ user, onClose, onSaved }) {
     setLoading(true);
     setError('');
 
+    const sendInvite = !user && (!ai.on || ai.invite);
     try {
       if (user) {
         // Update existing user
@@ -77,7 +81,7 @@ export default function UserModal({ user, onClose, onSaved }) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to update user');
         }
-      } else {
+      } else if (sendInvite) {
         // Send invitation for new user
         const response = await fetch('/api/admin/users/invite', {
           method: 'POST',
@@ -91,6 +95,14 @@ export default function UserModal({ user, onClose, onSaved }) {
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to send invitation');
+        }
+      }
+
+      if (ai.on) {
+        try {
+          await aiCall({ action: 'create', name: ai.name.trim() || formData.company || formData.name, email: formData.email, hourly_rate: ai.rate });
+        } catch (x) {
+          throw new Error(`${user ? 'User saved' : sendInvite ? 'Invitation sent' : 'Nothing saved'}, but the AI client wasn't created: ${x.message}`);
         }
       }
 
@@ -139,7 +151,7 @@ export default function UserModal({ user, onClose, onSaved }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {user ? 'Edit User' : 'Invite New User'}
+            {user ? 'Edit User' : 'Add user'}
           </h3>
           <button
             onClick={onClose}
@@ -338,6 +350,18 @@ export default function UserModal({ user, onClose, onSaved }) {
                 </div>
               )}
 
+              {isCurrentUserAdmin && canAddAi && (
+                <>
+                  <AiClientFields value={ai} onChange={setAi} defaultRate={aiDefaultRate} />
+                  {ai.on && !user && (
+                    <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                      <input type="checkbox" checked={ai.invite} onChange={(e) => setAi({ ...ai, invite: e.target.checked })} data-testid="ai-invite" />
+                      Also send a drone dashboard invitation email
+                    </label>
+                  )}
+                </>
+              )}
+
               {/* Access History - only show for existing users */}
               {user && user.accessHistory && user.accessHistory.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -374,7 +398,7 @@ export default function UserModal({ user, onClose, onSaved }) {
               disabled={loading}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
             >
-              {loading ? 'Processing...' : (user ? 'Update User' : 'Send Invitation')}
+              {loading ? 'Processing...' : (user ? 'Update User' : (ai.on && !ai.invite) ? 'Add AI client' : 'Send Invitation')}
             </button>
           </div>
         </div>

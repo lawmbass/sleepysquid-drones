@@ -250,6 +250,16 @@ export async function deleteUser(id) {
   assertNoError(error);
 }
 
+// Lowercased emails (from the given list) that have a user account. Used to show an AI client and
+// its matching account as one row in User Management.
+export async function emailsWithAccounts(emails) {
+  const list = [...new Set((emails || []).map((e) => String(e).toLowerCase()).filter(Boolean))];
+  if (!list.length) return new Set();
+  const { data, error } = await userSelect().select("email").in("email", list);
+  assertNoError(error);
+  return new Set((data || []).map((r) => String(r.email).toLowerCase()));
+}
+
 export async function listUserAdminFields() {
   const rows = await fetchAll(() => userSelect().select("id, email, role"));
   return (rows || []).map((row) => ({

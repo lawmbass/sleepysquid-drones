@@ -60,7 +60,7 @@ export default function AiAutomationContent() {
         {hl && <p className="p-sub">{hl}</p>}
         <p className="p-sub">{TYPE[d.businessType]} · {d.rateIsDefault ? <>Estimates use the <span data-testid="default-rate">Default rate (${DEFAULT_RATE}/hr)</span>. <a href={SETTINGS}>Change it in Settings</a></> : <>Estimates use {rateText}. <a href={SETTINGS}>Change your rate in Settings</a></>}</p>
         {d.lastUpdated && <p className="p-sub sm2" data-testid="last-updated">Last updated {when(d.lastUpdated, client.timezone)}</p>}
-        <div className="p-actions"><a className="btn sm ghost" data-testid="export-pdf" href={`/api/user/ai-portal-pdf?${new URLSearchParams({ client: client.id, from, to })}`}>Export PDF</a>{admin && <Link className="btn sm ghost" href="/dashboard?section=ai-admin" data-testid="manage-clients">Manage AI clients</Link>}</div></div>
+        <div className="p-actions"><a className="btn sm ghost" data-testid="export-pdf" href={`/api/user/ai-portal-pdf?${new URLSearchParams({ client: client.id, from, to })}`}>Export PDF</a>{admin && <Link className="btn sm ghost" href="/dashboard?section=users" data-testid="manage-clients">Manage AI clients</Link>}</div></div>
       <div className="p-range">
         <div className="p-quick">{ranges(today).map(([l, f, t]) => <button type="button" key={l} className={`p-chip${f === from && t === to ? " on" : ""}`} onClick={() => set({ from: f, to: t })}>{l}</button>)}</div>
         <label>From<input type="date" value={from} max={to} onChange={(e) => e.target.value && set({ from: e.target.value })} /></label>

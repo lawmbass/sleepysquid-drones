@@ -4,6 +4,7 @@ import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings,
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
 import OptimizedImage from '../common/OptimizedImage';
+import { AiClientControls, AiTag } from './AiClientControls';
 
 export default function UsersList({ 
   users, 
@@ -13,6 +14,9 @@ export default function UsersList({
   onEditUser,
   onResendInvitation,
   onPageChange,
+  aiByEmail = {},
+  aiOnly = [],
+  onAiChanged = () => {},
   loading,
   error 
 }) {
@@ -25,6 +29,16 @@ export default function UsersList({
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+
+  const aiFor = (user) => (isCurrentUserAdmin && !user.isPendingInvitation ? aiByEmail[(user.email || '').toLowerCase()] || [] : []);
+  const AiOnlyBody = ({ c }) => (
+    <div className="min-w-0">
+      <div className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</div>
+      <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center"><FiMail className="h-3 w-3 mr-1" />{c.emails.join(', ') || 'no login email'}</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No drone dashboard account (AI report only)</div>
+      <AiClientControls c={c} onChanged={onAiChanged} />
+    </div>
+  );
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
@@ -123,6 +137,7 @@ export default function UsersList({
                 )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+              {aiFor(user).map((c) => <AiClientControls key={c.id + (c.deleted_at || '')} c={c} onChanged={onAiChanged} />)}
             </div>
           </div>
           <div className="relative flex-shrink-0">
@@ -332,7 +347,7 @@ export default function UsersList({
     );
   }
 
-  if (!users || users.length === 0) {
+  if ((!users || users.length === 0) && aiOnly.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -370,6 +385,14 @@ export default function UsersList({
           {users.map((user) => (
             <div key={user._id} className="p-4">
               <UserCard user={user} />
+            </div>
+          ))}
+          {aiOnly.map((c) => (
+            <div key={`ai-${c.id}${c.deleted_at || ''}`} className="p-4" data-testid="ai-only-row">
+              <div className="flex items-start space-x-3">
+                <div className="h-12 w-12 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center"><FiUser className="h-6 w-6 text-emerald-700" /></div>
+                <AiOnlyBody c={c} />
+              </div>
             </div>
           ))}
         </div>
@@ -446,6 +469,7 @@ export default function UsersList({
                               {user.phone}
                             </div>
                           )}
+                          {aiFor(user).map((c) => <AiClientControls key={c.id + (c.deleted_at || '')} c={c} onChanged={onAiChanged} />)}
                           {isPendingInvitation && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Invited by {user.invitedBy} • Expires {new Date(user.expiresAt).toLocaleDateString()}
@@ -578,6 +602,20 @@ export default function UsersList({
                   </tr>
                 );
               })}
+              {aiOnly.map((c) => (
+                <tr key={`ai-${c.id}${c.deleted_at || ''}`} className="hover:bg-gray-50 dark:hover:bg-gray-700" data-testid="ai-only-row">
+                  <td className="px-6 py-4">
+                    <div className="flex items-start">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center"><FiUser className="h-5 w-5 text-emerald-700" /></div>
+                      <div className="ml-4"><AiOnlyBody c={c} /></div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap"><AiTag c={c} /></td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.deleted_at ? 'Deleted' : 'AI report access'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.created_at ? formatDate(c.created_at) : '—'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">—</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
