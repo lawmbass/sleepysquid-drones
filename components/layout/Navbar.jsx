@@ -23,25 +23,21 @@ const Navbar = () => {
     };
   }, []);
 
-  // Solid (scrolled or menu open): light surface like the site's cards, dark surface in dark mode.
-  // At the very top it stays transparent over the dark hero, so white text/logo remain.
-  const solid = scrolled || isOpen;
-  const link = solid
-    ? 'text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 transition-colors'
-    : 'text-white hover:text-blue-300 transition-colors';
-  const loginBtn = solid
-    ? 'bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-600'
-    : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600';
+  // The header always uses the site's theme surfaces: white with dark text and blue
+  // accents in light mode, dark gray in dark mode. It no longer goes transparent over
+  // the (always dark) hero, which is what kept it dark navy in light mode.
+  const link = 'text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 transition-colors';
+  const loginBtn = 'bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-600';
 
   return (
-    <nav className={`fixed w-full z-40 transition-all duration-300 ${solid ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm py-2' : 'bg-gradient-to-b from-black/40 to-transparent dark:from-gray-900/50 dark:to-transparent py-4 border-b border-transparent'}`} style={{ top: 'var(--promo-banner-height, 0px)' }}>
+    <nav className={`fixed w-full z-40 transition-all duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 ${scrolled || isOpen ? 'shadow-sm py-2' : 'py-3'}`} style={{ top: 'var(--promo-banner-height, 0px)' }}>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity" aria-label="SleepySquid Drones home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-dark.svg" alt="SleepySquid Drones" className={`h-12 md:h-16 w-auto ${solid ? 'hidden dark:block' : ''}`} width="159" height="64" />
+            <img src="/brand/logo-dark.svg" alt="SleepySquid Drones" className="h-12 md:h-16 w-auto hidden dark:block" width="159" height="64" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-light.svg" alt="" aria-hidden="true" className={`h-12 md:h-16 w-auto ${solid ? 'block dark:hidden' : 'hidden'}`} width="159" height="64" />
+            <img src="/brand/logo-light.svg" alt="" aria-hidden="true" className="h-12 md:h-16 w-auto block dark:hidden" width="159" height="64" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -75,7 +71,7 @@ const Navbar = () => {
             <DarkModeToggle />
             <button 
               onClick={() => setIsOpen(!isOpen)}
-              className={`${solid ? 'text-gray-700 dark:text-white' : 'text-white'} focus:outline-none`}
+              className="text-gray-700 hover:text-blue-600 dark:text-white dark:hover:text-blue-400 focus:outline-none"
               aria-label={isOpen ? 'Close menu' : 'Open menu'}
             >
               {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
