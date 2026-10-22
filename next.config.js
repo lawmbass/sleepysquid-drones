@@ -1,5 +1,20 @@
+// Assets live under /drones-static so sleepysquid.com can proxy this app (dashboard, login, auth)
+// without clashing with the marketing site's own /_next files. The rewrite below maps them back here.
+const ASSET_PREFIX = '/drones-static';
+
 const nextConfig = {
   reactStrictMode: true,
+  assetPrefix: ASSET_PREFIX,
+  // Old drones.sleepysquid.com/login links go to the shared sign-in (query, incl. from + callbackUrl, is kept).
+  // Opt-in via CENTRAL_LOGIN_URL. Requests proxied from sleepysquid.com carry ?via=central and are not redirected.
+  async redirects() {
+    const central = process.env.CENTRAL_LOGIN_URL;
+    if (!central) return [];
+    return [{ source: '/login', has: [{ type: 'host', value: 'drones.sleepysquid.com' }], missing: [{ type: 'query', key: 'via' }], destination: central, permanent: false }];
+  },
+  async rewrites() {
+    return { beforeFiles: [{ source: `${ASSET_PREFIX}/:path*`, destination: '/:path*' }] };
+  },
   images: {
     remotePatterns: [
       // Google OAuth images - multiple subdomains
@@ -128,7 +143,7 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     // Loader optimization
     loader: 'default',
-    path: '/_next/image',
+    path: `${ASSET_PREFIX}/_next/image`,
     // Allow unoptimized images as fallback
     unoptimized: false,
     // Dangerously allow SVG
