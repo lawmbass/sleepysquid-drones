@@ -24,6 +24,14 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="SleepySquid Drones" />
+
+        {/* Apply the saved theme before first paint so the header and page don't flash.
+            Mirrors DarkModeContext: 'dark', 'light' (default), or 'auto' (dark 6 PM-6 AM). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "(function(){try{var t=localStorage.getItem('theme')||'light';var h=new Date().getHours();var d=t==='dark'||(t==='auto'&&(h>=18||h<6));document.documentElement.classList.toggle('dark',d);}catch(e){}})();",
+          }}
+        />
         
         
       </Head>
