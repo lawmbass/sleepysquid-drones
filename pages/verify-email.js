@@ -80,7 +80,7 @@ export default function VerifyEmail() {
             <p className="mt-2 text-center text-sm text-gray-600">
               {isLoading ? 'Please wait while we verify your email address' :
                error ? 'There was a problem verifying your email' :
-               'Your account is now active'}
+               'Your email address is confirmed'}
             </p>
           </div>
 

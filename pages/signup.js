@@ -147,6 +147,9 @@ export default function Signup() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Join SleepySquid Drones for professional aerial services
           </p>
+          <p className="mt-2 text-center text-xs text-gray-500">
+            New accounts are reviewed before access is granted.
+          </p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

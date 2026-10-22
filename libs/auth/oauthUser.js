@@ -14,6 +14,9 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
 
   if (!user) {
     const role = roleForNewUser(normalized);
+    // New Google accounts wait for admin approval, like email signups.
+    // Admins get access now; a pending invitation sets access below.
+    const autoAccess = role === "admin";
     user = await createUser({
       email: normalized,
       name: name || null,
@@ -27,31 +30,25 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
           reason: ADMIN_ROLE_REASON,
         }]
         : [],
-      hasAccess: true,
+      hasAccess: autoAccess,
       emailVerification: { verified: true },
       accessHistory: [
         {
-          hasAccess: true,
+          hasAccess: autoAccess,
           changedBy: "system",
           changedAt: new Date().toISOString(),
-          reason: "Auto-granted access for OAuth user",
+          reason: autoAccess ? "Auto-granted access for admin OAuth user" : "Awaiting admin approval",
           action: "created",
         },
       ],
     });
     created = true;
   } else if (!user.emailVerification?.verified) {
+    // Google proves the email, but access still needs admin approval
+    // (an unapproved email signup must not activate itself through Google).
     user = await patchUser(user.id, {
       image: image || undefined,
       emailVerification: { verified: true },
-      hasAccess: true,
-      pushAccessHistory: {
-        hasAccess: true,
-        changedBy: "system",
-        changedAt: new Date().toISOString(),
-        reason: "Google account verification",
-        action: "activated",
-      },
     });
   } else if (image && image !== user.image) {
     user = await patchUser(user.id, { image });

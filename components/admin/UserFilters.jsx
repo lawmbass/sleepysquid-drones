@@ -99,7 +99,7 @@ export default function UserFilters({ filters, onFilterChange }) {
               >
                 <option value="">All Users</option>
                 <option value="true">Active</option>
-                <option value="false">Inactive</option>
+                <option value="false">Inactive / pending approval</option>
               </select>
             </div>
 

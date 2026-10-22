@@ -28,13 +28,13 @@ export default function AccessDenied() {
     switch (reason) {
       case 'inactive':
         return {
-          title: 'Account Inactive',
-          message: 'Your account has been temporarily suspended. Please contact an administrator to reactivate your account.',
-          details: 'Your account access has been disabled by an administrator. This could be due to policy violations, security concerns, or administrative requirements.',
+          title: 'Account awaiting approval',
+          message: "Thanks for signing up! New accounts are reviewed by our team before access is granted. We'll email or contact you as soon as your account is approved.",
+          details: 'No action is needed from you. If you already had access and are seeing this, please contact us and we can help.',
           icon: FiAlertCircle,
-          iconColor: 'text-orange-500',
-          bgColor: 'bg-orange-50',
-          borderColor: 'border-orange-200'
+          iconColor: 'text-blue-500',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200'
         };
       default:
         return {
