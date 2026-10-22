@@ -190,16 +190,23 @@ export const authOptions = {
       return token;
     },
   },
-  // Shared SleepySquid sign-in: when NEXTAUTH_COOKIE_DOMAIN is set (e.g. ".sleepysquid.com"), the session
-  // cookie is shared across sleepysquid.com and its subdomains. Unset = unchanged host-only cookie.
-  ...(process.env.NEXTAUTH_COOKIE_DOMAIN ? {
-    cookies: {
-      sessionToken: {
-        name: "__Secure-next-auth.session-token",
-        options: { httpOnly: true, sameSite: "lax", path: "/", secure: true, domain: process.env.NEXTAUTH_COOKIE_DOMAIN },
+  // Shared SleepySquid sign-in: when NEXTAUTH_COOKIE_DOMAIN is set (e.g. ".sleepysquid.com"), every auth
+  // cookie (session, state, PKCE, csrf, callback-url) is scoped to that domain so an OAuth flow started on
+  // sleepysquid.com can complete on drones.sleepysquid.com. Unset = unchanged host-only defaults.
+  ...(process.env.NEXTAUTH_COOKIE_DOMAIN ? (() => {
+    const opts = { httpOnly: true, sameSite: "lax", path: "/", secure: true, domain: process.env.NEXTAUTH_COOKIE_DOMAIN };
+    return {
+      cookies: {
+        sessionToken: { name: "__Secure-next-auth.session-token", options: opts },
+        callbackUrl: { name: "__Secure-next-auth.callback-url", options: opts },
+        // __Host- cookies may not carry a Domain attribute, so the shared csrf cookie uses __Secure-.
+        csrfToken: { name: "__Secure-next-auth.csrf-token", options: opts },
+        pkceCodeVerifier: { name: "__Secure-next-auth.pkce.code_verifier", options: { ...opts, maxAge: 900 } },
+        state: { name: "__Secure-next-auth.state", options: { ...opts, maxAge: 900 } },
+        nonce: { name: "__Secure-next-auth.nonce", options: opts },
       },
-    },
-  } : {}),
+    };
+  })() : {}),
   session: {
     strategy: "jwt",
     maxAge: 24 * 60 * 60,
