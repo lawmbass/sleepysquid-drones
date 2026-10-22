@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import HomeLink from '../components/common/HomeLink';
-import { saveOrigin } from '../libs/origin';
+import { saveOrigin, absoluteCallback } from '../libs/origin';
 import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock } from 'react-icons/fi';
 
 export default function Login() {
@@ -149,7 +149,7 @@ export default function Login() {
       
       // Use standard NextAuth signin with redirect
       await signIn('google', {
-        callbackUrl,
+        callbackUrl: absoluteCallback(callbackUrl),
       });
     } catch (error) {
       console.error('Sign in error:', error);

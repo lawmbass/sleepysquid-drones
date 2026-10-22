@@ -4,6 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import HomeLink from '../components/common/HomeLink';
+import { absoluteCallback } from '../libs/origin';
 import { FiUser, FiCheck, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
 
 export default function InvitePage() {
@@ -58,7 +59,7 @@ export default function InvitePage() {
     try {
       // Sign in with Google and pass the invitation token
       await signIn('google', {
-        callbackUrl: `/dashboard?invite=${invitationData.token}`,
+        callbackUrl: absoluteCallback(`/dashboard?invite=${invitationData.token}`),
       });
     } catch (error) {
       console.error('Invitation sign-in error:', error);

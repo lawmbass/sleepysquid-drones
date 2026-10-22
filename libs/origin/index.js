@@ -37,3 +37,9 @@ export function originHome(from) {
   }
   return k ? ORIGIN_HOMES[k] : '/';
 }
+// Make a relative callbackUrl absolute on the page's own host, so an OAuth flow that completes on
+// drones.sleepysquid.com returns the user to the host they started on (e.g. sleepysquid.com).
+export function absoluteCallback(url) {
+  if (typeof window === 'undefined' || !url || !String(url).startsWith('/') || String(url).startsWith('//')) return url;
+  return `${window.location.origin}${url}`;
+}

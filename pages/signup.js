@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import HomeLink from '../components/common/HomeLink';
+import { absoluteCallback } from '../libs/origin';
 import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiCheck } from 'react-icons/fi';
 
 export default function Signup() {
@@ -93,7 +94,7 @@ export default function Signup() {
     
     try {
       await signIn('google', {
-        callbackUrl: '/dashboard',
+        callbackUrl: absoluteCallback('/dashboard'),
       });
     } catch (error) {
       console.error('Google sign in error:', error);
