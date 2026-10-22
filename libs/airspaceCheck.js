@@ -57,10 +57,14 @@ export async function checkAddress(address, picked = null) {
     sources: [
       {
         id: "geocode",
-        name: "Google Geocoding API",
-        url: "https://developers.google.com/maps/documentation/geocoding",
+        name: picked ? "Google Places" : "Google Geocoding API",
+        url: picked
+          ? "https://developers.google.com/maps/documentation/places/web-service"
+          : "https://developers.google.com/maps/documentation/geocoding",
         status: "ok",
-        limit: "The point is the geocoder's match for the address, not a surveyed takeoff spot.",
+        limit: picked
+          ? "The point is the picked place's location, not a surveyed takeoff spot."
+          : "The point is the geocoder's match for the address, not a surveyed takeoff spot.",
       },
       ...point.sources,
     ],
