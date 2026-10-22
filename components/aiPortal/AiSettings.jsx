@@ -32,8 +32,8 @@ export default function AiSettings() {
   }, []);
   useEffect(() => { load(q); }, [q, load]);
   if (s.loading) return <div className="ai-portal"><p className="p-sub">Loading settings…</p></div>;
-  if (s.error) return <div className="ai-portal"><section className="p-panel" data-testid="ai-error"><h2>AI settings</h2><p>{s.error}</p></section></div>;
-  if (!s.linked) return <div className="ai-portal"><section className="p-panel" data-testid="ai-unlinked"><h2>AI settings</h2><p>No SleepySquid AI account is linked to this email yet. Contact <a href="mailto:support@sleepysquid.com">support@sleepysquid.com</a>.</p></section></div>;
+  if (s.error) return <div className="ai-portal"><section className="p-panel" data-testid="ai-error"><h2>AI automation</h2><p>{s.error}</p></section></div>;
+  if (!s.linked) return <div className="ai-portal"><section className="p-panel" data-testid="ai-unlinked"><h2>AI automation</h2><p>No SleepySquid AI account is linked to this email yet. Contact <a href="mailto:support@sleepysquid.com">support@sleepysquid.com</a>.</p></section></div>;
   const { client, mine, readOnly, clients } = s;
   const back = `/dashboard?section=ai${clients.length > 1 ? `&client=${encodeURIComponent(client.id)}` : ""}`;
   async function save(useDefault) {
@@ -43,10 +43,10 @@ export default function AiSettings() {
     setBusy(false);
   }
   return (<div className="ai-portal" data-testid="ai-settings">
-    {readOnly && <p className="p-preview-note" role="note">Admin view: read only. Change a client&apos;s rate under Manage AI clients.</p>}
+    {readOnly && <p className="p-preview-note" role="note">Admin view: read only. Change a client&apos;s rate under Users.</p>}
     {clients.length > 1 && <div className="p-switch"><label htmlFor="ai-scl">Account</label><select id="ai-scl" value={client.id} onChange={(e) => setQ(e.target.value)}>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
     {client.is_example && <p className="p-example" role="note">EXAMPLE DATA: this is a demo client with sample numbers, not a real business.</p>}
-    <div className="p-head"><div><h1>AI settings</h1><p className="p-sub">{client.name}</p></div></div>
+    <div className="p-head"><div><h1>AI automation</h1><p className="p-sub">{client.name}</p></div></div>
     <section className="p-panel" id="rate"><h2>Your hourly rate</h2>
       <p className="p-sub">We start with area wages for each kind of task <Tag t="SOURCED: BLS" />. If you know what this work costs you per hour, use your own number instead <Tag t="CLIENT" />.</p>
       <p>Now using: <b data-testid="rate-now">{mine != null ? `$${Number(mine).toFixed(2)}/hour (your number)` : Number(client.hourly_rate) === DEFAULT_RATE ? `Default rate ($${DEFAULT_RATE}/hr), change it below` : "area wages (BLS, May 2025)"}</b></p>

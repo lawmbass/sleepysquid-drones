@@ -10,7 +10,7 @@ const Charts = dynamic(() => import("./Charts").then((m) => m.Charts), { ssr: fa
 const DAY = 86400000, iso = (d) => d.toISOString().slice(0, 10);
 const TYPE = { landscaper: "Landscaping", real_estate_agent: "Real estate agent", property_manager: "Property management", small_business: "Small business" };
 const when = (s, tz) => new Date(s).toLocaleString("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
-const SETTINGS = "/dashboard?section=ai-settings";
+const SETTINGS = "/dashboard?section=settings#ai-automation";
 function ranges(today) {
   const t = new Date(today + "T00:00:00Z"), y = t.getUTCFullYear(), m = t.getUTCMonth();
   return [["This month", iso(new Date(Date.UTC(y, m, 1))), today], ["Last month", iso(new Date(Date.UTC(y, m - 1, 1))), iso(new Date(Date.UTC(y, m, 0)))], ["Last 90 days", iso(new Date(t - 89 * DAY)), today]];
@@ -52,7 +52,7 @@ export default function AiAutomationContent() {
     {admin && <p className="p-preview-note" role="note">Admin view: you can pick any client. Clients only see their own account, without the admin-only panels.</p>}
     {multi && <div className="p-switch"><label htmlFor="ai-cl">Account</label><select id="ai-cl" value={client.id} onChange={(e) => set({ client: e.target.value })}>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
     {client.is_example && <p className="p-example" role="note">EXAMPLE DATA: this is a demo client with sample numbers, not a real business.</p>}
-    {keyInfo && Date.parse(keyInfo.expires_at) - Date.now() <= 7 * DAY && <p className="p-info" role="alert" data-testid="key-expiry">Your automation API key expires on {keyInfo.expires_at.slice(0, 10)}. <a href={SETTINGS + "#api-key"}>Generate a new one in Settings</a> to avoid interruptions.</p>}
+    {keyInfo && Date.parse(keyInfo.expires_at) - Date.now() <= 7 * DAY && <p className="p-info" role="alert" data-testid="key-expiry">Your automation API key expires on {keyInfo.expires_at.slice(0, 10)}. <a href={SETTINGS}>Generate a new one in Settings</a> to avoid interruptions.</p>}
     {client.texting_status === "pending" && <p className="p-info">Text messages start once carrier approval comes through, usually 1–3 weeks. Email is already running.</p>}
     <div className="p-head">
       <div><h1>{client.name}</h1>

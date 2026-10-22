@@ -56,9 +56,8 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
     // Get navigation based on user role
     if (userRole) {
       const roleNav = [...userRoles.getNavigationForRole(userRole, user?.email)];
-      if (user?.aiClient || userRole === 'admin') {
+      if (user?.aiClient) {
         roleNav.splice(1, 0, { name: 'AI automation', href: '/dashboard?section=ai', icon: 'FiBarChart' });
-        if (userRole !== 'admin') roleNav.splice(2, 0, { name: 'AI settings', href: '/dashboard?section=ai-settings', icon: 'FiSettings' });
       }
       const toNavItem = (item) => {
         if (item.children) {

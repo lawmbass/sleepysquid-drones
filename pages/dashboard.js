@@ -43,11 +43,20 @@ export default function Dashboard() {
     if (!router.isReady || status !== 'authenticated') return;
     // Old "Manage AI clients" links: AI clients are managed in User Management now.
     if (requestedSection === 'ai-admin') { router.replace(isDashboardAdmin ? '/dashboard?section=users' : '/dashboard'); return; }
+    // Old "AI settings" links: AI settings are a section of Settings now.
+    if (requestedSection === 'ai-settings') { router.replace('/dashboard?section=settings#ai-automation'); return; }
     if (isDashboardAdmin) return;
     if (requestedSection && ADMIN_SECTIONS.includes(requestedSection)) {
       router.replace('/dashboard');
     }
   }, [router, status, isDashboardAdmin, requestedSection]);
+
+  // Scroll to the AI automation section of Settings when linked to it (it renders after its data loads).
+  useEffect(() => {
+    if (requestedSection !== 'settings' || typeof window === 'undefined' || window.location.hash !== '#ai-automation') return;
+    let n = 0; const t = setInterval(() => { const el = document.querySelector('#ai-automation [data-testid=ai-settings]'); if (el || ++n > 40) { clearInterval(t); el?.closest('#ai-automation').scrollIntoView({ block: 'start' }); } }, 250);
+    return () => clearInterval(t);
+  }, [requestedSection]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' });
@@ -101,8 +110,11 @@ export default function Dashboard() {
   const showAi = Boolean(session.user.aiClient) || isDashboardAdmin;
   const renderDashboardContent = () => {
     if (requestedSection === 'ai' && showAi) return <AiAutomationContent />;
-    if (requestedSection === 'ai-settings' && showAi) return <AiSettings />;
     const roleContent = renderRoleContent();
+    // AI automation settings live in Settings, for users linked to an AI client (not admins' own Settings).
+    if (requestedSection === 'settings' && session.user.aiClient && !isDashboardAdmin) {
+      return (<>{String(session.user.id || '').startsWith('ai:') ? null : roleContent}<div id="ai-automation" className="mt-8 scroll-mt-4"><AiSettings /></div></>);
+    }
     if (session.user.aiClient && !requestedSection) {
       return (<><AiSummaryCard onOpen={() => router.push('/dashboard?section=ai', undefined, { shallow: true })} />{String(session.user.id || '').startsWith('ai:') ? null : roleContent}</>);
     }
@@ -124,7 +136,6 @@ export default function Dashboard() {
   // Get page title based on role
   const getPageTitle = () => {
     if (requestedSection === 'ai' && showAi) return 'AI automation - SleepySquid';
-    if (requestedSection === 'ai-settings' && showAi) return 'AI settings - SleepySquid';
     switch (userRole) {
       case 'admin':
         return 'Admin Dashboard - SleepySquid Drones';
