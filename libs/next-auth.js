@@ -190,6 +190,16 @@ export const authOptions = {
       return token;
     },
   },
+  // Shared SleepySquid sign-in: when NEXTAUTH_COOKIE_DOMAIN is set (e.g. ".sleepysquid.com"), the session
+  // cookie is shared across sleepysquid.com and its subdomains. Unset = unchanged host-only cookie.
+  ...(process.env.NEXTAUTH_COOKIE_DOMAIN ? {
+    cookies: {
+      sessionToken: {
+        name: "__Secure-next-auth.session-token",
+        options: { httpOnly: true, sameSite: "lax", path: "/", secure: true, domain: process.env.NEXTAUTH_COOKIE_DOMAIN },
+      },
+    },
+  } : {}),
   session: {
     strategy: "jwt",
     maxAge: 24 * 60 * 60,
