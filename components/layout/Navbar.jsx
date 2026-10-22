@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import DarkModeToggle from './DarkModeToggle';
 
-const LOGIN_HREF = process.env.NEXT_PUBLIC_LOGIN_URL || '/login?from=drones';
+const LOGIN_HREF = 'https://sleepysquid.com/login?from=drones';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,9 +62,9 @@ const Navbar = () => {
             <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors">
               Book Now
             </Link>
-            <Link href={LOGIN_HREF} className={`${loginBtn} px-5 py-2 rounded-full transition-colors`}>
+            <a href={LOGIN_HREF} className={`${loginBtn} px-5 py-2 rounded-full transition-colors`}>
               Login
-            </Link>
+            </a>
             <DarkModeToggle />
           </div>
 
@@ -111,9 +111,9 @@ const Navbar = () => {
           <Link href="/#booking" className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full transition-colors text-center" onClick={() => setIsOpen(false)}>
             Book Now
           </Link>
-          <Link href={LOGIN_HREF} className={`${loginBtn} px-5 py-2 rounded-full transition-colors text-center`} onClick={() => setIsOpen(false)}>
+          <a href={LOGIN_HREF} className={`${loginBtn} px-5 py-2 rounded-full transition-colors text-center`} onClick={() => setIsOpen(false)}>
             Login
-          </Link>
+          </a>
         </div>
       </motion.div>
     </nav>

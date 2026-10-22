@@ -5,6 +5,13 @@ const ASSET_PREFIX = '/drones-static';
 const nextConfig = {
   reactStrictMode: true,
   assetPrefix: ASSET_PREFIX,
+  // Old drones.sleepysquid.com/login links go to the shared sign-in (query, incl. from + callbackUrl, is kept).
+  // Opt-in via CENTRAL_LOGIN_URL. Requests proxied from sleepysquid.com carry ?via=central and are not redirected.
+  async redirects() {
+    const central = process.env.CENTRAL_LOGIN_URL;
+    if (!central) return [];
+    return [{ source: '/login', has: [{ type: 'host', value: 'drones.sleepysquid.com' }], missing: [{ type: 'query', key: 'via' }], destination: central, permanent: false }];
+  },
   async rewrites() {
     return { beforeFiles: [{ source: `${ASSET_PREFIX}/:path*`, destination: '/:path*' }] };
   },
