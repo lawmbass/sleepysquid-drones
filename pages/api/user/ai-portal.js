@@ -4,6 +4,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
+import { keyInfo as keyInfoFor } from "@/libs/aiPortal/access";
 import { db, activeClientIds, portalConfigured } from "@/libs/aiPortal/db";
 import { buildReport } from "@/libs/aiPortal/report";
 
@@ -34,7 +35,8 @@ export default async function handler(req, res) {
     if (req.query.summary) {
       return res.status(200).json({ linked: true, admin, summary: { clientName: d.client.name, currency: d.client.currency, from, to, dollars: d.totals.dollars, hours: d.totals.hours, reporting: d.reportingCount, collecting: !d.lastUpdated || !(d.totals.dollars > 0) } });
     }
-    return res.status(200).json({ linked: true, admin, clients, clientId, d: JSON.parse(JSON.stringify(d)), today: iso(new Date()) });
+    const keyInfo = admin ? null : await keyInfoFor(clientId).catch(() => null);
+    return res.status(200).json({ linked: true, admin, clients, clientId, keyInfo, d: JSON.parse(JSON.stringify(d)), today: iso(new Date()) });
   } catch (e) {
     console.error("ai-portal report failed:", e?.message);
     return res.status(500).json({ error: "We couldn't load your automation report right now. Please try again later." });
