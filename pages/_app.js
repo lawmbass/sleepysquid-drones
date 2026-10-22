@@ -1,4 +1,5 @@
 import '@/styles/globals.css';
+import '@/styles/ai-portal.css';
 import { SessionProvider } from 'next-auth/react';
 import { DarkModeProvider } from '@/components/layout/DarkModeContext';
 

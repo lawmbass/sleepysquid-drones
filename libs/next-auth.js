@@ -6,6 +6,8 @@ import { findUserByEmail } from "@/libs/db/users";
 import { findRecentAcceptedInvitation } from "@/libs/db/invitations";
 import { upsertGoogleUser } from "@/libs/auth/oauthUser";
 import { ensureAdminRole } from "@/libs/auth/adminRole";
+import { safeActiveClientIds } from "@/libs/aiPortal/db";
+import { consumeLoginToken } from "@/libs/aiPortal/emailLink";
 
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -57,6 +59,24 @@ export const authOptions = {
           if (error.message === "EmailNotVerified") {
             throw error;
           }
+          return null;
+        }
+      },
+    }),
+    // One-time emailed sign-in link for SleepySquid AI clients (tokens in portal.login_tokens, 15 min, single use).
+    CredentialsProvider({
+      id: "email-link",
+      name: "email-link",
+      credentials: { token: { label: "Token", type: "text" } },
+      async authorize(credentials) {
+        try {
+          const email = await consumeLoginToken(credentials?.token);
+          if (!email) return null;
+          const user = await findUserByEmail(email);
+          if (user) return { id: user.id, email: user.email, name: user.name, image: user.image };
+          return { id: `ai:${email}`, email };
+        } catch (error) {
+          console.error("Email link authorization error:", error?.message);
           return null;
         }
       },
@@ -153,6 +173,10 @@ export const authOptions = {
             session.user.role = session.user.isAdmin ? "admin" : "client";
             session.user.hasAccess = false;
           }
+
+          const aiIds = await safeActiveClientIds(session.user.email);
+          session.user.aiClient = aiIds.length > 0;
+          if (session.user.aiClient) session.user.hasAccess = true;
 
           if (recentInvitation) {
             userRoles.clearCache();
