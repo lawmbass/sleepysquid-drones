@@ -25,7 +25,7 @@ import {
 
 export default function AdminContent({ user, onUpdate }) {
   // Check if user is SleepySquid admin
-  const isSleepySquidAdmin = user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+  const isSleepySquidAdmin = Boolean(user?.isAdmin) || user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [bookings, setBookings] = useState([]);

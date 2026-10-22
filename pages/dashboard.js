@@ -9,7 +9,6 @@ import PilotContent from '@/components/dashboard/PilotContent';
 import DefaultContent from '@/components/dashboard/DefaultContent';
 import AiAutomationContent, { AiSummaryCard } from '@/components/aiPortal/AiAutomationContent';
 import AiSettings from '@/components/aiPortal/AiSettings';
-import AiAdmin from '@/components/aiPortal/AiAdmin';
 
 const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users'];
 
@@ -42,6 +41,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!router.isReady || status !== 'authenticated') return;
+    // Old "Manage AI clients" links: AI clients are managed in User Management now.
+    if (requestedSection === 'ai-admin') { router.replace(isDashboardAdmin ? '/dashboard?section=users' : '/dashboard'); return; }
     if (isDashboardAdmin) return;
     if (requestedSection && ADMIN_SECTIONS.includes(requestedSection)) {
       router.replace('/dashboard');
@@ -101,7 +102,6 @@ export default function Dashboard() {
   const renderDashboardContent = () => {
     if (requestedSection === 'ai' && showAi) return <AiAutomationContent />;
     if (requestedSection === 'ai-settings' && showAi) return <AiSettings />;
-    if (requestedSection === 'ai-admin' && isDashboardAdmin) return <AiAdmin />;
     const roleContent = renderRoleContent();
     if (session.user.aiClient && !requestedSection) {
       return (<><AiSummaryCard onOpen={() => router.push('/dashboard?section=ai', undefined, { shallow: true })} />{String(session.user.id || '').startsWith('ai:') ? null : roleContent}</>);
@@ -125,7 +125,6 @@ export default function Dashboard() {
   const getPageTitle = () => {
     if (requestedSection === 'ai' && showAi) return 'AI automation - SleepySquid';
     if (requestedSection === 'ai-settings' && showAi) return 'AI settings - SleepySquid';
-    if (requestedSection === 'ai-admin' && isDashboardAdmin) return 'Manage AI clients - SleepySquid';
     switch (userRole) {
       case 'admin':
         return 'Admin Dashboard - SleepySquid Drones';

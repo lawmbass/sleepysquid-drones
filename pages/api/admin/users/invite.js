@@ -181,7 +181,7 @@ function generateInvitationToken() {
 }
 
 async function sendInvitationEmail(email, name, invitationLink, role, inviterName) {
-  const subject = `You're invited to join SleepySquid Drones`;
+  const subject = `You're invited to the SleepySquid client portal`;
   
   const roleDescriptions = {
     'admin': 'Administrator with full system access',
@@ -197,7 +197,7 @@ async function sendInvitationEmail(email, name, invitationLink, role, inviterNam
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to SleepySquid Drones</title>
+      <title>Welcome to the SleepySquid client portal</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -249,21 +249,21 @@ async function sendInvitationEmail(email, name, invitationLink, role, inviterNam
     </head>
     <body>
       <div class="header">
-        <h1>🚁 SleepySquid Drones</h1>
+        <h1>SleepySquid client portal</h1>
         <p>You're invited to join our platform!</p>
       </div>
       
       <div class="content">
         <p>Hi ${name},</p>
         
-        <p>${inviterName} has invited you to join <strong>SleepySquid Drones</strong> as a <span class="role-badge">${role}</span>.</p>
+        <p>${inviterName} has invited you to the <strong>SleepySquid client portal</strong> as a <span class="role-badge">${role}</span>.</p>
         
         <p><strong>Your Role:</strong> ${roleDescription}</p>
         
         <p>To get started, click the button below to sign in with your Google account:</p>
         
                  <div style="text-align: center;">
-           <a href="${invitationLink}" style="display: inline-block; background: #2563eb; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Join SleepySquid Drones</a>
+           <a href="${invitationLink}" style="display: inline-block; background: #2563eb; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Open the client portal</a>
          </div>
         
         <p><small><strong>Important:</strong> This invitation expires in 7 days. If you don't have a Google account, you can create one for free at <a href="https://accounts.google.com">accounts.google.com</a>.</small></p>
@@ -281,11 +281,11 @@ async function sendInvitationEmail(email, name, invitationLink, role, inviterNam
         <p>Welcome to the team!</p>
         
         <p>Best regards,<br>
-        The SleepySquid Drones Team</p>
+        The SleepySquid Team</p>
       </div>
       
       <div class="footer">
-        <p>SleepySquid Drones - Professional Drone Services</p>
+        <p>SleepySquid</p>
         <p>If you didn't expect this invitation, you can safely ignore this email.</p>
       </div>
     </body>
@@ -295,7 +295,7 @@ async function sendInvitationEmail(email, name, invitationLink, role, inviterNam
   const text = `
 Hi ${name},
 
-${inviterName} has invited you to join SleepySquid Drones as a ${role}.
+${inviterName} has invited you to the SleepySquid client portal as a ${role}.
 
 Your Role: ${roleDescription}
 
@@ -311,10 +311,10 @@ If you have any questions, contact us at ${config.mailgun.supportEmail}.
 Welcome to the team!
 
 Best regards,
-The SleepySquid Drones Team
+The SleepySquid Team
 
 ---
-SleepySquid Drones - Professional Drone Services
+SleepySquid
 If you didn't expect this invitation, you can safely ignore this email.
   `;
   
