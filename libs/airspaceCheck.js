@@ -5,9 +5,12 @@ import { DISCLAIMER, alwaysOnChecklist, checkPoint } from "./airspaceData.mjs";
  * Geocode with GOOGLE_MAPS_API_KEY, then classify the point.
  * A geocode failure does not fall through to another locator.
  */
-export async function checkAddress(address) {
+export async function checkAddress(address, picked = null) {
   const query = String(address || "").trim();
-  const geo = await geocodeAddress(query);
+  // A suggestion picked from the address list already carries its point.
+  const geo = picked
+    ? { ok: true, lat: picked.lat, lng: picked.lng, formattedAddress: picked.formattedAddress || query }
+    : await geocodeAddress(query);
   if (!geo.ok) {
     return {
       query,
@@ -54,10 +57,14 @@ export async function checkAddress(address) {
     sources: [
       {
         id: "geocode",
-        name: "Google Geocoding API",
-        url: "https://developers.google.com/maps/documentation/geocoding",
+        name: picked ? "Google Places" : "Google Geocoding API",
+        url: picked
+          ? "https://developers.google.com/maps/documentation/places/web-service"
+          : "https://developers.google.com/maps/documentation/geocoding",
         status: "ok",
-        limit: "The point is the geocoder's match for the address, not a surveyed takeoff spot.",
+        limit: picked
+          ? "The point is the picked place's location, not a surveyed takeoff spot."
+          : "The point is the geocoder's match for the address, not a surveyed takeoff spot.",
       },
       ...point.sources,
     ],
