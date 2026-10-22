@@ -24,7 +24,7 @@ export default function UsersList({
   const [expandedCard, setExpandedCard] = useState(null);
   
   // Check if current user is SleepySquid admin
-  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+  const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
