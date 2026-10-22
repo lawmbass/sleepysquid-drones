@@ -13,6 +13,38 @@ export default function Login() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkStatus, setLinkStatus] = useState({ state: 'idle', message: '' });
+  const [linkSigningIn, setLinkSigningIn] = useState(false);
+
+  // Emailed one-time sign-in link (SleepySquid AI clients): /login?link=TOKEN
+  useEffect(() => {
+    if (!router.isReady || !router.query.link || linkSigningIn) return;
+    const token = String(router.query.link);
+    setLinkSigningIn(true);
+    (async () => {
+      const result = await signIn('email-link', { token, redirect: false });
+      if (result?.ok && !result?.error) {
+        window.location.replace('/dashboard?section=ai');
+      } else {
+        setLinkSigningIn(false);
+        setError('That sign-in link is invalid or has expired. Request a new one below.');
+        router.replace('/login', undefined, { shallow: true });
+      }
+    })();
+  }, [router.isReady, router.query.link]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEmailLink = async (e) => {
+    e.preventDefault();
+    setLinkStatus({ state: 'sending', message: '' });
+    try {
+      const r = await fetch('/api/auth/email-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: linkEmail }) });
+      const j = await r.json().catch(() => ({}));
+      setLinkStatus(r.ok ? { state: 'sent', message: j.message || 'If that email belongs to a SleepySquid AI client account, a sign-in link is on its way.' } : { state: 'error', message: j.error || 'Something went wrong. Please try again.' });
+    } catch {
+      setLinkStatus({ state: 'error', message: 'Something went wrong. Please try again.' });
+    }
+  };
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -61,7 +93,7 @@ export default function Login() {
     }
     
     // If already signed in, redirect based on user role
-    if (session?.user) {
+    if (session?.user && !router.query.link) {
       const redirectTo = router.query.callbackUrl || getDefaultRedirectForUser(session.user);
       router.push(redirectTo);
     }
@@ -310,6 +342,25 @@ export default function Login() {
               </button>
             </div>
             
+            {/* Emailed sign-in link for SleepySquid AI clients */}
+            <form className="mt-6 border-t border-gray-200 pt-6" onSubmit={handleEmailLink} data-testid="email-link-form">
+              <label htmlFor="link-email" className="block text-sm font-medium text-gray-700">
+                SleepySquid AI client? Email me a sign-in link
+              </label>
+              <div className="mt-1 flex gap-2">
+                <input id="link-email" type="email" required autoComplete="email" value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="you@business.com" />
+                <button type="submit" disabled={linkStatus.state === 'sending'}
+                  className="shrink-0 py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                  {linkStatus.state === 'sending' ? 'Sending…' : 'Email link'}
+                </button>
+              </div>
+              {linkStatus.message && (
+                <p role="status" className={`mt-2 text-sm ${linkStatus.state === 'error' ? 'text-red-600' : 'text-green-700'}`}>{linkStatus.message}</p>
+              )}
+            </form>
+
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don&apos;t have an account?{' '}

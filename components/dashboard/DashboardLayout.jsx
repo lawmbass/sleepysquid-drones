@@ -55,7 +55,10 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
   useEffect(() => {
     // Get navigation based on user role
     if (userRole) {
-      const roleNav = userRoles.getNavigationForRole(userRole, user?.email);
+      const roleNav = [...userRoles.getNavigationForRole(userRole, user?.email)];
+      if (user?.aiClient || userRole === 'admin') {
+        roleNav.splice(1, 0, { name: 'AI automation', href: '/dashboard?section=ai', icon: 'FiBarChart' });
+      }
       const toNavItem = (item) => {
         if (item.children) {
           const children = item.children.map(toNavItem);
@@ -87,7 +90,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
       const navigationWithIcons = roleNav.map(toNavItem);
       setNavigation(navigationWithIcons);
     }
-  }, [userRole, user?.email, router.asPath, router.query.section]);
+  }, [userRole, user?.email, user?.aiClient, router.asPath, router.query.section]);
 
   // Get dashboard title based on role
   const getDashboardTitle = () => {

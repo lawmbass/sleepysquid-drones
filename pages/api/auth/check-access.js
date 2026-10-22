@@ -1,4 +1,5 @@
 import { findUserByEmail } from "@/libs/db/users";
+import { safeActiveClientIds } from "@/libs/aiPortal/db";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,6 +14,12 @@ export default async function handler(req, res) {
     }
 
     const user = await findUserByEmail(email.toLowerCase());
+    // Active SleepySquid AI portal clients get dashboard access (their AI automation report) by email.
+    const aiClient = !user?.hasAccess && (await safeActiveClientIds(email)).length > 0;
+
+    if (!user && aiClient) {
+      return res.status(200).json({ hasAccess: true, role: "client", email: email.toLowerCase(), aiClient: true });
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -22,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      hasAccess: user.hasAccess || false,
+      hasAccess: user.hasAccess === true || aiClient,
       role: user.role,
       email: user.email,
     });

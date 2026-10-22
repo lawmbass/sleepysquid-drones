@@ -7,6 +7,7 @@ import AdminContent from '@/components/dashboard/AdminContent';
 import ClientContent from '@/components/dashboard/ClientContent';
 import PilotContent from '@/components/dashboard/PilotContent';
 import DefaultContent from '@/components/dashboard/DefaultContent';
+import AiAutomationContent, { AiSummaryCard } from '@/components/aiPortal/AiAutomationContent';
 
 const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users'];
 
@@ -94,7 +95,16 @@ export default function Dashboard() {
   };
 
   // Render appropriate dashboard content based on role
+  const showAi = Boolean(session.user.aiClient) || isDashboardAdmin;
   const renderDashboardContent = () => {
+    if (requestedSection === 'ai' && showAi) return <AiAutomationContent />;
+    const roleContent = renderRoleContent();
+    if (session.user.aiClient && !requestedSection) {
+      return (<><AiSummaryCard onOpen={() => router.push('/dashboard?section=ai', undefined, { shallow: true })} />{String(session.user.id || '').startsWith('ai:') ? null : roleContent}</>);
+    }
+    return roleContent;
+  };
+  const renderRoleContent = () => {
     switch (userRole) {
       case 'admin':
         return <AdminContent user={session.user} onUpdate={handleUserUpdate} />;
@@ -109,6 +119,7 @@ export default function Dashboard() {
 
   // Get page title based on role
   const getPageTitle = () => {
+    if (requestedSection === 'ai' && showAi) return 'AI automation - SleepySquid';
     switch (userRole) {
       case 'admin':
         return 'Admin Dashboard - SleepySquid Drones';
