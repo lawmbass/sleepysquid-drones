@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin, FiSend, FiChevronDown } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
 import OptimizedImage from '../common/OptimizedImage';
+import OriginLogo from '../common/OriginLogo';
 
 // Icon mapping for dynamic navigation
 const iconMap = {
@@ -125,8 +126,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           {/* Header with close button */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 min-w-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
+              <OriginLogo />
               <h1 className="text-lg font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
             </div>
             <button
@@ -201,8 +201,7 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
               <div className="flex items-center gap-2 min-w-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/icon.svg" alt="SleepySquid Drones" className="h-12 w-auto flex-shrink-0" width="25" height="48" />
+              <OriginLogo />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">{getDashboardTitle()}</h1>
             </div>
             </div>
