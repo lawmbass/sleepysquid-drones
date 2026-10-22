@@ -2,8 +2,16 @@
 // without clashing with the marketing site's own /_next files. The rewrite below maps them back here.
 const ASSET_PREFIX = '/drones-static';
 
+// pdfkit loads its standard fonts (Helvetica.cjs etc.) with dynamic requires that Vercel's file tracing misses,
+// so include them for the AI report PDF route.
+const pdfAssets = ['./node_modules/pdfkit/js/**/*', './node_modules/@react-pdf/**/*.{cjs,js,afm,ttf,trie,json}'];
+
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverComponentsExternalPackages: ['@react-pdf/renderer'],
+    outputFileTracingIncludes: { '/api/user/ai-portal-pdf': pdfAssets },
+  },
   assetPrefix: ASSET_PREFIX,
   // Old drones.sleepysquid.com/login links go to the shared sign-in (query, incl. from + callbackUrl, is kept).
   // Opt-in via CENTRAL_LOGIN_URL. Requests proxied from sleepysquid.com carry ?via=central and are not redirected.
