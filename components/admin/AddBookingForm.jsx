@@ -146,7 +146,7 @@ export default function AddBookingForm({ onCreated }) {
               onChange={(event) => update("serviceLine", event.target.value)}
               className={fieldClass}
             >
-              <option value="">Choose Drones, AI automation, Website dev or Dispatch</option>
+              <option value="">Choose Drones, AI automation or Website dev</option>
               {SERVICE_LINES.map((line) => (
                 <option key={line.id} value={line.id}>{line.label}</option>
               ))}

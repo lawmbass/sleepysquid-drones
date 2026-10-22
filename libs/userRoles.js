@@ -283,7 +283,6 @@ export const userRoles = {
               { name: 'Drone analytics', href: '/dashboard?section=analytics', icon: 'FiBarChart' },
             ],
           },
-          { name: 'Dispatch', href: 'https://dispatch.sleepysquid.com', icon: 'FiExternalLink', external: true },
           { name: 'Settings', href: '/dashboard?section=settings', icon: 'FiSettings' }
         ];
         

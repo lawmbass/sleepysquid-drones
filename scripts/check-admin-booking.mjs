@@ -221,7 +221,8 @@ assert.equal(validateManualBooking(payload({ serviceLine: "web", package: "listi
 const { normalizeServiceLine } = await import("../libs/serviceLines.js");
 assert.equal(normalizeServiceLine(undefined), "drones");
 assert.equal(normalizeServiceLine("web"), "web");
-assert.equal(normalizeServiceLine("dispatch"), "dispatch");
+assert.equal(normalizeServiceLine("web"), "web");
+assert.equal(normalizeServiceLine("dispatch"), "drones");
 const serviceLineMigration = fs.readFileSync(new URL("../supabase/migrations/20261022170000_booking_service_line.sql", import.meta.url), "utf8");
 assert.match(serviceLineMigration, /add column if not exists service_line/i);
 assert.match(serviceLineMigration, /set service_line = 'drones'/i);

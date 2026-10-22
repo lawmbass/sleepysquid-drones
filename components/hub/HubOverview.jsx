@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import ServiceChip from './ServiceChip';
-import { DISPATCH_URL } from '@/libs/serviceLines';
 
 function money(cents, currency = 'usd') {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase(), maximumFractionDigits: 0 }).format((cents || 0) / 100);
@@ -77,17 +76,12 @@ export default function HubOverview({ data: injected }) {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">By service</h2>
         </div>
-        <div className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 md:grid-cols-4 md:divide-y-0 md:divide-x">
+        <div className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700 md:grid-cols-3 md:divide-y-0 md:divide-x">
           {data.services.map((s) => {
             const hasAny = s.activeClients > 0 || s.revenueCents > 0 || s.upcomingJobs > 0;
             return (
               <div key={s.id} className="p-5 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <ServiceChip id={s.id} />
-                  {s.id === 'dispatch' && (
-                    <a href={DISPATCH_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">Open Dispatch ↗</a>
-                  )}
-                </div>
+                <ServiceChip id={s.id} />
                 {!hasAny ? (
                   <Empty>No {s.label} data yet.</Empty>
                 ) : (

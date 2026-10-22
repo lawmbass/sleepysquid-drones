@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 // Link removed as we're using router.push instead
 import { useRouter } from 'next/router';
-import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin, FiSend, FiChevronDown, FiExternalLink } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin, FiSend, FiChevronDown } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
 import OptimizedImage from '../common/OptimizedImage';
 
@@ -23,8 +23,7 @@ const iconMap = {
   FiPercent,
   FiSliders,
   FiMapPin,
-  FiSend,
-  FiExternalLink
+  FiSend
 };
 
 function NavGroup({ item, renderItem, mobile }) {
@@ -106,11 +105,6 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
   // Handle navigation clicks
   const handleNavigationClick = (href) => {
     setSidebarOpen(false);
-
-    if (/^https?:\/\//.test(href)) {
-      window.open(href, '_blank', 'noopener,noreferrer');
-      return;
-    }
     
     // If it's a hash link, update the URL query parameter
     if (href.startsWith('#')) {

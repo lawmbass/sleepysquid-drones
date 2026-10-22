@@ -1,4 +1,4 @@
--- Business line for each booking: drones, ai, web, dispatch.
+-- Business line for each booking: drones, ai, web.
 -- bookings.service already holds the drone service type, so this is service_line.
 -- NOT applied yet: ships with the merge of the client-hub PR. The app treats a
 -- missing column as 'drones'.
@@ -16,7 +16,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bookings_service_line_check') THEN
     ALTER TABLE public.bookings
       ADD CONSTRAINT bookings_service_line_check
-      CHECK (service_line IN ('drones', 'ai', 'web', 'dispatch'));
+      CHECK (service_line IN ('drones', 'ai', 'web'));
   END IF;
 END $$;
 

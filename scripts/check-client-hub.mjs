@@ -37,7 +37,8 @@ for (const section of ["bookings", "promos", "settings", "users"]) assert.ok(top
 
 console.log("client hub checks passed");
 const lines = await import("../libs/serviceLines.js");
-assert.deepEqual(lines.SERVICE_LINE_IDS, ["drones", "ai", "web", "dispatch"]);
-assert.equal(lines.serviceLineFromStripeTag("dispatch"), "dispatch");
-assert.equal(lines.DISPATCH_URL, "https://dispatch.sleepysquid.com");
+assert.deepEqual(lines.SERVICE_LINE_IDS, ["drones", "ai", "web"]);
+assert.equal(lines.serviceLineFromStripeTag("dispatch"), null);
+assert.equal(validateCouponInput({ name: "x", percentOff: 5, services: ["dispatch"] }).ok, false);
+assert.ok(!roles.includes("dispatch.sleepysquid.com"));
 console.log("service line checks passed");

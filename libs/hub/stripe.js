@@ -3,9 +3,8 @@
  * Uses STRIPE_HUB_SECRET_KEY (a restricted read key is enough) or falls back
  * to STRIPE_SECRET_KEY. Never import this from a component.
  *
- * Service tags: products carry metadata.service = drones | ai | web | dispatch.
- * Dispatch products are only read; this code never writes to them except via
- * applies_to on a test-mode coupon.
+ * Service tags: products carry metadata.service = drones | ai | web. Products
+ * with any other tag are skipped entirely.
  */
 import { EXCLUDED_STRIPE_TAGS, SERVICE_LINES, serviceLineFromStripeTag } from "../serviceLines.js";
 
@@ -166,7 +165,12 @@ export async function listCouponsWithServices() {
     listAll("/coupons", { "expand[]": "data.applies_to" }),
     listAll("/promotion_codes", {}),
   ]);
-  return coupons.map((coupon) => {
+  const excludedTag = (c) => EXCLUDED_STRIPE_TAGS.includes(String(c.metadata?.service || "").toLowerCase());
+  const onlyExcluded = (c) => {
+    const ids = c.applies_to?.products || [];
+    return ids.length > 0 && ids.every((id) => products[id]?.excluded);
+  };
+  return coupons.filter((c) => !excludedTag(c) && !onlyExcluded(c)).map((coupon) => {
     const appliesTo = coupon.applies_to?.products || [];
     let services = [...new Set(appliesTo.map((id) => products[id]?.serviceLine).filter(Boolean))];
     let restricted = appliesTo.length > 0;
