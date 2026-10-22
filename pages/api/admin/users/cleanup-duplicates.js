@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/libs/next-auth';
 import { findUserByEmail } from '@/libs/db/users';
+import { adminConfig } from '@/libs/adminConfig';
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     // Check if user is SleepySquid admin
-    if (!session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com')) {
+    if (!adminConfig.isAdmin(session?.user?.email)) {
       return res.status(403).json({ 
         error: 'Forbidden',
         message: 'Only SleepySquid administrators can perform cleanup operations' 

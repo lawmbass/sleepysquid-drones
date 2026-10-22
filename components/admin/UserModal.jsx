@@ -26,7 +26,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
   const [deleting, setDeleting] = useState(false);
   
   // Check if current user is admin (only sleepysquid emails)
-  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+  const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
       onClick={onClose}
     >
       <div 
-        className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col my-4 sm:my-8"
+        className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full min-w-0 max-h-[90vh] flex flex-col my-4 sm:my-8 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -354,9 +354,9 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
                 <>
                   <AiClientFields value={ai} onChange={setAi} defaultRate={aiDefaultRate} />
                   {ai.on && !user && (
-                    <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <label ref={(el) => { if (el && !el.dataset.seen) { el.dataset.seen = '1'; el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }} className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <input type="checkbox" checked={ai.invite} onChange={(e) => setAi({ ...ai, invite: e.target.checked })} data-testid="ai-invite" />
-                      Also send a drone dashboard invitation email
+                      Also email them an invite to the client portal
                     </label>
                   )}
                 </>

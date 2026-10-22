@@ -4,7 +4,7 @@ import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings,
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
 import OptimizedImage from '../common/OptimizedImage';
-import { AiClientControls, AiTag } from './AiClientControls';
+import { AiClientControls } from './AiClientControls';
 
 export default function UsersList({ 
   users, 
@@ -35,7 +35,7 @@ export default function UsersList({
     <div className="min-w-0">
       <div className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</div>
       <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center"><FiMail className="h-3 w-3 mr-1" />{c.emails.join(', ') || 'no login email'}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No drone dashboard account (AI report only)</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No client portal account (AI report only)</div>
       <AiClientControls c={c} onChanged={onAiChanged} />
     </div>
   );
@@ -610,7 +610,7 @@ export default function UsersList({
                       <div className="ml-4"><AiOnlyBody c={c} /></div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><AiTag c={c} /></td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">No account</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.deleted_at ? 'Deleted' : 'AI report access'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.created_at ? formatDate(c.created_at) : '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">—</td>

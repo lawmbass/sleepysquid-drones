@@ -29,7 +29,7 @@ export default function UserManagement() {
   const [showDeletedAi, setShowDeletedAi] = useState(false);
   
   // Check if current user is SleepySquid admin
-  const isCurrentUserAdmin = session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+  const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   const [ai, reloadAi] = useAiClients(isCurrentUserAdmin, showDeletedAi);
   // One row per person: an AI client whose login email matches a user account is shown on that
@@ -39,7 +39,11 @@ export default function UserManagement() {
   for (const c of aiClients) for (const e of c.emails) (aiByEmail[e.toLowerCase()] ||= []).push(c);
   const shownEmails = new Set(users.map((u) => (u.email || '').toLowerCase()));
   const term = filters.search.trim().toLowerCase();
-  const aiOnly = (filters.role || filters.hasAccess || filters.page > 1) ? [] : aiClients.filter((c) => !c.account
+  // Shown on every page (they're not part of the paged user list). Role filter: they count as clients.
+  // Access filter: active AI clients have access, deleted ones don't.
+  const roleOk = !filters.role || filters.role === 'client';
+  const accessOk = (c) => filters.hasAccess === '' || String(!c.deleted_at) === String(filters.hasAccess);
+  const aiOnly = !roleOk ? [] : aiClients.filter((c) => !c.account && accessOk(c)
     && !c.emails.some((e) => shownEmails.has(e.toLowerCase()))
     && (!term || [c.name, ...c.emails].some((v) => v.toLowerCase().includes(term))));
 

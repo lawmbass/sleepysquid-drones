@@ -78,11 +78,11 @@ export function AiClientControls({ c, onChanged }) {
         </>)}
       </div>
       {edit && (
-        <form className="mt-3 grid gap-3 sm:grid-cols-3 max-w-2xl" onSubmit={(e) => { e.preventDefault(); act({ action: 'update', id: c.id, name, email, hourly_rate: rate }); }} data-testid="ai-edit-form">
+        <form className="mt-3 grid gap-3 w-full lg:min-w-[34rem] lg:grid-cols-[2fr_2fr_1fr]" onSubmit={(e) => { e.preventDefault(); act({ action: 'update', id: c.id, name, email, hourly_rate: rate }); }} data-testid="ai-edit-form">
           <label className="text-xs text-gray-600 dark:text-gray-300">Business name<input className={input} value={name} onChange={(e) => setName(e.target.value)} required /></label>
           <label className="text-xs text-gray-600 dark:text-gray-300">AI login email<input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
           <label className="text-xs text-gray-600 dark:text-gray-300">Hourly rate ($/hr)<input className={input} type="number" min="1" max="1000" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} /></label>
-          <div className="sm:col-span-3 flex gap-2">
+          <div className="lg:col-span-3 flex gap-2">
             <button type="button" className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200" onClick={() => setEdit(false)}>Cancel</button>
             <button className="px-3 py-1.5 text-sm rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
           </div>
