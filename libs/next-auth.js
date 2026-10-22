@@ -133,6 +133,12 @@ export const authOptions = {
         if (urlObj.origin === baseUrlObj.origin) {
           return url;
         }
+        // Shared sign-in: allow any https SleepySquid host, so a flow started on sleepysquid.com
+        // ends there even though the OAuth callback runs on drones.sleepysquid.com.
+        const h = urlObj.hostname;
+        if (urlObj.protocol === "https:" && (h === "sleepysquid.com" || h.endsWith(".sleepysquid.com"))) {
+          return url;
+        }
       } catch (error) {
         console.error("Invalid URL in redirect:", url);
       }

@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { originHome } from '../libs/origin';
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
@@ -21,7 +22,7 @@ export default function AccessDenied() {
   };
 
   const handleGoHome = () => {
-    router.push('/');
+    window.location.href = originHome(router.query.from);
   };
 
   const getContent = () => {

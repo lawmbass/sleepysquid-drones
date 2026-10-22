@@ -3,6 +3,8 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import HomeLink from '../components/common/HomeLink';
+import { absoluteCallback } from '../libs/origin';
 import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiCheck } from 'react-icons/fi';
 
 export default function Signup() {
@@ -92,7 +94,7 @@ export default function Signup() {
     
     try {
       await signIn('google', {
-        callbackUrl: '/dashboard',
+        callbackUrl: absoluteCallback('/dashboard'),
       });
     } catch (error) {
       console.error('Google sign in error:', error);
@@ -129,10 +131,10 @@ export default function Signup() {
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         {/* Back Button */}
         <div className="absolute top-6 left-6">
-          <Link href="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+          <HomeLink className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
             <FiArrowLeft className="h-5 w-5 mr-2" />
             <span className="text-sm font-medium">Back to Home</span>
-          </Link>
+          </HomeLink>
         </div>
         
         <div className="sm:mx-auto sm:w-full sm:max-w-md">

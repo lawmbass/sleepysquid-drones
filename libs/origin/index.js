@@ -22,3 +22,24 @@ export function readOrigin() {
   const m = document.cookie.match(/(?:^|;\s*)ss_origin=([^;]*)/);
   return normalizeOrigin(m && decodeURIComponent(m[1]));
 }
+// Home page of each origin site. Used for full-page "Back to Home" links on shared auth pages.
+export const ORIGIN_HOMES = {
+  drones: 'https://drones.sleepysquid.com/',
+  ai: 'https://ai.sleepysquid.com/',
+  site: 'https://sleepysquid.com/',
+};
+// `from` query first, then ss_origin cookie, then the current host.
+export function originHome(from) {
+  let k = normalizeOrigin(from) || readOrigin();
+  if (!k && typeof location !== 'undefined') {
+    const h = location.hostname;
+    k = h.startsWith('drones.') ? 'drones' : h.startsWith('ai.') ? 'ai' : h === 'sleepysquid.com' || h === 'www.sleepysquid.com' ? 'site' : null;
+  }
+  return k ? ORIGIN_HOMES[k] : '/';
+}
+// Make a relative callbackUrl absolute on the page's own host, so an OAuth flow that completes on
+// drones.sleepysquid.com returns the user to the host they started on (e.g. sleepysquid.com).
+export function absoluteCallback(url) {
+  if (typeof window === 'undefined' || !url || !String(url).startsWith('/') || String(url).startsWith('//')) return url;
+  return `${window.location.origin}${url}`;
+}
