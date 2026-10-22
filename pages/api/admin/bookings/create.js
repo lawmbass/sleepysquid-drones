@@ -2,6 +2,7 @@ import { requireAdmin } from "@/libs/adminRequest";
 import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 import { insertBooking } from "@/libs/db/bookings";
 import { validateManualBooking } from "@/libs/manualBooking";
+import { DEFAULT_SERVICE_LINE } from "@/libs/serviceLines";
 
 export default async function handler(req, res) {
   const session = await requireAdmin(req, res, ["POST"]);
@@ -18,6 +19,16 @@ export default async function handler(req, res) {
       message: Object.values(result.errors)[0],
       fields: result.errors,
     });
+  }
+
+  if (result.value.serviceLine !== DEFAULT_SERVICE_LINE) {
+    try {
+      const booking = await insertBooking(result.value);
+      return res.status(201).json({ success: true, data: { booking } });
+    } catch (error) {
+      console.error("Admin booking create error:", error);
+      return res.status(500).json({ error: "Internal server error", message: "Failed to add booking" });
+    }
   }
 
   const address = await resolveUsBookingAddress({

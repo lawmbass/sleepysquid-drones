@@ -66,6 +66,7 @@ export default async function handler(req, res) {
     const { 
       status, 
       service,
+      service_line,
       source,
       limit = 50, 
       page = 1,
@@ -81,6 +82,7 @@ export default async function handler(req, res) {
     const filters = {
       status,
       service,
+      serviceLine: service_line,
       source,
       email,
       dateFrom: date_from,

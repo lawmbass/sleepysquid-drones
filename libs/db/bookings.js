@@ -1,5 +1,30 @@
 import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from "@/libs/db/shared";
 import { MANUAL_SOURCE, isMissionSource } from "@/libs/manualBooking";
+import { DEFAULT_SERVICE_LINE, isServiceLine, normalizeServiceLine } from "../serviceLines.js";
+
+// bookings.service_line ships in migration 20261022170000. Until it is applied,
+// reads treat every row as drones and writes skip the column.
+let serviceLineColumn = null; // null = unknown, true = present, false = missing
+
+export function isMissingServiceLineColumn(error) {
+  if (!error) return false;
+  const text = `${error.message || ""} ${error.details || ""} ${error.hint || ""}`;
+  return (error.code === "42703" || error.code === "PGRST204" || error.code === "PGRST200" || /column/i.test(text))
+    && /service_line/.test(text);
+}
+
+async function withServiceLine(run) {
+  if (serviceLineColumn === false) return run(false);
+  const result = await run(true);
+  if (result?.error && isMissingServiceLineColumn(result.error)) {
+    serviceLineColumn = false;
+    return run(false);
+  }
+  if (!result?.error) serviceLineColumn = true;
+  return result;
+}
+
+const NO_ROWS_ID = "00000000-0000-0000-0000-000000000000";
 
 export function mapBooking(row) {
   if (!row) return null;
@@ -16,6 +41,7 @@ export function mapBooking(row) {
     _id: row.id,
     source: row.source,
     service: row.service,
+    serviceLine: normalizeServiceLine(row.service_line),
     package: row.package,
     missionId: row.mission_id,
     payout,
@@ -47,7 +73,14 @@ export function mapBooking(row) {
   };
 }
 
-function applyBookingFilters(query, filters = {}) {
+function applyBookingFilters(query, filters = {}, hasServiceLine = serviceLineColumn !== false) {
+  if (filters.serviceLine && isServiceLine(filters.serviceLine)) {
+    if (hasServiceLine) {
+      query = query.eq("service_line", filters.serviceLine);
+    } else if (filters.serviceLine !== DEFAULT_SERVICE_LINE) {
+      query = query.eq("id", NO_ROWS_ID);
+    }
+  }
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.service) query = query.eq("service", filters.service);
   if (filters.source) query = query.eq("source", filters.source);
@@ -104,6 +137,7 @@ function bookingInsertRow(input) {
     ip_address: input.ipAddress || null,
     user_agent: input.userAgent || null,
     admin_notes: input.adminNotes || "",
+    service_line: normalizeServiceLine(input.serviceLine),
   };
 }
 
@@ -122,14 +156,15 @@ const BOOKING_PATCH_COLUMNS = {
   email: "email",
   payout: "payout",
   source: "source",
+  serviceLine: "service_line",
 };
 
 export async function insertBooking(input) {
-  const { data, error } = await db()
-    .from("bookings")
-    .insert(bookingInsertRow(input))
-    .select("*")
-    .single();
+  const { data, error } = await withServiceLine((hasColumn) => {
+    const row = bookingInsertRow(input);
+    if (!hasColumn) delete row.service_line;
+    return db().from("bookings").insert(row).select("*").single();
+  });
   assertNoError(error);
   return mapBooking(data);
 }
@@ -175,12 +210,11 @@ export async function updateBooking(id, patch) {
     }
   }
 
-  const { data, error } = await db()
-    .from("bookings")
-    .update(row)
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
+  const { data, error } = await withServiceLine((hasColumn) => {
+    const next = { ...row };
+    if (!hasColumn) delete next.service_line;
+    return db().from("bookings").update(next).eq("id", id).select("*").maybeSingle();
+  });
   assertNoError(error);
   return mapBooking(data);
 }
@@ -191,14 +225,13 @@ export async function deleteBooking(id) {
 }
 
 export async function listBookings(filters = {}, { sort = "-createdAt", limit = 50, offset = 0 } = {}) {
-  let query = db().from("bookings").select("*", { count: "exact" });
-  query = applyBookingFilters(query, filters);
   const { column, ascending } = parseSort(sort);
   const from = Number(offset) || 0;
   const size = Number(limit) || 50;
-  const { data, error, count } = await query
-    .order(column, { ascending })
-    .range(from, from + size - 1);
+  const { data, error, count } = await withServiceLine((hasColumn) =>
+    applyBookingFilters(db().from("bookings").select("*", { count: "exact" }), filters, hasColumn)
+      .order(column, { ascending })
+      .range(from, from + size - 1));
   assertNoError(error);
   return {
     bookings: (data || []).map(mapBooking),
@@ -207,6 +240,11 @@ export async function listBookings(filters = {}, { sort = "-createdAt", limit = 
 }
 
 export async function listAllBookings(filters = {}) {
+  if (filters.serviceLine && serviceLineColumn === null) {
+    // Probe once so a missing column falls back cleanly.
+    await withServiceLine((hasColumn) =>
+      applyBookingFilters(db().from("bookings").select("id").limit(1), filters, hasColumn));
+  }
   const rows = await fetchAll(() => applyBookingFilters(db().from("bookings").select("*"), filters));
   return rows.map(mapBooking);
 }

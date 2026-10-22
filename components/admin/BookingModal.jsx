@@ -4,6 +4,7 @@ import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage,
 import ConfirmationDialog from './ConfirmationDialog';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState, missionDetailAmounts } from '@/libs/jobs';
+import { normalizeServiceLine, serviceLineLabel } from '@/libs/serviceLines';
 import { bookingSourceLabel, isQuotePackage, packageLabel } from '@/libs/manualBooking';
 
 const statuses = [
@@ -221,10 +222,16 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                     <span className="text-sm text-gray-900 dark:text-white">{booking.phone}</span>
                   </div>
                 )}
+                <div className="flex items-center">
+                  <FiTarget className="h-4 w-4 text-gray-500 mr-2" />
+                  <span className="text-sm text-gray-900 dark:text-white">Service: {serviceLineLabel(normalizeServiceLine(booking.serviceLine))}</span>
+                </div>
+                {normalizeServiceLine(booking.serviceLine) === 'drones' && (
                 <div className="flex items-start">
                   <FiMapPin className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
                   <span className="text-sm text-gray-900 dark:text-white">{booking.location}</span>
                 </div>
+                )}
                 {booking.payout && (
                   <div className="flex items-center">
                     <FiDollarSign className="h-4 w-4 text-gray-500 mr-2" />
@@ -233,7 +240,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                     </span>
                   </div>
                 )}
-                {booking.travelDistance && (
+                {normalizeServiceLine(booking.serviceLine) === 'drones' && booking.travelDistance && (
                   <div className="flex items-center">
                     <FiNavigation className="h-4 w-4 text-gray-500 mr-2" />
                     <span className="text-sm text-gray-900 dark:text-white">
