@@ -10,7 +10,7 @@ const Charts = dynamic(() => import("./Charts").then((m) => m.Charts), { ssr: fa
 const DAY = 86400000, iso = (d) => d.toISOString().slice(0, 10);
 const TYPE = { landscaper: "Landscaping", real_estate_agent: "Real estate agent", property_manager: "Property management", small_business: "Small business" };
 const when = (s, tz) => new Date(s).toLocaleString("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
-const SETTINGS = "https://ai.sleepysquid.com/portal/settings";
+const SETTINGS = "/dashboard?section=ai-settings";
 function ranges(today) {
   const t = new Date(today + "T00:00:00Z"), y = t.getUTCFullYear(), m = t.getUTCMonth();
   return [["This month", iso(new Date(Date.UTC(y, m, 1))), today], ["Last month", iso(new Date(Date.UTC(y, m - 1, 1))), iso(new Date(Date.UTC(y, m, 0)))], ["Last 90 days", iso(new Date(t - 89 * DAY)), today]];
@@ -34,7 +34,7 @@ export default function AiAutomationContent() {
   if (state.error) return <div className="ai-portal"><section className="p-panel" data-testid="ai-error"><h2>AI automation</h2><p>{state.error}</p></section></div>;
   if (!state.linked) return <div className="ai-portal"><section className="p-panel" data-testid="ai-unlinked"><h2>AI automation</h2><p>No SleepySquid AI account is linked to this email yet. If you&apos;re a client, sign in with the email address we set your account up with, or contact <a href="mailto:support@sleepysquid.com">support@sleepysquid.com</a>.</p></section></div>;
 
-  const { d, clients, admin, today } = state;
+  const { d, clients, admin, today, keyInfo } = state;
   const { client, from, to } = d;
   const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: client.currency, maximumFractionDigits: 0 });
   const money = (v) => fmt.format(v);
@@ -52,13 +52,15 @@ export default function AiAutomationContent() {
     {admin && <p className="p-preview-note" role="note">Admin view: you can pick any client. Clients only see their own account, without the admin-only panels.</p>}
     {multi && <div className="p-switch"><label htmlFor="ai-cl">Account</label><select id="ai-cl" value={client.id} onChange={(e) => set({ client: e.target.value })}>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
     {client.is_example && <p className="p-example" role="note">EXAMPLE DATA: this is a demo client with sample numbers, not a real business.</p>}
+    {keyInfo && Date.parse(keyInfo.expires_at) - Date.now() <= 7 * DAY && <p className="p-info" role="alert" data-testid="key-expiry">Your automation API key expires on {keyInfo.expires_at.slice(0, 10)}. <a href={SETTINGS + "#api-key"}>Generate a new one in Settings</a> to avoid interruptions.</p>}
     {client.texting_status === "pending" && <p className="p-info">Text messages start once carrier approval comes through, usually 1–3 weeks. Email is already running.</p>}
     <div className="p-head">
       <div><h1>{client.name}</h1>
         {summary && <p className="p-headline" data-testid="summary">{summary}</p>}
         {hl && <p className="p-sub">{hl}</p>}
         <p className="p-sub">{TYPE[d.businessType]} · {d.rateIsDefault ? <>Estimates use the <span data-testid="default-rate">Default rate (${DEFAULT_RATE}/hr)</span>. <a href={SETTINGS}>Change it in Settings</a></> : <>Estimates use {rateText}. <a href={SETTINGS}>Change your rate in Settings</a></>}</p>
-        {d.lastUpdated && <p className="p-sub sm2" data-testid="last-updated">Last updated {when(d.lastUpdated, client.timezone)}</p>}</div>
+        {d.lastUpdated && <p className="p-sub sm2" data-testid="last-updated">Last updated {when(d.lastUpdated, client.timezone)}</p>}
+        <div className="p-actions"><a className="btn sm ghost" data-testid="export-pdf" href={`/api/user/ai-portal-pdf?${new URLSearchParams({ client: client.id, from, to })}`}>Export PDF</a>{admin && <Link className="btn sm ghost" href="/dashboard?section=ai-admin" data-testid="manage-clients">Manage AI clients</Link>}</div></div>
       <div className="p-range">
         <div className="p-quick">{ranges(today).map(([l, f, t]) => <button type="button" key={l} className={`p-chip${f === from && t === to ? " on" : ""}`} onClick={() => set({ from: f, to: t })}>{l}</button>)}</div>
         <label>From<input type="date" value={from} max={to} onChange={(e) => e.target.value && set({ from: e.target.value })} /></label>

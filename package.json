@@ -10,6 +10,7 @@
     "check:rls": "node scripts/check-rls.js"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.9.0",
     "@supabase/supabase-js": "^2.75.0",
     "autoprefixer": "^10.4.16",
     "bcryptjs": "^3.0.2",
