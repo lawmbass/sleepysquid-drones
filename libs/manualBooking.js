@@ -4,7 +4,11 @@
  * bookings_source_check allows customer, zeitview, and manual.
  */
 
+import { DEFAULT_SERVICE_LINE, isServiceLine } from "./serviceLines.js";
+
 export const MANUAL_SOURCE = "manual";
+/** Location stored for non-drone bookings (bookings.location is NOT NULL). */
+export const REMOTE_LOCATION = "Remote";
 export const MANUAL_SOURCE_LABEL = "Added by admin";
 
 export const BOOKING_SERVICES = [
@@ -154,10 +158,13 @@ function stripTags(value) {
 
 export function validateManualBooking(input, now = Date.now()) {
   const errors = {};
-  const service = stripTags(input?.service);
+  const rawLine = stripTags(input?.serviceLine);
+  const serviceLine = rawLine || DEFAULT_SERVICE_LINE;
+  const isDrone = serviceLine === DEFAULT_SERVICE_LINE;
+  const service = isDrone ? stripTags(input?.service) : serviceLine;
   const packageId = stripTags(input?.package);
   const date = String(input?.date ?? "").trim();
-  const location = stripTags(input?.location);
+  const location = isDrone ? stripTags(input?.location) : (stripTags(input?.location) || REMOTE_LOCATION);
   const details = stripTags(input?.details);
   const name = stripTags(input?.name);
   const email = stripTags(input?.email).toLowerCase();
@@ -166,10 +173,14 @@ export function validateManualBooking(input, now = Date.now()) {
   const adminNotes = stripTags(input?.adminNotes ?? input?.admin_notes ?? "");
   const rawPrice = input?.finalPrice ?? input?.final_price;
 
-  if (!BOOKING_SERVICES.some((item) => item.id === service)) {
+  if (!isServiceLine(serviceLine)) {
+    errors.serviceLine = "Please choose a business line";
+  } else if (isDrone && !BOOKING_SERVICES.some((item) => item.id === service)) {
     errors.service = "Please select a service";
   }
-  if (packageId && !availablePackages(service).some((pkg) => pkg.id === packageId)) {
+  if (!isDrone && packageId) {
+    errors.package = "Packages apply to drone bookings only";
+  } else if (packageId && !availablePackages(service).some((pkg) => pkg.id === packageId)) {
     errors.package = "Please select a valid package for this service";
   }
   if (!date) {
@@ -224,6 +235,7 @@ export function validateManualBooking(input, now = Date.now()) {
     value: ok
       ? {
           source: MANUAL_SOURCE,
+          serviceLine,
           service,
           package: packageId || null,
           date: new Date(date).toISOString(),

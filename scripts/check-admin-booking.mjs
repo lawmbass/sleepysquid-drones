@@ -57,6 +57,7 @@ assert.deepEqual(Object.keys(saved.value).sort(), [
   "package",
   "phone",
   "service",
+  "serviceLine",
   "source",
   "status",
 ].sort());
@@ -206,6 +207,25 @@ assert.doesNotMatch(form, /location\.reload/);
 const filters = fs.readFileSync(new URL("../components/admin/BookingFilters.jsx", import.meta.url), "utf8");
 assert.match(filters, /value: 'manual', label: 'Added by admin'/);
 assert.doesNotMatch(filters, /Manual Entries/);
+
+// Service lines: drones by default; other lines skip drone-only fields.
+assert.equal(saved.value.serviceLine, "drones");
+assert.equal(validateManualBooking(payload({ serviceLine: "pets" }), now).ok, false);
+const aiBooking = validateManualBooking(payload({ serviceLine: "ai", service: "", package: "", location: "" }), now);
+assert.equal(aiBooking.ok, true);
+assert.equal(aiBooking.value.serviceLine, "ai");
+assert.equal(aiBooking.value.location, "Remote");
+assert.equal(aiBooking.value.package, null);
+assert.equal(validateManualBooking(payload({ serviceLine: "web", package: "listing-photos" }), now).ok, false);
+
+const { normalizeServiceLine } = await import("../libs/serviceLines.js");
+assert.equal(normalizeServiceLine(undefined), "drones");
+assert.equal(normalizeServiceLine("web"), "web");
+assert.equal(normalizeServiceLine("web"), "web");
+assert.equal(normalizeServiceLine("dispatch"), "drones");
+const serviceLineMigration = fs.readFileSync(new URL("../supabase/migrations/20261022170000_booking_service_line.sql", import.meta.url), "utf8");
+assert.match(serviceLineMigration, /add column if not exists service_line/i);
+assert.match(serviceLineMigration, /set service_line = 'drones'/i);
 
 const schema = fs.readFileSync(new URL("../supabase/migrations/20261011120000_initial_schema.sql", import.meta.url), "utf8");
 assert.match(schema, /CHECK \(source IN \('customer', 'zeitview', 'manual'\)\)/);

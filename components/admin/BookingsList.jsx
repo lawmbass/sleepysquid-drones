@@ -3,6 +3,7 @@ import { FiMail, FiPhone, FiMapPin, FiCalendar, FiDollarSign, FiTarget, FiNaviga
 import BookingModal from './BookingModal';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState } from '@/libs/jobs';
+import { normalizeServiceLine, SERVICE_LINES } from '@/libs/serviceLines';
 import { bookingSourceLabel, isQuotePackage, packageLabel } from '@/libs/manualBooking';
 
 const statusColors = {
@@ -12,6 +13,17 @@ const statusColors = {
   completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
 };
+
+function ServiceLineChip({ booking }) {
+  const line = SERVICE_LINES.find((item) => item.id === normalizeServiceLine(booking.serviceLine)) || SERVICE_LINES[0];
+  return (
+    <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${line.chip}`}>{line.label}</span>
+  );
+}
+
+function isDroneBooking(booking) {
+  return normalizeServiceLine(booking.serviceLine) === 'drones';
+}
 
 function cardState(booking) {
   return gigCardState({
@@ -135,8 +147,9 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
         <div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Service</div>
           <div className="text-sm font-medium text-gray-900 dark:text-white">
-            {serviceLabels[booking.service] || booking.service}
+            {isDroneBooking(booking) ? (serviceLabels[booking.service] || booking.service) : null}
           </div>
+          <div className="mt-1"><ServiceLineChip booking={booking} /></div>
           {booking.package && (
             <div className="text-xs text-gray-500">{packageLabel(booking.package)}</div>
           )}
@@ -155,12 +168,12 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
 
       {/* Location and Contact */}
       <div className="space-y-2 mb-3">
-        <div className="flex items-start">
+        {isDroneBooking(booking) && <div className="flex items-start">
           <FiMapPin className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
           <span className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
             {(booking.location || "").length > 50 ? `${booking.location.substring(0, 50)}...` : (booking.location || "—")}
           </span>
-        </div>
+        </div>}
         <div className="flex items-center">
           <FiMail className="h-3 w-3 text-gray-400 mr-1" />
           <span className="text-xs text-gray-600 dark:text-gray-300">{booking.email}</span>
@@ -189,7 +202,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
           </span>
           {booking.payout && <span className="text-gray-500 ml-1">(payout)</span>}
         </div>
-        {booking.travelDistance && (
+        {isDroneBooking(booking) && booking.travelDistance && (
           <div className="flex items-center text-gray-500">
             <FiNavigation className="h-3 w-3 mr-1" />
             <span>{booking.travelDistance.toFixed(1)}mi</span>
@@ -201,7 +214,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
       <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
           {booking.unlinkedListing ? (
-            <span>{booking.hasFlightTime ? `Flight time ${formatTime(booking.date, booking)}` : "Flight time not listed"}</span>
+            <span>{booking.hasFlightTime ? `Flight ${formatDate(booking.date, booking)}, ${formatTime(booking.date, booking)}` : `Flight ${formatDate(booking.date, booking)} (time not listed)`}</span>
           ) : (
             <>
               <span>Created: {formatDate(booking.createdAt)}</span>
@@ -367,8 +380,9 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {serviceLabels[booking.service] || booking.service}
+                          {isDroneBooking(booking) ? (serviceLabels[booking.service] || booking.service) : null}
                         </div>
+                        <div className="mt-1"><ServiceLineChip booking={booking} /></div>
                         {booking.package && (
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {packageLabel(booking.package)}
@@ -386,13 +400,13 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                           </div>
                         )}
 
-                        <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                        {isDroneBooking(booking) && <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                           <FiMapPin className="h-3 w-3 mr-1" />
                           {(booking.location || "").length > 30 
                             ? `${booking.location.substring(0, 30)}...` 
                             : (booking.location || "—")
                           }
-                        </div>
+                        </div>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col items-start gap-2">
@@ -423,13 +437,13 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {booking.travelDistance && (
+                        {isDroneBooking(booking) && booking.travelDistance && (
                           <div className="text-sm text-gray-900 dark:text-white flex items-center">
                             <FiNavigation className="h-3 w-3 mr-1" />
                             {booking.travelDistance.toFixed(1)} mi
                           </div>
                         )}
-                        {booking.travelTime && (
+                        {isDroneBooking(booking) && booking.travelTime && (
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {Math.round(booking.travelTime)} min
                           </div>
@@ -442,7 +456,10 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {booking.unlinkedListing ? (
-                          <div>{booking.hasFlightTime ? formatTime(booking.date, booking) : "Flight time not listed"}</div>
+                          <>
+                            <div>Flight {formatDate(booking.date, booking)}</div>
+                            <div>{booking.hasFlightTime ? formatTime(booking.date, booking) : "Time not listed"}</div>
+                          </>
                         ) : (
                           <>
                             <div>{formatDate(booking.createdAt)}</div>

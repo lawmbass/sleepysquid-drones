@@ -8,10 +8,12 @@ import {
   minBookingDateTime,
   validateManualBooking,
 } from "@/libs/manualBooking";
+import { SERVICE_LINES } from "@/libs/serviceLines";
 
 const fieldClass = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500";
 
 const emptyForm = {
+  serviceLine: "",
   service: "",
   package: "",
   date: "",
@@ -44,6 +46,7 @@ export default function AddBookingForm({ onCreated }) {
   }, [open]);
 
   const packages = availablePackages(form.service);
+  const isDrone = form.serviceLine === "drones";
 
   const update = (name, value) => {
     setForm((prev) => {
@@ -64,7 +67,11 @@ export default function AddBookingForm({ onCreated }) {
     event.preventDefault();
     setNotice("");
     const result = validateManualBooking(form);
-    if (!form.placeId) {
+    if (!form.serviceLine) {
+      result.ok = false;
+      result.errors = { ...result.errors, serviceLine: "Please choose a business line" };
+    }
+    if (isDrone && !form.placeId) {
       result.ok = false;
       result.errors = {
         ...result.errors,
@@ -130,7 +137,25 @@ export default function AddBookingForm({ onCreated }) {
             <p className="text-sm text-red-600 dark:text-red-400">{errors.general}</p>
           )}
 
+          <div>
+            <label htmlFor="add-booking-line" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business line (required)</label>
+            <select
+              id="add-booking-line"
+              required
+              value={form.serviceLine}
+              onChange={(event) => update("serviceLine", event.target.value)}
+              className={fieldClass}
+            >
+              <option value="">Choose Drones, AI automation or Website dev</option>
+              {SERVICE_LINES.map((line) => (
+                <option key={line.id} value={line.id}>{line.label}</option>
+              ))}
+            </select>
+            <FieldError message={errors.serviceLine} />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isDrone && (<>
             <div>
               <label htmlFor="add-booking-service" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service</label>
               <select
@@ -162,6 +187,7 @@ export default function AddBookingForm({ onCreated }) {
               </select>
               <FieldError message={errors.package} />
             </div>
+            </>)}
 
             <div>
               <label htmlFor="add-booking-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
@@ -192,6 +218,7 @@ export default function AddBookingForm({ onCreated }) {
             </div>
           </div>
 
+          {isDrone && (
           <div>
             <label htmlFor="add-booking-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
             <AddressAutocomplete
@@ -214,6 +241,7 @@ export default function AddBookingForm({ onCreated }) {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Start typing, then choose a US address from the list.</p>
             <FieldError message={errors.location} />
           </div>
+          )}
 
           <div>
             <label htmlFor="add-booking-details" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Details</label>

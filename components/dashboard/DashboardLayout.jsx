@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 // Link removed as we're using router.push instead
 import { useRouter } from 'next/router';
-import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiBarChart, FiSettings, FiLogOut, FiUser, FiCalendar, FiMap, FiUsers, FiFileText, FiPlus, FiFolder, FiUpload, FiActivity, FiClipboard, FiPercent, FiSliders, FiMapPin, FiSend, FiChevronDown } from 'react-icons/fi';
 import { userRoles } from '@/libs/userRoles';
 import OptimizedImage from '../common/OptimizedImage';
 
@@ -22,8 +22,29 @@ const iconMap = {
   FiClipboard,
   FiPercent,
   FiSliders,
-  FiMapPin
+  FiMapPin,
+  FiSend
 };
+
+function NavGroup({ item, renderItem, mobile }) {
+  const [open, setOpen] = useState(true);
+  const Icon = item.icon;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`group flex items-center w-full text-left font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${mobile ? 'px-3 py-3 text-base' : 'px-2 py-2 text-sm'}`}
+      >
+        <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+        <span className="flex-1">{item.name}</span>
+        <FiChevronDown className={`h-4 w-4 transition-transform ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 dark:border-gray-700 pl-2">{item.children.map(renderItem)}</div>}
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children, user, onSignOut, userRole }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,7 +55,11 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
     // Get navigation based on user role
     if (userRole) {
       const roleNav = userRoles.getNavigationForRole(userRole, user?.email);
-      const navigationWithIcons = roleNav.map(item => {
+      const toNavItem = (item) => {
+        if (item.children) {
+          const children = item.children.map(toNavItem);
+          return { ...item, icon: iconMap[item.icon] || FiHome, children, current: children.some((c) => c.current) };
+        }
         // Only transform href for dashboard-specific routes
         let href = item.href;
         let current = false;
@@ -57,7 +82,8 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           href,
           current
         };
-      });
+      };
+      const navigationWithIcons = roleNav.map(toNavItem);
       setNavigation(navigationWithIcons);
     }
   }, [userRole, user?.email, router.asPath, router.query.section]);
@@ -114,7 +140,8 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
           {/* Navigation */}
           <div className="flex-1 overflow-y-auto py-4">
             <nav className="px-3 space-y-1">
-              {navigation.map((item) => {
+              {navigation.map(function renderMobile(item) {
+                if (item.children) return <NavGroup key={item.name} item={item} renderItem={renderMobile} mobile />;
                 const Icon = item.icon;
                 return (
                   <button
@@ -180,7 +207,8 @@ export default function DashboardLayout({ children, user, onSignOut, userRole })
             </div>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white dark:bg-gray-800 space-y-1">
-              {navigation.map((item) => {
+              {navigation.map(function renderDesktop(item) {
+                if (item.children) return <NavGroup key={item.name} item={item} renderItem={renderDesktop} />;
                 const Icon = item.icon;
                 return (
                   <button

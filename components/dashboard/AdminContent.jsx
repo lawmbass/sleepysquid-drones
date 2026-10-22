@@ -11,6 +11,10 @@ import BotRulesSection from '@/components/admin/BotRulesSection';
 import AddBookingForm from '@/components/admin/AddBookingForm';
 import AirspaceSection from '@/components/admin/AirspaceSection';
 import AccessStatusBanner from './AccessStatusBanner';
+import HubOverview from '@/components/hub/HubOverview';
+import { ServiceFilter } from '@/components/hub/ServiceChip';
+import ServiceChip from '@/components/hub/ServiceChip';
+import StripeCoupons from '@/components/hub/StripeCoupons';
 import {
   OVERVIEW_STATUS_FILTERS,
   filterOverviewJobs,
@@ -30,6 +34,7 @@ export default function AdminContent({ user, onUpdate }) {
   const [filters, setFilters] = useState({
     status: '',
     service: '',
+    service_line: '',
     page: 1,
     limit: 20,
     sort: '-createdAt'
@@ -157,8 +162,8 @@ export default function AdminContent({ user, onUpdate }) {
             <AccessStatusBanner user={user} />
             
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-              <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening with your drone services.</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.name}. Here&apos;s what&apos;s happening across all SleepySquid services.</p>
               <button
                 type="button"
                 onClick={() => setOverviewFilter('open')}
@@ -171,6 +176,10 @@ export default function AdminContent({ user, onUpdate }) {
                 {openGigsLabel(overviewCounts.open)}
               </button>
             </div>
+
+            <HubOverview />
+
+            <Analytics />
             
             <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -218,6 +227,13 @@ export default function AdminContent({ user, onUpdate }) {
         return (
           <div className="space-y-6">
             <AddBookingForm onCreated={fetchBookings} />
+
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg px-4 sm:px-6 py-3">
+              <ServiceFilter
+                value={filters.service_line}
+                onChange={(value) => handleFilterChange({ service_line: value })}
+              />
+            </div>
 
             <BookingFilters 
               filters={filters} 
@@ -275,7 +291,23 @@ export default function AdminContent({ user, onUpdate }) {
         return <UserManagement />;
       
       case 'promos':
-        return <PromoManagement />;
+        return (
+          <div className="space-y-10">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Promos</h1>
+              <p className="text-gray-600 dark:text-gray-300">Discounts for every SleepySquid service, tagged by service.</p>
+            </div>
+            <StripeCoupons />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Drone booking site promos</h2>
+                <ServiceChip id="drones" />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Banner promos on drones.sleepysquid.com. They apply to drone bookings only.</p>
+              <PromoManagement />
+            </div>
+          </div>
+        );
 
       case 'listings':
         return <ListingsSection />;
