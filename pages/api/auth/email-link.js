@@ -2,6 +2,7 @@
 // Always answers the same way so it does not reveal which emails are registered.
 import { sendEmail } from "@/libs/mailgun";
 import { portalConfigured } from "@/libs/aiPortal/db";
+import { originFromRequest, senderNameFor } from "@/libs/origin";
 import { mayUseEmailLink, issueLoginToken } from "@/libs/aiPortal/emailLink";
 
 const hits = new Map();
@@ -26,9 +27,10 @@ export default async function handler(req, res) {
     const link = `${base}/login?link=${token}`;
     await sendEmail({
       to: email,
+      fromName: senderNameFor(originFromRequest(req, (req.body || {}).from)),
       subject: "Your SleepySquid AI sign-in link",
-      text: `Sign in to your SleepySquid dashboard:\n\n${link}\n\nThis link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.`,
-      html: `<p>Sign in to your SleepySquid dashboard:</p><p><a href="${link}" style="background:#34d399;color:#0a1f3a;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:700">Sign in</a></p><p style="color:#7c8084">This link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.</p>`,
+      text: `Sign in to your SleepySquid client portal:\n\n${link}\n\nThis link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.`,
+      html: `<p>Sign in to your SleepySquid client portal:</p><p><a href="${link}" style="background:#34d399;color:#0a1f3a;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:700">Sign in</a></p><p style="color:#7c8084">This link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.</p>`,
     });
     return res.status(200).json(OK);
   } catch (e) {

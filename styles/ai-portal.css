@@ -90,3 +90,30 @@
 .ai-portal .p-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .ai-portal .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:640px){.ai-portal .a-form,.ai-portal .a-form4{grid-template-columns:1fr}.ai-portal .a-row{flex-direction:column;align-items:stretch}.ai-portal .a-actions>.btn{flex:1 1 0;min-height:44px}.ai-portal .p-keyrow{flex-wrap:wrap}}
+/* Dark mode: follow the dashboard's dark tokens (cards gray-800, borders gray-700, text white / gray-300 / gray-400, links blue-400). */
+.dark .ai-portal{--abyss:#f9fafb;--grey:#9ca3af;--blue:#60a5fa;--deep:#93c5fd;--green:#34d399;--mist:#374151;color:#e5e7eb}
+.dark .ai-portal h1,.dark .ai-portal h2,.dark .ai-portal h3{color:#fff}
+.dark .ai-portal .p-sub,.dark .ai-portal .p-legend,.dark .ai-portal .p-range label,.dark .ai-portal .a-form label,.dark .ai-portal .a-modalbox label,.dark .ai-portal .a-modalbox p{color:#d1d5db}
+.dark .ai-portal .p-sub.sm2,.dark .ai-portal .p-fine,.dark .ai-portal .p-rowhead{color:#9ca3af}
+.dark .ai-portal .p-headline{color:#f3f4f6}
+.dark .ai-portal .p-stat,.dark .ai-portal .p-panel,.dark .ai-portal .p-card,.dark .ai-portal .p-dialog,.dark .ai-portal .a-modalbox,.dark .ai-portal .p-top,
+.dark .ai-portal .p-stats2 .p-stat,.dark .ai-portal .p-stats2 .p-stat:first-child,.dark .ai-portal .p-stats2 .p-stat:nth-child(2){background:#1f2937;box-shadow:0 0 0 1px #374151}
+.dark .ai-portal .p-stat b{color:#fff}.dark .ai-portal .p-stat span,.dark .ai-portal .p-stat small{color:#9ca3af}
+.dark .ai-portal .p-stat.hero{background:#1f2937;box-shadow:0 0 0 1px #065f46}.dark .ai-portal .p-stat.hero b{color:#34d399}.dark .ai-portal .p-stat.hero span,.dark .ai-portal .p-stat.hero small{color:#d1d5db}
+.dark .ai-portal .p-ratio{color:#d1d5db!important}
+.dark .ai-portal .p-stat:not(.hero) .p-how,.dark .ai-portal .p-how{color:#34d399}
+.dark .ai-portal .p-chip,.dark .ai-portal .p-range input,.dark .ai-portal .p-input,.dark .ai-portal .p-switch select,.dark .ai-portal .p-card input,.dark .ai-portal .p-keyrow code{background:#374151;border-color:#4b5563;color:#f9fafb}
+.dark .ai-portal .p-chip.on{background:#34d399;border-color:#34d399;color:#064e3b}
+.dark .ai-portal .p-table th{border-color:#374151}.dark .ai-portal .p-table td,.dark .ai-portal .p-row,.dark .ai-portal .p-wins li,.dark .ai-portal .a-row,.dark .ai-portal .p-mcard,.dark .ai-portal .p-top{border-color:#374151}
+.dark .ai-portal .p-grid{stroke:#374151}
+.dark .ai-portal .p-tag.est,.dark .ai-portal .p-stats2 .p-stat .p-tag.est{background:#422006;color:#fcd34d}.dark .ai-portal .p-tag.src{background:#064e3b;color:#6ee7b7}
+.dark .ai-portal .p-tag.wage{background:#1e3a8a;color:#bfdbfe}.dark .ai-portal .p-tag.act{background:#3b0764;color:#e9d5ff}.dark .ai-portal .p-tag.out{background:#431407;color:#fdba74}
+.dark .ai-portal .p-stat:first-child .p-tag,.dark .ai-portal .p-stat:nth-child(2) .p-tag{background:#422006;color:#fcd34d}
+.dark .ai-portal .p-info{background:#1e3a8a;color:#dbeafe}
+.dark .ai-portal .p-example{background:#422006;border-color:#a16207;color:#fde68a}
+.dark .ai-portal .p-err,.dark .ai-portal .p-warnbar,.dark .ai-portal .a-warn{background:#450a0a;border-color:#7f1d1d;color:#fecaca}
+.dark .ai-portal .p-ok,.dark .ai-portal .p-newkey{background:#064e3b;border-color:#065f46;color:#d1fae5}
+.dark .ai-portal .p-admin-only{background:#2a1215;border-color:#f87171}
+.dark .ai-portal .p-waiting h2,.dark .ai-portal .p-attn a,.dark .ai-portal .p-keystat b.warn{color:#f87171}
+.dark .ai-portal .btn{background:#059669}.dark .ai-portal .btn.ghost{background:transparent;color:#34d399;box-shadow:inset 0 0 0 2px #34d399}
+.dark .ai-portal .p-adminbadge{background:#064e3b;color:#6ee7b7}

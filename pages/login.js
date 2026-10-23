@@ -39,7 +39,7 @@ export default function Login() {
     e.preventDefault();
     setLinkStatus({ state: 'sending', message: '' });
     try {
-      const r = await fetch('/api/auth/email-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: linkEmail }) });
+      const r = await fetch('/api/auth/email-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: linkEmail, from: router.query.from }) });
       const j = await r.json().catch(() => ({}));
       setLinkStatus(r.ok ? { state: 'sent', message: j.message || 'If that email belongs to a SleepySquid AI client account, a sign-in link is on its way.' } : { state: 'error', message: j.error || 'Something went wrong. Please try again.' });
     } catch {
