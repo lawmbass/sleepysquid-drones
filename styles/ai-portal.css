@@ -119,3 +119,8 @@
 .dark .ai-portal .p-adminbadge{background:#064e3b;color:#6ee7b7}
 .ai-portal .p-issue-head{font-size:14px;font-weight:700;margin:14px 0 4px}.ai-portal .p-issues .p-fix{display:block;margin-top:3px;color:#b45309;font-size:13px}.ai-portal .p-notes li span{color:var(--grey)}
 .dark .ai-portal .p-issues .p-fix{color:#fbbf24}
+.ai-portal .p-bothead,.ai-portal .p-notes-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.ai-portal .p-notes-head .p-mini{margin-top:10px}
+.ai-portal .p-mini{font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#1f2937;cursor:pointer}.ai-portal .p-mini.ghost{background:transparent;color:var(--grey)}.ai-portal .p-mini:disabled{opacity:.5;cursor:default}
+.ai-portal .p-issues .p-resolved-by{display:block;margin-top:3px;font-size:12px;color:var(--grey)}
+.dark .ai-portal .p-mini{background:#1f2937;color:#e5e7eb;border-color:#4b5563}.dark .ai-portal .p-mini.ghost{background:transparent;color:#9ca3af}
+.ai-portal .p-bothead .p-quick{margin:0;order:0}.ai-portal .p-bothead+.p-sub{margin-top:8px}
