@@ -235,10 +235,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 html:not(.dark) .dsq-squid{filter:drop-shadow(0 14px 24px rgba(15,47,79,.22))}
 html:not(.dark) .dsq-drone{filter:drop-shadow(0 6px 10px rgba(15,47,79,.25))}
 /* path Y unit: 1vh, shrunk on short/wide screens so the highest point (-20 units + tilt) stays below the top edge; drone rests at 50vh-396px */
-.dsq-fly{--dsq-y:min(1vh,max(0px,calc((50vh - 440px) / 20)));position:absolute;z-index:2;left:22%;top:-24%;width:62%;animation:dsqFly 14s ease-in-out infinite;will-change:transform}
+/* --dsq-off pushes the whole desktop loop down so its highest point (incl. tilt) stays ~40px below the navbar,
+   i.e. fully below the transparent navbar (~96px) plus margin. Mobile resets it. */
+.dsq-stage{--dsq-y:min(1vh,max(0px,calc((50vh - 440px) / 20)));--dsq-off:max(0px,calc(550px - 50vh + 20 * var(--dsq-y)))}
+.dsq-fly{margin-top:var(--dsq-off);position:absolute;z-index:2;left:22%;top:-24%;width:62%;animation:dsqFly 14s ease-in-out infinite;will-change:transform}
 .dsq-tilt{animation:dsqTilt 14s ease-in-out infinite;will-change:transform}
 .dsq-drone{display:block;width:100%;height:auto;animation:dsqHover 2.2s ease-in-out infinite}
-.dsq-waves{position:absolute;z-index:2;left:41%;top:-10%;width:22%;animation:dsqWaves 14s ease-in-out infinite}
+.dsq-waves{margin-top:var(--dsq-off);position:absolute;z-index:2;left:41%;top:-10%;width:22%;animation:dsqWaves 14s ease-in-out infinite}
 @keyframes dsqHover{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 /* desktop loop stays over the right column and top band, clear of the headline */
 @keyframes dsqFly{
@@ -257,7 +260,8 @@ html:not(.dark) .dsq-drone{filter:drop-shadow(0 6px 10px rgba(15,47,79,.25))}
 @keyframes dsqWaves{0%,8%{opacity:1}12%,90%{opacity:0}96%,100%{opacity:1}}
 @media (max-width:767px){
  .dsq-stage{width:130px;margin-top:1.5rem}
- .dsq-fly{animation-name:dsqFlyM}
+ .dsq-fly{animation-name:dsqFlyM;margin-top:0}
+ .dsq-waves{margin-top:0}
  @keyframes dsqFlyM{
   0%,8%{transform:translate(0,0)}
   20%{transform:translate(-26vw,-6vh)}
