@@ -333,3 +333,16 @@ export async function findUserByEmailExcluding(email, excludeId) {
 }
 
 export { num };
+
+// Settings for AI clients who signed in by email link and have no users row yet: create a plain client
+// row on first use so Profile/Preferences/Notifications/Security load and save like everyone else's.
+export async function findOrCreateSettingsUser(sessionUser, options = {}) {
+  const email = String(sessionUser?.email || "").toLowerCase();
+  if (!email) return null;
+  const existing = await findUserByEmail(email, options);
+  if (existing || !sessionUser?.aiClient) return existing;
+  try {
+    await createUser({ email, name: sessionUser.name || null, role: "client", hasAccess: true, emailVerification: { verified: true } });
+  } catch (e) { /* lost a race with a concurrent create */ }
+  return findUserByEmail(email, options);
+}

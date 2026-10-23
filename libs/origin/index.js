@@ -43,3 +43,13 @@ export function absoluteCallback(url) {
   if (typeof window === 'undefined' || !url || !String(url).startsWith('/') || String(url).startsWith('//')) return url;
   return `${window.location.origin}${url}`;
 }
+// Email sender display name per origin site (server-safe). Unknown origin falls back to "SleepySquid".
+export const ORIGIN_SENDER_NAMES = { drones: 'SleepySquid Drones', ai: 'SleepySquid AI', site: 'SleepySquid' };
+// Server side: explicit `from` value, then the ss_origin cookie, then the request host.
+export function originFromRequest(req, from) {
+  let k = normalizeOrigin(from);
+  if (!k) { const m = String(req?.headers?.cookie || '').match(/(?:^|;\s*)ss_origin=([^;]*)/); k = normalizeOrigin(m && decodeURIComponent(m[1])); }
+  if (!k) { const h = String(req?.headers?.host || '').toLowerCase(); k = h.startsWith('drones.') ? 'drones' : h.startsWith('ai.') ? 'ai' : null; }
+  return k || 'site';
+}
+export const senderNameFor = (k) => ORIGIN_SENDER_NAMES[normalizeOrigin(k)] || 'SleepySquid';
