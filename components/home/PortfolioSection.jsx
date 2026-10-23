@@ -277,6 +277,47 @@ const PortfolioSection = () => {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [imageLoadStates, setImageLoadStates] = useState({});
   const [imageErrorStates, setImageErrorStates] = useState({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const touchStartRef = React.useRef(null);
+  const swipedRef = React.useRef(false);
+
+  const galleryLength = selectedItem && selectedItem.gallery ? selectedItem.gallery.length : 0;
+  const showPrev = () => galleryLength > 1 && setGalleryIndex((prev) => (prev - 1 + galleryLength) % galleryLength);
+  const showNext = () => galleryLength > 1 && setGalleryIndex((prev) => (prev + 1) % galleryLength);
+
+  // Swipe left/right to change images (modal + fullscreen)
+  const swipeHandlers = {
+    onTouchStart: (e) => {
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+      swipedRef.current = false;
+    },
+    onTouchEnd: (e) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (!start) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        swipedRef.current = true;
+        if (dx < 0) showNext(); else showPrev();
+      }
+    },
+  };
+
+  // Tap/click toggles fullscreen, but not right after a swipe
+  const toggleFullscreen = (value) => {
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
+    setIsFullscreen(value);
+  };
+
+  React.useEffect(() => {
+    if (!selectedItem) setIsFullscreen(false);
+  }, [selectedItem]);
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -397,7 +438,8 @@ const PortfolioSection = () => {
           break;
         case 'Escape':
           event.preventDefault();
-          setSelectedItem(null);
+          if (isFullscreen) setIsFullscreen(false);
+          else setSelectedItem(null);
           break;
         default:
           break;
@@ -415,7 +457,7 @@ const PortfolioSection = () => {
       // Restore body scrolling when modal closes
       document.body.style.overflow = 'unset';
     };
-  }, [selectedItem, galleryIndex]);
+  }, [selectedItem, galleryIndex, isFullscreen]);
 
   return (
     <section id="portfolio" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -484,7 +526,7 @@ const PortfolioSection = () => {
                 {selectedItem.gallery ? (
                   <div className="w-full md:flex md:flex-col md:items-center h-full md:h-auto flex flex-col">
                     {/* Large main image with arrows */}
-                    <div className="relative w-full bg-black flex items-center justify-center mb-2 md:mb-4 flex-1 md:flex-none min-h-[300px] md:min-h-[350px] md:h-[50vh]">
+                    <div className="relative w-full bg-black flex items-center justify-center mb-2 md:mb-4 flex-1 md:flex-none min-h-[300px] md:min-h-[350px] md:h-[50vh]" {...swipeHandlers}>
                       {(() => {
                         const currentImageSrc = selectedItem.gallery[galleryIndex].src;
                         const loaded = isImageLoaded(currentImageSrc);
@@ -516,17 +558,24 @@ const PortfolioSection = () => {
 
                             <button
                               className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
-                              onClick={() => setGalleryIndex((galleryIndex - 1 + selectedItem.gallery.length) % selectedItem.gallery.length)}
+                              onClick={showPrev}
                               aria-label="Previous image"
                             >
                               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                             </button>
+                            <button
+                              type="button"
+                              className="absolute inset-0 w-full h-full cursor-zoom-in z-0"
+                              onClick={() => toggleFullscreen(true)}
+                              aria-label="View full screen"
+                              data-testid="gallery-open-fullscreen"
+                            />
                             <Image
                               src={currentImageSrc}
                               alt={selectedItem.gallery[galleryIndex].caption}
                               fill
                               sizes="(max-width: 928px) calc(100vw - 2rem), 896px"
-                              className={`object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                              className={`object-contain pointer-events-none transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                               onLoad={() => setImageLoaded(currentImageSrc)}
                               onError={() => setImageError(currentImageSrc)}
                               quality={85}
@@ -534,13 +583,13 @@ const PortfolioSection = () => {
                             />
                             {/* Overlayed caption */}
                             {loaded && (
-                              <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 text-white text-sm p-3 z-10">
+                              <div className="absolute bottom-0 left-0 w-full bg-black bg-opacity-60 text-white text-sm p-3 z-10 pointer-events-none">
                                 {selectedItem.gallery[galleryIndex].caption}
                               </div>
                             )}
                             <button
                               className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 rounded-full p-2 z-10 hover:bg-opacity-100"
-                              onClick={() => setGalleryIndex((galleryIndex + 1) % selectedItem.gallery.length)}
+                              onClick={showNext}
                               aria-label="Next image"
                             >
                               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
@@ -646,6 +695,66 @@ const PortfolioSection = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Full-screen viewer: whole picture, no caption */}
+        {selectedItem && selectedItem.gallery && isFullscreen && (
+          <div
+            className="fixed inset-0 z-[60] bg-black flex items-center justify-center select-none"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Full screen image"
+            data-testid="gallery-fullscreen"
+            {...swipeHandlers}
+          >
+            <button
+              type="button"
+              className="absolute inset-0 w-full h-full cursor-zoom-out"
+              onClick={() => toggleFullscreen(false)}
+              aria-label="Exit full screen"
+            />
+            <Image
+              key={selectedItem.gallery[galleryIndex].src}
+              src={selectedItem.gallery[galleryIndex].src}
+              alt={selectedItem.gallery[galleryIndex].caption}
+              fill
+              sizes="100vw"
+              quality={90}
+              className="object-contain pointer-events-none"
+              {...blurProps(selectedItem.gallery[galleryIndex].src)}
+            />
+            {galleryLength > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full p-2 z-10"
+                  onClick={showPrev}
+                  aria-label="Previous image"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button
+                  type="button"
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-900 rounded-full p-2 z-10"
+                  onClick={showNext}
+                  aria-label="Next image"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <div className="absolute top-4 left-4 text-white/80 text-sm bg-black/40 rounded-full px-3 py-1 z-10 pointer-events-none">
+                  {galleryIndex + 1} / {galleryLength}
+                </div>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(false)}
+              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2 shadow-lg z-10"
+              aria-label="Close full screen"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
         )}
       </div>
