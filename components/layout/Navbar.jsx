@@ -19,20 +19,21 @@ const Navbar = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
-  // The header always uses the site's theme surfaces: white with dark text and blue
-  // accents in light mode, dark gray in dark mode. It no longer goes transparent over
-  // the (always dark) hero, which is what kept it dark navy in light mode.
+  // Transparent over the hero at the top so the drone animation shows through; text and
+  // logo follow the theme (the hero is a day sky in light mode, night sky in dark mode).
+  // Once scrolled (or menu open) it becomes a solid blurred theme surface.
   const link = 'text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 transition-colors';
   const loginBtn = 'bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-600';
 
   return (
-    <nav className={`fixed w-full z-40 transition-all duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 ${scrolled || isOpen ? 'shadow-sm py-2' : 'py-3'}`} style={{ top: 'var(--promo-banner-height, 0px)' }}>
+    <nav className={`fixed w-full z-40 transition-all duration-300 ${scrolled || isOpen ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm py-2' : 'bg-transparent border-b border-transparent py-3'}`} style={{ top: 'var(--promo-banner-height, 0px)' }}>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center hover:opacity-90 transition-opacity" aria-label="SleepySquid Drones home">
