@@ -9,7 +9,35 @@ function matchesRoute(pathname, route) {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
+// Before #83 the auth cookies were host-only on drones.sleepysquid.com. Those old cookies share their names
+// with the new shared .sleepysquid.com ones, and the browser sends the older host-only copy first, so the
+// server read a stale callback-url (drones home) and an expired session token: first sign-in landed on the
+// drones homepage looking signed out. When a request carries two copies, expire the host-only copy (a
+// Set-Cookie without Domain only clears the host-only one) and retry the same URL once.
+const SHARED_AUTH_COOKIES = ['__Secure-next-auth.session-token', '__Secure-next-auth.callback-url', '__Secure-next-auth.csrf-token', '__Secure-next-auth.pkce.code_verifier', '__Secure-next-auth.state', '__Secure-next-auth.nonce'];
+export function duplicatedAuthCookies(cookieHeader) {
+  const counts = {};
+  for (const part of String(cookieHeader || '').split(';')) {
+    const name = part.split('=')[0].trim();
+    // chunked session cookies are named <name>.0, <name>.1
+    const base = SHARED_AUTH_COOKIES.find((n) => name === n || name.startsWith(`${n}.`));
+    if (base) counts[name] = (counts[name] || 0) + 1;
+  }
+  return Object.keys(counts).filter((n) => counts[n] > 1);
+}
+
 export async function middleware(request) {
+  if (process.env.NEXTAUTH_COOKIE_DOMAIN && !request.nextUrl.searchParams.has('_ckfix')) {
+    const dups = duplicatedAuthCookies(request.headers.get('cookie'));
+    if (dups.length) {
+      const url = request.nextUrl.clone();
+      url.searchParams.set('_ckfix', '1');
+      const res = NextResponse.redirect(url, 307);
+      for (const n of dups) res.headers.append('Set-Cookie', `${n}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`);
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
+    }
+  }
   const response = NextResponse.next();
 
   response.headers.set('X-Content-Type-Options', 'nosniff');

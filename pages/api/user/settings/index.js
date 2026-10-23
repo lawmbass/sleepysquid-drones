@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
-import { findUserByEmail } from "@/libs/db/users";
+import { findOrCreateSettingsUser } from "@/libs/db/users";
 import { findOAuthAccountByUserId } from "@/libs/db/accounts";
 
 export default async function handler(req, res) {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const user = await findUserByEmail(session.user.email, { includeSecrets: true });
+    const user = await findOrCreateSettingsUser(session.user, { includeSecrets: true });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

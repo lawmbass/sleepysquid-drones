@@ -8,6 +8,7 @@ import ClientContent from '@/components/dashboard/ClientContent';
 import PilotContent from '@/components/dashboard/PilotContent';
 import DefaultContent from '@/components/dashboard/DefaultContent';
 import AiAutomationContent, { AiSummaryCard } from '@/components/aiPortal/AiAutomationContent';
+import Settings from '@/components/dashboard/Settings';
 import AiSettings from '@/components/aiPortal/AiSettings';
 
 const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users'];
@@ -113,7 +114,7 @@ export default function Dashboard() {
     const roleContent = renderRoleContent();
     // AI automation settings live in Settings, for users linked to an AI client (not admins' own Settings).
     if (requestedSection === 'settings' && session.user.aiClient && !isDashboardAdmin) {
-      return (<>{String(session.user.id || '').startsWith('ai:') ? null : roleContent}<div id="ai-automation" className="mt-8 scroll-mt-4"><AiSettings /></div></>);
+      return (<>{String(session.user.id || '').startsWith('ai:') ? <Settings user={session.user} onUpdate={handleUserUpdate} /> : roleContent}<div id="ai-automation" className="mt-8 scroll-mt-4"><AiSettings /></div></>);
     }
     if (session.user.aiClient && !requestedSection) {
       return (<><AiSummaryCard onOpen={() => router.push('/dashboard?section=ai', undefined, { shallow: true })} />{String(session.user.id || '').startsWith('ai:') ? null : roleContent}</>);
