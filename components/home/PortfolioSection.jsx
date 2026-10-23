@@ -536,7 +536,7 @@ const PortfolioSection = () => {
                           <>
                             {/* Loading spinner for modal image */}
                             {!loaded && !error && (
-                              <div className="absolute inset-0 flex items-center justify-center z-20">
+                              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                                 <div className="bg-black bg-opacity-50 rounded-lg p-4 flex items-center">
                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
                                   <span className="text-white">Loading image...</span>
@@ -546,7 +546,7 @@ const PortfolioSection = () => {
                             
                             {/* Error state for modal image */}
                             {error && (
-                              <div className="absolute inset-0 flex items-center justify-center z-20">
+                              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                                 <div className="bg-black bg-opacity-75 rounded-lg p-4 flex flex-col items-center text-white">
                                   <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.994-.833-2.764 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -635,7 +635,7 @@ const PortfolioSection = () => {
                         <>
                           {/* Loading spinner for single modal image */}
                           {!loaded && !error && (
-                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                               <div className="bg-black bg-opacity-50 rounded-lg p-4 flex items-center">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
                                 <span className="text-white">Loading image...</span>
@@ -645,7 +645,7 @@ const PortfolioSection = () => {
                           
                           {/* Error state for single modal image */}
                           {error && (
-                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                               <div className="bg-black bg-opacity-75 rounded-lg p-4 flex flex-col items-center text-white">
                                 <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.994-.833-2.764 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
