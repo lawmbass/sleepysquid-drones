@@ -12,6 +12,7 @@ import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "seen", label: "Seen" },
+  { value: "needs_review", label: "Needs review" },
   { value: "accepted", label: "Accepted" },
   { value: "declined_by_filter", label: "Declined by filter" },
   { value: "expired", label: "Expired" },
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_STYLES = {
+  needs_review: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
   seen: "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
   accepted: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
   declined_by_filter: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",

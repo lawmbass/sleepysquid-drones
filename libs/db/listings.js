@@ -2,6 +2,7 @@ import { assertNoError, db, escapeIlike, fetchAll, isUuid, num, parseSort } from
 import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 import { scheduledFlightLongPast } from "@/libs/jobs";
 import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
+import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -12,7 +13,8 @@ export function mapListing(row) {
     externalMissionId: row.external_mission_id,
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
-    status: row.status,
+    status: displayStatus(row.status, row.decline_reason),
+    storedStatus: row.status,
     declineReason: row.decline_reason,
     title: row.title,
     clientName: row.client_name,
@@ -84,7 +86,13 @@ const LIST_COLUMNS = [
 ].join(", ");
 
 function applyListingFilters(query, filters = {}) {
-  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.status === NEEDS_REVIEW) {
+    query = query.eq("status", "seen").like("decline_reason", "needs_review%");
+  } else if (filters.status === "seen") {
+    query = query.eq("status", "seen").or("decline_reason.is.null,decline_reason.not.like.needs_review*");
+  } else if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
   if (filters.missionType) query = query.ilike("mission_type", `%${escapeIlike(filters.missionType)}%`);
   if (filters.equipment) query = query.ilike("equipment_search", `%${escapeIlike(filters.equipment)}%`);
   if (filters.source) query = query.eq("source", filters.source);
@@ -254,7 +262,8 @@ export async function listingAggregates(filters = {}) {
   for (const row of rows) {
     const type = row.mission_type || "Unknown";
     byType[type] = (byType[type] || 0) + 1;
-    byStatus[row.status] = (byStatus[row.status] || 0) + 1;
+    const status = displayStatus(row.status, row.decline_reason);
+    byStatus[status] = (byStatus[status] || 0) + 1;
     if (row.status === "declined_by_filter") {
       const reason = row.decline_reason || "unspecified";
       byDeclineReason[reason] = (byDeclineReason[reason] || 0) + 1;
