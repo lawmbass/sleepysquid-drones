@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FiX, FiSave, FiMail, FiPhone, FiMapPin, FiCalendar, FiClock, FiPackage, FiTarget, FiNavigation, FiDollarSign, FiTrash2 } from 'react-icons/fi';
 import ConfirmationDialog from './ConfirmationDialog';
+import AddressAutocomplete from '@/components/booking/AddressAutocomplete';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState, missionDetailAmounts } from '@/libs/jobs';
 import { normalizeServiceLine, serviceLineLabel } from '@/libs/serviceLines';
@@ -30,7 +31,11 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
     status: booking.status,
     estimatedPrice: booking.estimatedPrice ?? '',
     finalPrice: booking.finalPrice ?? '',
-    adminNotes: booking.adminNotes || ''
+    adminNotes: booking.adminNotes || '',
+    location: booking.location || '',
+    placeId: '',
+    email: booking.email || '',
+    phone: booking.phone || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -43,7 +48,11 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         status: booking.status,
         estimatedPrice: booking.estimatedPrice ?? '',
         finalPrice: booking.finalPrice ?? '',
-        adminNotes: booking.adminNotes || ''
+        adminNotes: booking.adminNotes || '',
+        location: booking.location || '',
+        placeId: '',
+        email: booking.email || '',
+        phone: booking.phone || ''
       });
     }
   }, [booking]);
@@ -90,16 +99,21 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         updates.adminNotes = formData.adminNotes;
       }
 
+      for (const key of ['location', 'email', 'phone']) {
+        if (formData[key].trim() !== (booking[key] || '')) updates[key] = formData[key].trim();
+      }
+      if (formData.placeId) updates.placeId = formData.placeId;
+
       if (Object.keys(updates).length === 0) {
         onClose();
         return;
       }
 
       const success = await onUpdate(booking._id, updates);
-      if (success) {
+      if (success === true) {
         onClose();
       } else {
-        setError('Failed to update booking. Please try again.');
+        setError(typeof success === 'string' ? success : 'Failed to update booking. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -214,12 +228,12 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 )}
                 <div className="flex items-center">
                   <FiMail className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-900 dark:text-white">{booking.email}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{booking.email || 'No email yet'}</span>
                 </div>
                 {customerLike && (
                   <div className="flex items-center">
                     <FiPhone className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-900 dark:text-white">{booking.phone}</span>
+                    <span className="text-sm text-gray-900 dark:text-white">{booking.phone || 'No phone yet'}</span>
                   </div>
                 )}
                 <div className="flex items-center">
@@ -229,7 +243,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
                 {normalizeServiceLine(booking.serviceLine) === 'drones' && (
                 <div className="flex items-start">
                   <FiMapPin className="h-4 w-4 text-gray-500 mr-2 mt-0.5" />
-                  <span className="text-sm text-gray-900 dark:text-white">{booking.location}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{booking.location || 'Address TBD'}</span>
                 </div>
                 )}
                 {booking.payout && (
@@ -395,6 +409,35 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
               </div>
             </div>
 
+            {customerLike && !readOnlyJob && (
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {normalizeServiceLine(booking.serviceLine) === 'drones' && (
+                  <div className="sm:col-span-3">
+                    <label htmlFor="booking-edit-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
+                    <AddressAutocomplete
+                      id="booking-edit-location"
+                      value={formData.location}
+                      selected={Boolean(formData.placeId) || (formData.location !== '' && formData.location === (booking.location || ''))}
+                      placeholder="Start typing a US address"
+                      autocompletePath="/api/admin/places/autocomplete"
+                      detailsPath="/api/admin/places/details"
+                      inputClassName={fieldClass}
+                      onChange={(text) => { setFormData(prev => ({ ...prev, location: text, placeId: '' })); setError(''); }}
+                      onSelect={(place) => { setFormData(prev => ({ ...prev, location: place.location, placeId: place.placeId })); setError(''); }}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="booking-edit-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                  <input id="booking-edit-email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} className={fieldClass} />
+                </div>
+                <div>
+                  <label htmlFor="booking-edit-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
+                  <input id="booking-edit-phone" type="tel" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} className={fieldClass} />
+                </div>
+              </div>
+            )}
+
             {/* Admin Notes */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -508,7 +551,7 @@ export default function BookingModal({ booking, isOpen, onClose, onUpdate, onDel
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
         title="Delete Booking"
-        message={`Are you sure you want to delete this booking?\n\nCustomer: ${booking.name}\nEmail: ${booking.email}\nService: ${serviceLabels[booking.service] || booking.service}\nDate: ${formatDate(booking.date)}\n\nThis action cannot be undone.`}
+        message={`Are you sure you want to delete this booking?\n\nCustomer: ${booking.name}\nEmail: ${booking.email || '—'}\nService: ${serviceLabels[booking.service] || booking.service}\nDate: ${formatDate(booking.date)}\n\nThis action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         type="danger"

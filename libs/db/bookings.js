@@ -157,6 +157,8 @@ const BOOKING_PATCH_COLUMNS = {
   payout: "payout",
   source: "source",
   serviceLine: "service_line",
+  latitude: "latitude",
+  longitude: "longitude",
 };
 
 export async function insertBooking(input) {

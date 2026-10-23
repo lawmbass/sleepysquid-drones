@@ -31,6 +31,17 @@ export default async function handler(req, res) {
     }
   }
 
+  // Pending bookings may be saved before the address is known.
+  if (!result.value.location) {
+    try {
+      const booking = await insertBooking({ ...result.value, location: null });
+      return res.status(201).json({ success: true, data: { booking } });
+    } catch (error) {
+      console.error("Admin booking create error:", error);
+      return res.status(500).json({ error: "Internal server error", message: "Failed to add booking" });
+    }
+  }
+
   const address = await resolveUsBookingAddress({
     placeId: req.body?.placeId,
     location: result.value.location,
