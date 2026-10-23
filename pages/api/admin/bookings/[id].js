@@ -4,6 +4,8 @@ import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
+import { validateContactPatch } from "@/libs/bookingContactPatch";
+import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 
 // Apply rate limiting middleware
 const rateLimitMiddleware = (req, res) => {
@@ -176,6 +178,33 @@ export default async function handler(req, res) {
       }
       updates.adminNotes = adminNotes.trim();
     }
+
+    // Validate contact details (location, email, phone)
+    const contact = validateContactPatch(req.body, existingBooking);
+    if (Object.keys(contact.errors).length) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: Object.values(contact.errors)[0],
+        fields: contact.errors
+      });
+    }
+    if (contact.needsAddress) {
+      const unchanged = contact.updates.location === existingBooking.location && !req.body.placeId;
+      if (!unchanged) {
+        const address = await resolveUsBookingAddress({
+          placeId: req.body.placeId,
+          location: contact.updates.location,
+        });
+        if (!address.ok) {
+          const failure = bookingAddressError(address.reason);
+          return res.status(failure.status).json({ error: 'Invalid location', message: failure.message });
+        }
+        contact.updates.location = address.location;
+        contact.updates.latitude = address.lat;
+        contact.updates.longitude = address.lng;
+      }
+    }
+    Object.assign(updates, contact.updates);
 
     // Check if any updates were provided
     if (Object.keys(updates).length === 0) {

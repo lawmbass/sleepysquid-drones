@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check:rls": "node scripts/check-rls.js"
+    "check:rls": "node scripts/check-rls.js",
+    "test": "node --test scripts/tests/"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

@@ -76,7 +76,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
 
   const handleUpdateBooking = async (bookingId, updates) => {
     const success = await onUpdateBooking(bookingId, updates);
-    if (success) {
+    if (success === true) {
       handleCloseModal();
     }
     return success;
@@ -171,12 +171,12 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
         {isDroneBooking(booking) && <div className="flex items-start">
           <FiMapPin className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
           <span className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-            {(booking.location || "").length > 50 ? `${booking.location.substring(0, 50)}...` : (booking.location || "—")}
+            {(booking.location || "").length > 50 ? `${booking.location.substring(0, 50)}...` : (booking.location || "Address TBD")}
           </span>
         </div>}
         <div className="flex items-center">
           <FiMail className="h-3 w-3 text-gray-400 mr-1" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">{booking.email}</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300">{booking.email || "No email yet"}</span>
         </div>
         {(booking.source === 'customer' || booking.source === 'manual') && booking.phone && (
           <div className="flex items-center">
@@ -367,12 +367,12 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                             )}
                             <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                               <FiMail className="h-3 w-3 mr-1" />
-                              {booking.email}
+                              {booking.email || "No email yet"}
                             </div>
                             {(booking.source === 'customer' || booking.source === 'manual') && (
                               <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                                 <FiPhone className="h-3 w-3 mr-1" />
-                                {booking.phone}
+                                {booking.phone || "No phone yet"}
                               </div>
                             )}
                           </div>
@@ -404,7 +404,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                           <FiMapPin className="h-3 w-3 mr-1" />
                           {(booking.location || "").length > 30 
                             ? `${booking.location.substring(0, 30)}...` 
-                            : (booking.location || "—")
+                            : (booking.location || "Address TBD")
                           }
                         </div>}
                       </td>
