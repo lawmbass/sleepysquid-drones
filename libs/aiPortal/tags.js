@@ -48,6 +48,33 @@ export const TILE_GROUPS = [
 export const isRoutineKey = (k) => /^(routines_|connectors_|system_logins_)/.test(k);
 // Report notes that describe a failure (vs. bookkeeping notes like backfill comments).
 export const isErrorNote = (n) => !!n && n !== "EXAMPLE data" && !/^Backfilled from bot work logs/i.test(n);
+// ---- admin "Errors reported" split: Needs attention vs Notes ----
+// New bots tag notes as "[error] <reason>" or "[note] <text>" (ingest maps the optional `severity`/`reason`/`fix`
+// fields onto notes, so schema_version 1 rows stay unchanged). An optional " || Fix: <who/what>" suffix carries the fix.
+// Legacy untagged rows are classified by wording; error rows with no note show as "No details sent" under Notes.
+const NEEDS = [
+  [/1password|bill\.com/i, "Sign in to Bill.com through 1Password again so the bot can reach it (Lawrence)."],
+  [/sign[- ]?in code|verification code|2fa|otp|code.*tim(ed|e) ?out|tim(ed|e) ?out.*code/i, "Send the bot a fresh sign-in code when it asks, or sign in once by hand (Lawrence)."],
+  [/bid alert|bid.*sign[- ]?in|sign[- ]?in.*bid/i, "Sign the bid alerts bot back in to the bid site (Lawrence)."],
+  [/never sent|not sent|wasn'?t sent|failed to send|send failed|didn'?t send|bounced/i, "Send it by hand, then check the bot's send connector (Lawrence or the bot owner)."],
+  [/sign[- ]?in (needed|required|expired)|signed out|re-?auth|log ?in (needed|required|failed)|sign[- ]?in fail/i, "Sign the bot back in to the app (Lawrence)."],
+  [/blocked|permission denied|access denied|forbidden/i, "Unblock the action or grant access, then rerun (Lawrence)."],
+];
+export function classifyIssue(notes, errors) {
+  const raw = isErrorNote(notes) ? String(notes).trim() : "";
+  const m = /^\[(error|note)\]\s*/i.exec(raw);
+  let body = m ? raw.slice(m[0].length) : raw, fix = null;
+  const f = /\s*\|\|\s*Fix:\s*/i.exec(body);
+  if (f) { fix = body.slice(f.index + f[0].length).trim() || null; body = body.slice(0, f.index).trim(); }
+  if (m) {
+    const kind = m[1].toLowerCase();
+    if (kind === "error" && !body) return { kind: "note", reason: "No details sent", fix: null, noDetails: true };
+    return { kind: kind === "error" ? "attention" : "note", reason: body, fix: kind === "error" ? fix || (NEEDS.find(([re]) => re.test(body)) || [])[1] || null : null };
+  }
+  if (!body) return errors > 0 ? { kind: "note", reason: "No details sent", fix: null, noDetails: true } : null;
+  const hit = NEEDS.find(([re]) => re.test(body));
+  return hit ? { kind: "attention", reason: body, fix: fix || hit[1] } : { kind: "note", reason: body, fix: null };
+}
 export const shortDate = (s, tz) => new Date(s).toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric" });
 // Connection tests / setup checks (e.g. Logs' "logs-connection-test") are plumbing, not client results:
 // hidden from the client dashboard + PDF (count, charts, tiles, value, hours, trends); admin preview lists them as "test".

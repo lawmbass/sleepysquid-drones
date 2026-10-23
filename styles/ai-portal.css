@@ -117,3 +117,5 @@
 .dark .ai-portal .p-waiting h2,.dark .ai-portal .p-attn a,.dark .ai-portal .p-keystat b.warn{color:#f87171}
 .dark .ai-portal .btn{background:#059669}.dark .ai-portal .btn.ghost{background:transparent;color:#34d399;box-shadow:inset 0 0 0 2px #34d399}
 .dark .ai-portal .p-adminbadge{background:#064e3b;color:#6ee7b7}
+.ai-portal .p-issue-head{font-size:14px;font-weight:700;margin:14px 0 4px}.ai-portal .p-issues .p-fix{display:block;margin-top:3px;color:#b45309;font-size:13px}.ai-portal .p-notes li span{color:var(--grey)}
+.dark .ai-portal .p-issues .p-fix{color:#fbbf24}

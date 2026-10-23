@@ -42,7 +42,7 @@ export default function AiAutomationContent() {
   const set = (p) => setQ({ client: client.id, from, to, ...p });
   const wages = d.rates.map((r) => r.wage), lo = Math.min(...wages), hi = Math.max(...wages);
   const rateText = d.rateIsDefault ? `the default rate ($${DEFAULT_RATE}/hr)` : !d.rates.length ? `${money(client.hourly_rate)}/hour` : lo === hi ? `$${lo.toFixed(2)}/hour` : `area wages of $${lo.toFixed(2)}–$${hi.toFixed(2)}/hour`;
-  const errs = (d.attention || []).reduce((t, a) => t + a.errors, 0);
+  const need = d.attention || [], infoNotes = d.issueNotes || [];
   const ratio = d.planPrice ? d.totals.dollars / (d.planPrice * Math.max(1, (Date.parse(to) - Date.parse(from)) / DAY + 1) / 30.44) : null;
   const noData = !d.lastUpdated, emptyRange = !noData && !d.workflows.length;
   const collecting = !noData && !(d.totals.dollars > 0);
@@ -82,8 +82,11 @@ export default function AiAutomationContent() {
     </>}
     <section className="p-stats"><div className="p-stat full" data-testid="live"><span>Automations</span><b>{plural(d.reportingCount, "automation")} reporting</b></div></section>
     {!emptyRange && d.weekly.length > 0 && <Charts d={d} money={money} />}
-    {admin && errs > 0 && <section className="p-panel p-admin-only" data-testid="admin-errors"><h2><span className="p-admin-badge">Admin only</span> Errors reported ({errs})</h2><p className="p-sub sm">Hidden from the client.</p>
-      <ul className="p-wins">{d.attention.map((a, i) => <li key={i}><time>{shortDate(a.at, client.timezone)}</time><span><b>{a.name}</b>: {a.note || `${plural(a.errors, "action")} didn't go through`}</span></li>)}</ul></section>}
+    {admin && (need.length > 0 || infoNotes.length > 0) && <section className="p-panel p-admin-only" data-testid="admin-errors"><h2><span className="p-admin-badge">Admin only</span> Bot reports</h2><p className="p-sub sm">Hidden from the client.</p>
+      <h3 className="p-issue-head" data-testid="needs-attention">Needs attention ({need.length})</h3>
+      {need.length ? <ul className="p-wins p-issues">{need.map((a, i) => <li key={i}><time>{shortDate(a.at, client.timezone)}</time><span><b>{a.name}</b>: {a.note}{a.fix && <small className="p-fix">Fix: {a.fix}</small>}</span></li>)}</ul> : <p className="p-sub sm">Nothing needs attention.</p>}
+      {infoNotes.length > 0 && <><h3 className="p-issue-head" data-testid="issue-notes">Notes ({infoNotes.length})</h3>
+      <ul className="p-wins p-issues p-notes">{infoNotes.map((a, i) => <li key={i}><time>{shortDate(a.at, client.timezone)}</time><span><b>{a.name}</b>: {a.noDetails ? <i>No details sent</i> : a.note}</span></li>)}</ul></>}</section>}
     </>}
     {admin && d.testAutomations?.length > 0 && <section className="p-panel p-admin-only" data-testid="admin-tests"><h2><span className="p-admin-badge">Admin only</span> Test automations ({d.testAutomations.length})</h2><p className="p-sub sm">Connection tests and setup checks. Hidden from the client.</p>
       <ul className="p-wins">{d.testAutomations.map((a) => <li key={a.id}><time>test</time><span><b>{a.name}</b> <code>{a.id}</code>: {plural(a.reports, "report")} in this view</span></li>)}</ul></section>}

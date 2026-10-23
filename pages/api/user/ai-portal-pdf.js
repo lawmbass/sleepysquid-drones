@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const to = okDate(req.query.to) ? req.query.to : today;
     const from = okDate(req.query.from) && req.query.from <= to ? req.query.from : new Date(Date.parse(to) - 29 * 86400000).toISOString().slice(0, 10);
     const d = await buildReport(c.clientId, from, to);
-    d.attention = []; d.testAutomations = [];
+    d.attention = []; d.issueNotes = []; d.testAutomations = [];
     const pdf = await renderReportPdf(d);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="sleepysquid-report-${c.clientId}-${from}_${to}.pdf"`);
