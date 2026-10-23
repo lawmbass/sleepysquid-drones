@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     const to = okDate(req.query.to) ? req.query.to : iso(new Date());
     const from = okDate(req.query.from) && req.query.from <= to ? req.query.from : iso(new Date(Date.parse(to) - 29 * DAY));
     const d = await buildReport(clientId, from, to);
-    if (!admin) { d.attention = []; d.testAutomations = []; }
+    if (!admin) { d.attention = []; d.issueNotes = []; d.resolvedIssues = []; d.resolutionsAvailable = false; d.testAutomations = []; }
     if (req.query.summary) {
       return res.status(200).json({ linked: true, admin, summary: { clientName: d.client.name, currency: d.client.currency, from, to, dollars: d.totals.dollars, hours: d.totals.hours, reporting: d.reportingCount, collecting: !d.lastUpdated || !(d.totals.dollars > 0) } });
     }
