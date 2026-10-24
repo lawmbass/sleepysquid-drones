@@ -1,8 +1,9 @@
 /**
  * Acceptance rules stored in public.bot_settings (the single row id = 1).
  *
- * The drone-gigs bot reads that row. This file is the dashboard's check of
- * the same numbers, plus a preview of how recent listings would be decided.
+ * The drone-gigs bot reads that row. The same numbers apply to every
+ * connected gig source. This file is the dashboard's check of those numbers,
+ * plus a preview of how recent listings would be decided.
  * The preview uses the payout and drive time already stored on each listing,
  * unless the form has an unsaved home pin. That preview asks the Routes API
  * for draft drive minutes and does not write them. The bot fills stored
@@ -198,50 +199,88 @@ export function snapZeitviewRadius(value) {
   return best;
 }
 
-export function zeitviewRadiusColumn(settings) {
-  if (!settings || !Object.prototype.hasOwnProperty.call(settings, "zeitviewRadiusMiles")) {
-    return { write: false, value: null };
-  }
-  const snapped = snapZeitviewRadius(settings.zeitviewRadiusMiles);
-  if (snapped && typeof snapped === "object") return { write: false, value: null };
-  return { write: true, value: snapped };
+const TRAVEL_RADIUS_MAX = 500;
+
+function finiteMiles(value) {
+  if (value == null || value === "") return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : null;
 }
 
-function zeitviewText(...values) {
+/**
+ * Columns written for the shared travel radius.
+ * The dashboard writes travel_radius_miles. Until that column exists, the
+ * save falls back to the compatibility column the live bot still reads,
+ * snapped to the radii Zeitview's profile accepts.
+ */
+export function radiusColumnsForSave(settings, { hasTravelRadiusColumn = true } = {}) {
+  if (!settings || !Object.prototype.hasOwnProperty.call(settings, "travelRadiusMiles")) return {};
+  const miles = settings.travelRadiusMiles;
+  if (hasTravelRadiusColumn) return { travel_radius_miles: miles };
+  const snapped = snapZeitviewRadius(miles);
+  if (snapped && typeof snapped === "object") return {};
+  return { zeitview_radius_miles: snapped };
+}
+
+function syncText(...values) {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return "";
 }
 
-function zeitviewRecord(value) {
+function syncRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value;
 }
 
-export function zeitviewFromRow(row) {
-  if (!row || !Object.prototype.hasOwnProperty.call(row, "zeitview_radius_miles")) {
-    return { zeitviewAvailable: false };
+export function travelRadiusFromRow(row) {
+  if (!row || typeof row !== "object") return { travelRadiusAvailable: false };
+  if (Object.prototype.hasOwnProperty.call(row, "travel_radius_miles")) {
+    return {
+      travelRadiusAvailable: true,
+      travelRadiusMiles: finiteMiles(row.travel_radius_miles),
+    };
   }
-  const snapped = row.zeitview_radius_miles == null ? null : snapZeitviewRadius(row.zeitview_radius_miles);
+  // Compatibility read, only when the shared column is not in the schema yet.
+  if (Object.prototype.hasOwnProperty.call(row, "zeitview_radius_miles")) {
+    const snapped = row.zeitview_radius_miles == null ? null : snapZeitviewRadius(row.zeitview_radius_miles);
+    return {
+      travelRadiusAvailable: true,
+      travelRadiusMiles: snapped && typeof snapped === "object" ? null : snapped,
+      travelRadiusLegacy: true,
+    };
+  }
+  return { travelRadiusAvailable: false };
+}
+
+/**
+ * Sync columns the live bot still writes on bot_settings. The dashboard
+ * shows the copy on gig_sources. This is only the fallback until that copy
+ * is present.
+ */
+export function legacyZeitviewSyncFromRow(row) {
+  if (!row || typeof row !== "object") return null;
+  const hasResult = Object.prototype.hasOwnProperty.call(row, "zeitview_last_result");
+  const hasTime = Object.prototype.hasOwnProperty.call(row, "zeitview_last_synced_at");
+  if (!hasResult && !hasTime) return null;
+  const result = row.zeitview_last_result === "ok" || row.zeitview_last_result === "failed"
+    ? row.zeitview_last_result
+    : null;
   return {
-    zeitviewAvailable: true,
-    zeitviewRadiusMiles: snapped && typeof snapped === "object" ? null : snapped,
-    zeitviewLastSyncedAt: row.zeitview_last_synced_at || null,
-    zeitviewLastResult:
-      row.zeitview_last_result === "ok" || row.zeitview_last_result === "failed"
-        ? row.zeitview_last_result
-        : null,
-    zeitviewLastError: typeof row.zeitview_last_error === "string" ? row.zeitview_last_error : null,
-    zeitviewObserved: zeitviewRecord(row.zeitview_observed),
+    result,
+    syncedAt: row.zeitview_last_synced_at || null,
+    error: typeof row.zeitview_last_error === "string" ? row.zeitview_last_error : "",
+    observed: syncRecord(row.zeitview_observed),
+    requestedAt: null,
   };
 }
 
-export function zeitviewObservedPlace(observed) {
-  const row = zeitviewRecord(observed);
+export function syncObservedPlace(observed) {
+  const row = syncRecord(observed);
   if (!row) return "";
-  const address = zeitviewRecord(row.address) || zeitviewRecord(row.address_parts) || {};
-  const street = zeitviewText(
+  const address = syncRecord(row.address) || syncRecord(row.address_parts) || {};
+  const street = syncText(
     address.street,
     address.street_address,
     address.address_line_1,
@@ -253,17 +292,17 @@ export function zeitviewObservedPlace(observed) {
     row.line1,
     row.address1
   );
-  const city = zeitviewText(address.city, address.locality, address.town, row.city, row.locality, row.town);
+  const city = syncText(address.city, address.locality, address.town, row.city, row.locality, row.town);
   if (street && city) return `${street}, ${city}`;
   if (typeof row.address === "string") return row.address.trim();
   return street || city;
 }
 
-export function zeitviewObservedMiles(observed) {
-  const row = zeitviewRecord(observed);
+export function syncObservedMiles(observed) {
+  const row = syncRecord(observed);
   if (!row) return null;
-  const nested = zeitviewRecord(row.address);
-  const raw = row.travel_distance ?? row.travelDistance ?? nested?.travel_distance;
+  const nested = syncRecord(row.address);
+  const raw = row.travel_distance ?? row.travelDistance ?? row.travel_radius_miles ?? nested?.travel_distance;
   if (raw == null || raw === "") return null;
   const amount = typeof raw === "string" ? Number((raw.trim().match(/^(\d+(?:\.\d+)?)/) || [])[1]) : Number(raw);
   if (!Number.isFinite(amount) || amount < 0) return null;
@@ -271,7 +310,7 @@ export function zeitviewObservedMiles(observed) {
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
 }
 
-export function zeitviewSyncStatus(settings, formatTime = (value) => {
+export function describeProfileSync(name, sync, formatTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("en-US", {
@@ -283,23 +322,31 @@ export function zeitviewSyncStatus(settings, formatTime = (value) => {
     minute: "2-digit",
   });
 }) {
-  if (!settings?.zeitviewAvailable) return null;
-  if (settings.zeitviewLastResult === "failed") {
+  if (!sync || !name) return null;
+  if (sync.result === "failed") {
     return {
       state: "failed",
-      title: "Zeitview sync broke, script needs updating",
-      detail: typeof settings.zeitviewLastError === "string" ? settings.zeitviewLastError.trim() : "",
+      title: `${name} sync broke, script needs updating`,
+      detail: typeof sync.error === "string" ? sync.error.trim() : "",
     };
   }
-  if (settings.zeitviewLastResult !== "ok" || !settings.zeitviewLastSyncedAt) return null;
-  const place = zeitviewObservedPlace(settings.zeitviewObserved);
-  const miles = zeitviewObservedMiles(settings.zeitviewObserved);
-  const when = formatTime(settings.zeitviewLastSyncedAt);
-  if (!place || miles == null || !when) return null;
-  return {
-    state: "ok",
-    text: `Synced ${when}: ${miles} mi from ${place}`,
-  };
+  if (sync.result === "nothing") {
+    return { state: "nothing", text: "Nothing to sync." };
+  }
+  if (sync.result === "ok" && sync.syncedAt) {
+    const when = formatTime(sync.syncedAt);
+    if (!when) return null;
+    const place = syncObservedPlace(sync.observed);
+    const miles = syncObservedMiles(sync.observed);
+    if (place && miles != null) {
+      return { state: "ok", text: `Synced ${when}: ${miles} mi from ${place}` };
+    }
+    return { state: "ok", text: `Synced ${when}.` };
+  }
+  if (sync.requestedAt && !sync.syncedAt) {
+    return { state: "pending", text: "Sync requested. Waiting for the drone-gigs bot." };
+  }
+  return null;
 }
 
 export function validateBotSettings(input) {
@@ -353,15 +400,16 @@ export function validateBotSettings(input) {
 
   const homeLat = parseCoordinate(source.homeLat, "homeLat", "the latitude", -90, 90, errors);
   const homeLng = parseCoordinate(source.homeLng, "homeLng", "the longitude", -180, 180, errors);
-  const hasZeitviewRadius = Object.prototype.hasOwnProperty.call(source, "zeitviewRadiusMiles");
-  let zeitviewRadiusMiles = null;
-  if (hasZeitviewRadius) {
-    const snapped = snapZeitviewRadius(source.zeitviewRadiusMiles);
-    if (snapped && typeof snapped === "object") {
-      fail(errors, "zeitviewRadiusMiles", "Choose Keep current, or 10, 25, 50, 100, or 200 miles.");
-    } else {
-      zeitviewRadiusMiles = snapped;
-    }
+  const hasTravelRadius = Object.prototype.hasOwnProperty.call(source, "travelRadiusMiles");
+  let travelRadiusMiles = null;
+  if (hasTravelRadius) {
+    travelRadiusMiles = parseWhole(
+      source.travelRadiusMiles,
+      "travelRadiusMiles",
+      "the travel radius",
+      errors,
+      { min: 1, max: TRAVEL_RADIUS_MAX, optional: true }
+    );
   }
 
   if (
@@ -394,7 +442,7 @@ export function validateBotSettings(input) {
       homeLng,
       dailyAcceptCap,
       minNoticeHours,
-      ...(hasZeitviewRadius ? { zeitviewRadiusMiles } : {}),
+      ...(hasTravelRadius ? { travelRadiusMiles } : {}),
     },
   };
 }

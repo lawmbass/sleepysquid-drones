@@ -1,4 +1,9 @@
-import { previewDecisions, zeitviewFromRow, zeitviewRadiusColumn } from "@/libs/botRules";
+import {
+  legacyZeitviewSyncFromRow,
+  previewDecisions,
+  radiusColumnsForSave,
+  travelRadiusFromRow,
+} from "@/libs/botRules";
 import { assertNoError, db, fetchAll, num } from "@/libs/db/shared";
 
 export function mapBotSettings(row) {
@@ -16,7 +21,7 @@ export function mapBotSettings(row) {
     minNoticeHours: row.min_notice_hours == null ? null : num(row.min_notice_hours),
     updatedAt: row.updated_at || null,
     updatedBy: row.updated_by || null,
-    ...zeitviewFromRow(row),
+    ...travelRadiusFromRow(row),
   };
 }
 
@@ -37,17 +42,14 @@ function toRow(settings, updatedBy) {
   };
 }
 
-export function settingsRow(settings, updatedBy) {
-  const row = toRow(settings, updatedBy);
-  const radius = zeitviewRadiusColumn(settings);
-  if (radius.write) row.zeitview_radius_miles = radius.value;
-  return row;
+export function settingsRow(settings, updatedBy, options) {
+  return { ...toRow(settings, updatedBy), ...radiusColumnsForSave(settings, options) };
 }
 
-function missingZeitviewColumn(error) {
+function missingColumn(error, column) {
   const code = String(error?.code || "");
   const message = `${error?.message || ""} ${error?.details || ""}`;
-  if (!/zeitview_radius_miles/i.test(message)) return false;
+  if (!new RegExp(column, "i").test(message)) return false;
   return code === "PGRST204" || code === "42703" || /schema cache|does not exist|could not find/i.test(message);
 }
 
@@ -68,16 +70,21 @@ async function upsertSettings(row) {
 }
 
 export async function saveBotSettings(settings, updatedBy) {
-  const row = settingsRow(settings, updatedBy);
+  const row = settingsRow(settings, updatedBy, { hasTravelRadiusColumn: true });
   try {
     return await upsertSettings(row);
   } catch (error) {
-    if (!Object.prototype.hasOwnProperty.call(row, "zeitview_radius_miles") || !missingZeitviewColumn(error)) {
+    if (!Object.prototype.hasOwnProperty.call(row, "travel_radius_miles") || !missingColumn(error, "travel_radius_miles")) {
       throw error;
     }
-    delete row.zeitview_radius_miles;
-    return upsertSettings(row);
+    return upsertSettings(settingsRow(settings, updatedBy, { hasTravelRadiusColumn: false }));
   }
+}
+
+export async function getLegacyZeitviewSync() {
+  const { data, error } = await db().from("bot_settings").select("*").eq("id", 1).maybeSingle();
+  if (error) return null;
+  return legacyZeitviewSyncFromRow(data);
 }
 
 function previewColumns(includeNotice) {

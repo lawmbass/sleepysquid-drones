@@ -16,6 +16,8 @@ const sources = [
   { value: '', label: 'All Sources' },
   { value: 'customer', label: 'Customer Bookings' },
   { value: 'zeitview', label: 'Zeitview Missions' },
+  { value: 'flyguys', label: 'FlyGuys' },
+  { value: 'droners', label: 'Droners.io' },
   { value: 'manual', label: 'Added by admin' }
 ];
 

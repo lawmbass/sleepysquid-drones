@@ -1,9 +1,10 @@
 /**
  * Connected gig sources shown on Bot rules.
  *
- * The list is the catalog below plus any extra rows in public.gig_sources,
- * so a later source is another row. Zeitview is always present. A missing
- * row stays enabled, which is today's behavior.
+ * The list is the catalog below plus any extra rows in public.gig_sources.
+ * Zeitview is always present. A missing Zeitview row stays enabled, which is
+ * today's behavior. FlyGuys and Droners default to off when their row is
+ * missing. Profile sync status is per source (ok, failed, or nothing).
  *
  * Health for Zeitview comes from the drone-gigs bot's existing health
  * document when GET {DRONE_GIGS_HEALTH_URL} succeeds (default
@@ -45,7 +46,10 @@
  * last_health, or orange "No status for this source yet."
  */
 
+import { describeProfileSync } from "./botRules.js";
+
 export const GIG_SOURCES_MIGRATION = "supabase/migrations/20261024010000_gig_sources.sql";
+export const SHARED_BOT_RULES_MIGRATION = "supabase/migrations/20261024200000_shared_bot_rules.sql";
 
 export const DRONE_GIGS_HEALTH_URL =
   process.env.DRONE_GIGS_HEALTH_URL || "https://drone-gigs.onrender.com/health";
@@ -56,6 +60,27 @@ export const GIG_SOURCE_CATALOG = [
     name: "Zeitview",
     logoSrc: "/brand/sources/zeitview.svg",
     summary: "Pulls gigs from Zeitview and adds them to SleepySquid bookings.",
+    ruleNote:
+      "Profile sync writes the shared home address and travel radius onto the Zeitview profile. The profile only accepts 10, 25, 50, 100, or 200 miles, so the bot uses the nearest of those.",
+    defaultEnabled: true,
+  },
+  {
+    key: "flyguys",
+    name: "FlyGuys",
+    logoSrc: "/brand/sources/flyguys.svg",
+    summary: "Mission alerts arrive by SMS from pilots.flyguys.com.",
+    ruleNote:
+      "Profile sync writes an address or travel radius when the pilot profile has that setting. If the profile has neither, status says nothing to sync.",
+    defaultEnabled: false,
+  },
+  {
+    key: "droners",
+    name: "Droners.io",
+    logoSrc: "/brand/sources/droners.svg",
+    summary: "Job alerts arrive by email.",
+    ruleNote:
+      "Max distance in miles (Account Settings, Notifications) is the shared travel radius, in miles. The primary location (Account Settings, Locations) is the home address.",
+    defaultEnabled: false,
   },
 ];
 
@@ -284,6 +309,31 @@ export function applyEnabled(source, enabled) {
   };
 }
 
+function catalogDefaultEnabled(source) {
+  return source.defaultEnabled !== false;
+}
+
+function storedProfileSync(row) {
+  if (!row?.profileSyncAvailable) return null;
+  if (row.profileSyncResult || row.profileSyncAt || row.profileSyncRequestedAt) {
+    return {
+      result: row.profileSyncResult || null,
+      syncedAt: row.profileSyncAt || null,
+      error: row.profileSyncError || "",
+      observed: row.profileSyncObserved || null,
+      requestedAt: row.profileSyncRequestedAt || null,
+    };
+  }
+  return null;
+}
+
+export function profileSyncForSource(source, row, legacyZeitviewSync) {
+  const stored = storedProfileSync(row);
+  const sync = stored || (source.key === "zeitview" ? legacyZeitviewSync : null);
+  if (!sync) return null;
+  return describeProfileSync(source.name, sync);
+}
+
 function viewFromParts(source, row, context) {
   const health = healthForSource(source, row, context);
   return applyEnabled(
@@ -292,20 +342,27 @@ function viewFromParts(source, row, context) {
       name: source.name,
       logoSrc: source.logoSrc || null,
       summary: source.summary || "",
+      ruleNote: source.ruleNote || "",
       persisted: Boolean(row),
       health,
+      sync: profileSyncForSource(source, row, context.legacyZeitviewSync),
       lastSuccessAt: row?.lastSuccessAt || null,
       lastError: row?.lastError || null,
       updatedAt: row?.updatedAt || null,
     },
-    row ? row.enabled === true : true
+    row ? row.enabled === true : catalogDefaultEnabled(source)
   );
 }
 
-export function presentSources(rows, { live, liveOk, now } = {}) {
+export function presentSources(rows, { live, liveOk, now, legacyZeitviewSync } = {}) {
   const list = Array.isArray(rows) ? rows : [];
   const byKey = new Map(list.filter((row) => row?.sourceKey).map((row) => [row.sourceKey, row]));
-  const context = { live, liveOk: liveOk === true, now: now || new Date() };
+  const context = {
+    live,
+    liveOk: liveOk === true,
+    now: now || new Date(),
+    legacyZeitviewSync: legacyZeitviewSync || null,
+  };
   const sources = GIG_SOURCE_CATALOG.map((source) => viewFromParts(source, byKey.get(source.key), context));
   const extras = list
     .filter((row) => row?.sourceKey && !GIG_SOURCE_CATALOG.some((source) => source.key === row.sourceKey))
@@ -317,6 +374,8 @@ export function presentSources(rows, { live, liveOk, now } = {}) {
           name: text(row.displayName) || row.sourceKey,
           logoSrc: null,
           summary: "Connected gig source.",
+          ruleNote: "",
+          defaultEnabled: true,
         },
         row,
         context
@@ -388,13 +447,26 @@ export async function readDroneGigsHealth(options = {}) {
   return value;
 }
 
-export async function loadGigSourceView({ rows, tableReady = true, now = new Date(), fetchImpl, healthUrl } = {}) {
+export async function loadGigSourceView({
+  rows,
+  tableReady = true,
+  now = new Date(),
+  fetchImpl,
+  healthUrl,
+  legacyZeitviewSync = null,
+} = {}) {
   const live = await readDroneGigsHealth({ fetchImpl, healthUrl, cache: !fetchImpl });
   return {
     tableReady: tableReady !== false,
     checkedAt: new Date(now).toISOString(),
     migration: GIG_SOURCES_MIGRATION,
-    sources: presentSources(rows || [], { live: live.payload, liveOk: live.ok, now }),
+    sharedRulesMigration: SHARED_BOT_RULES_MIGRATION,
+    sources: presentSources(rows || [], {
+      live: live.payload,
+      liveOk: live.ok,
+      now,
+      legacyZeitviewSync,
+    }),
   };
 }
 

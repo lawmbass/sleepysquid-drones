@@ -1,7 +1,7 @@
 /**
  * Admin "Add booking" rules. Matches the public form's service list,
  * package rules, and date/email checks. Source is "manual" because
- * bookings_source_check allows customer, zeitview, and manual.
+ * bookings_source_check allows customer, zeitview, manual, flyguys, and droners.
  */
 
 import { DEFAULT_SERVICE_LINE, isServiceLine } from "./serviceLines.js";
@@ -167,10 +167,16 @@ export function isMissionSource(source) {
   return Boolean(source && source !== "customer" && source !== MANUAL_SOURCE);
 }
 
+const GIG_SOURCE_LABELS = {
+  zeitview: "Zeitview",
+  flyguys: "FlyGuys",
+  droners: "Droners.io",
+};
+
 export function bookingSourceLabel(source) {
   if (source === MANUAL_SOURCE) return MANUAL_SOURCE_LABEL;
   if (!source || source === "customer") return "Customer";
-  if (source === "zeitview") return "Zeitview";
+  if (GIG_SOURCE_LABELS[source]) return GIG_SOURCE_LABELS[source];
   return source.charAt(0).toUpperCase() + source.slice(1);
 }
 

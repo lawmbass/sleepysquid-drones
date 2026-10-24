@@ -11,10 +11,13 @@ const {
   sameHomePin,
   validateBotSettings,
   DEFAULT_BOT_SETTINGS,
+  describeProfileSync,
+  legacyZeitviewSyncFromRow,
+  radiusColumnsForSave,
   snapZeitviewRadius,
-  zeitviewFromRow,
-  zeitviewRadiusColumn,
-  zeitviewSyncStatus,
+  syncObservedMiles,
+  syncObservedPlace,
+  travelRadiusFromRow,
 } = await import("../libs/botRules.js");
 const { pinFromPlaceDetails, placesError, suggestionsFromAutocomplete } = await import("../libs/places.js");
 const {
@@ -189,67 +192,81 @@ const blankMax = validateBotSettings({ ...defaults, maxDriveMinutes: "", dailyAc
 assert.equal(blankMax.ok, true);
 assert.equal(blankMax.settings.maxDriveMinutes, null);
 assert.equal(blankMax.settings.homeAddress, defaults.homeAddress);
-assert.equal(Object.prototype.hasOwnProperty.call(blankMax.settings, "zeitviewRadiusMiles"), false);
-assert.equal(zeitviewRadiusColumn(blankMax.settings).write, false);
+assert.equal(Object.prototype.hasOwnProperty.call(blankMax.settings, "travelRadiusMiles"), false);
+assert.deepEqual(radiusColumnsForSave(blankMax.settings), {});
 
-const keepRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: "" });
+const keepRadius = validateBotSettings({ ...defaults, travelRadiusMiles: "" });
 assert.equal(keepRadius.ok, true);
-assert.equal(keepRadius.settings.zeitviewRadiusMiles, null);
-assert.deepEqual(zeitviewRadiusColumn(keepRadius.settings), { write: true, value: null });
+assert.equal(keepRadius.settings.travelRadiusMiles, null);
+assert.deepEqual(radiusColumnsForSave(keepRadius.settings), { travel_radius_miles: null });
+assert.deepEqual(radiusColumnsForSave(keepRadius.settings, { hasTravelRadiusColumn: false }), {
+  zeitview_radius_miles: null,
+});
 
-const snappedRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: 37 });
-assert.equal(snappedRadius.ok, true);
-assert.equal(snappedRadius.settings.zeitviewRadiusMiles, 25);
+const sharedRadius = validateBotSettings({ ...defaults, travelRadiusMiles: 100 });
+assert.equal(sharedRadius.ok, true);
+assert.equal(sharedRadius.settings.travelRadiusMiles, 100);
+assert.deepEqual(radiusColumnsForSave(sharedRadius.settings), { travel_radius_miles: 100 });
+assert.equal(Object.prototype.hasOwnProperty.call(radiusColumnsForSave(sharedRadius.settings), "zeitview_radius_miles"), false);
+
+const exactMiles = validateBotSettings({ ...defaults, travelRadiusMiles: 37 });
+assert.equal(exactMiles.ok, true);
+assert.equal(exactMiles.settings.travelRadiusMiles, 37);
+assert.equal(snapZeitviewRadius(37), 25);
 assert.equal(snapZeitviewRadius(80), 100);
+assert.equal(snapZeitviewRadius(100), 100);
 assert.equal(snapZeitviewRadius("50"), 50);
 assert.equal(snapZeitviewRadius("keep current"), null);
+assert.deepEqual(radiusColumnsForSave(exactMiles.settings, { hasTravelRadiusColumn: false }), {
+  zeitview_radius_miles: 25,
+});
 
-const badRadius = validateBotSettings({ ...defaults, zeitviewRadiusMiles: "nearby" });
+const badRadius = validateBotSettings({ ...defaults, travelRadiusMiles: "nearby" });
 assert.equal(badRadius.ok, false);
-assert.equal(badRadius.errors.some((error) => error.field === "zeitviewRadiusMiles"), true);
+assert.equal(badRadius.errors.some((error) => error.field === "travelRadiusMiles"), true);
 
-assert.equal(zeitviewFromRow({ home_address: defaults.homeAddress }).zeitviewAvailable, false);
-assert.equal(zeitviewSyncStatus({ zeitviewAvailable: false, zeitviewLastResult: "failed" }), null);
-const radiusRow = zeitviewFromRow({
-  zeitview_radius_miles: "50",
+assert.equal(travelRadiusFromRow({ home_address: defaults.homeAddress }).travelRadiusAvailable, false);
+assert.equal(travelRadiusFromRow({ travel_radius_miles: 100 }).travelRadiusMiles, 100);
+assert.equal(travelRadiusFromRow({ travel_radius_miles: null }).travelRadiusMiles, null);
+assert.equal(
+  travelRadiusFromRow({ travel_radius_miles: 80, zeitview_radius_miles: 100 }).travelRadiusMiles,
+  80
+);
+assert.equal(travelRadiusFromRow({ zeitview_radius_miles: "100" }).travelRadiusMiles, 100);
+assert.equal(travelRadiusFromRow({ zeitview_radius_miles: "100" }).travelRadiusLegacy, true);
+assert.equal(describeProfileSync("Zeitview", null), null);
+
+const observed = {
+  street: "11205 Keystone Ave",
+  city: "Clinton",
+  travel_distance: 100,
+};
+assert.equal(syncObservedPlace(observed), "11205 Keystone Ave, Clinton");
+assert.equal(syncObservedMiles({ address: { street: "11205 Keystone Ave", city: "Clinton" }, travel_distance: "100 mi" }), "100");
+const legacy = legacyZeitviewSyncFromRow({
   zeitview_last_synced_at: "2026-10-14T05:00:00.000Z",
   zeitview_last_result: "ok",
   zeitview_last_error: null,
-  zeitview_observed: {
-    street: "11205 Keystone Ave",
-    city: "Clinton",
-    travel_distance: 50,
-  },
+  zeitview_observed: observed,
 });
-assert.equal(radiusRow.zeitviewAvailable, true);
-assert.equal(radiusRow.zeitviewRadiusMiles, 50);
 assert.equal(
-  zeitviewSyncStatus(radiusRow, () => "Oct 14, 1:00 AM").text,
-  "Synced Oct 14, 1:00 AM: 50 mi from 11205 Keystone Ave, Clinton"
+  describeProfileSync("Zeitview", legacy, () => "Oct 14, 1:00 AM").text,
+  "Synced Oct 14, 1:00 AM: 100 mi from 11205 Keystone Ave, Clinton"
 );
-const nestedObserved = zeitviewSyncStatus(
-  {
-    ...radiusRow,
-    zeitviewObserved: {
-      address: { street: "11205 Keystone Ave", city: "Clinton" },
-      travel_distance: "50 mi",
-    },
-  },
-  () => "Oct 14, 1:00 AM"
-);
-assert.equal(nestedObserved.text, "Synced Oct 14, 1:00 AM: 50 mi from 11205 Keystone Ave, Clinton");
 assert.equal(
-  zeitviewSyncStatus({ ...radiusRow, zeitviewObserved: { travel_distance: 50 } }, () => "Oct 14, 1:00 AM"),
-  null
+  describeProfileSync("Zeitview", { ...legacy, observed: { travel_distance: 100 } }, () => "Oct 14, 1:00 AM").text,
+  "Synced Oct 14, 1:00 AM."
 );
-const failedSync = zeitviewSyncStatus({
-  ...radiusRow,
-  zeitviewLastResult: "failed",
-  zeitviewLastError: "profile form changed",
+const failedSync = describeProfileSync("Zeitview", {
+  result: "failed",
+  error: "profile form changed",
+  syncedAt: "2026-10-14T05:00:00.000Z",
 });
 assert.equal(failedSync.title, "Zeitview sync broke, script needs updating");
 assert.equal(failedSync.detail, "profile form changed");
 assert.equal(failedSync.state, "failed");
+assert.equal(describeProfileSync("FlyGuys", { result: "nothing", syncedAt: "2026-10-14T05:00:00.000Z" }).text, "Nothing to sync.");
+assert.equal(legacyZeitviewSyncFromRow({ home_address: defaults.homeAddress }), null);
 
 const huge = validateBotSettings({ ...defaults, longTripMinutes: 5000, maxDriveMinutes: 0 });
 assert.equal(huge.ok, false);
@@ -346,6 +363,27 @@ assert.doesNotMatch(zeitviewSql, /TO anon/i);
 assert.doesNotMatch(zeitviewSql, /USING\s*\(\s*true\s*\)/i);
 assert.match(sql, /CREATE POLICY bot_settings_admin_select/);
 assert.match(sql, /CREATE POLICY bot_settings_admin_update/);
+
+const sharedSql = fs.readFileSync(
+  new URL("../supabase/migrations/20261024200000_shared_bot_rules.sql", import.meta.url),
+  "utf8"
+);
+assert.match(sharedSql, /ADD COLUMN IF NOT EXISTS travel_radius_miles numeric/);
+assert.match(sharedSql, /SET travel_radius_miles = zeitview_radius_miles/);
+assert.doesNotMatch(sharedSql, /DROP COLUMN[^;]*zeitview_radius_miles/);
+assert.match(sharedSql, /bot_settings_keep_travel_radius/);
+assert.match(sharedSql, /zeitview_radius_miles := best/);
+assert.match(sharedSql, /profile_sync_result IN \('ok', 'failed', 'nothing'\)/);
+assert.match(sharedSql, /bot_settings_mirror_zeitview_sync/);
+assert.doesNotMatch(sharedSql, /CREATE POLICY/i);
+assert.doesNotMatch(sharedSql, /USING\s*\(\s*true\s*\)/i);
+
+const rulesUi = fs.readFileSync(new URL("../components/admin/BotRulesSection.jsx", import.meta.url), "utf8");
+assert.match(rulesUi, /Travel radius/);
+assert.doesNotMatch(rulesUi, /zeitview_radius_miles|zeitviewRadiusMiles|Zeitview travel radius/);
+const settingsDb = fs.readFileSync(new URL("../libs/db/botSettings.js", import.meta.url), "utf8");
+assert.match(settingsDb, /radiusColumnsForSave/);
+assert.doesNotMatch(settingsDb, /zeitview_radius_miles/);
 
 assert.equal(destinationForListing({ latitude: 0, longitude: 0, address: "1 Main St" }).kind, "address");
 assert.equal(destinationForListing({ latitude: null, longitude: null, address: "1 Main St" }).kind, "address");
