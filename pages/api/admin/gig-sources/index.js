@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/libs/adminRequest";
+import { getLegacyZeitviewSync } from "@/libs/db/botSettings";
 import { listGigSources, setGigSourceEnabled } from "@/libs/db/gigSources";
 import {
   GIG_SOURCES_MIGRATION,
@@ -12,7 +13,7 @@ import {
 function unavailable(res) {
   return res.status(503).json({
     error: "Connected sources unavailable",
-    message: `The gig_sources table is not in the database yet. Apply ${GIG_SOURCES_MIGRATION}, then try again. Zeitview stays enabled until then.`,
+    message: `The gig_sources table is not in the database yet. Apply ${GIG_SOURCES_MIGRATION}, then try again. Zeitview stays enabled until then. FlyGuys and Droners stay off.`,
   });
 }
 
@@ -21,9 +22,16 @@ export default async function handler(req, res) {
   if (!session) return;
 
   try {
-    const loaded = await listGigSources();
+    const [loaded, legacyZeitviewSync] = await Promise.all([
+      listGigSources(),
+      getLegacyZeitviewSync().catch(() => null),
+    ]);
     if (req.method === "GET") {
-      const view = await loadGigSourceView({ rows: loaded.rows, tableReady: loaded.tableReady });
+      const view = await loadGigSourceView({
+        rows: loaded.rows,
+        tableReady: loaded.tableReady,
+        legacyZeitviewSync,
+      });
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ success: true, data: view });
     }
@@ -50,6 +58,7 @@ export default async function handler(req, res) {
     const view = await loadGigSourceView({
       rows: again.tableReady ? again.rows : saved.row ? [saved.row] : [],
       tableReady: again.tableReady,
+      legacyZeitviewSync,
     });
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json({

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEdit2 } from "react-icons/fi";
 import ConnectedSourcesSection from "@/components/admin/ConnectedSourcesSection";
+import { applyEnabled } from "@/libs/gigSources";
 import HomeAddressField from "@/components/admin/HomeAddressField";
 import {
   DECISION_LABELS,
@@ -8,8 +9,8 @@ import {
   REASON_LABELS,
   homeAddressChanged,
   sameHomePin,
+  snapZeitviewRadius,
   validateBotSettings,
-  zeitviewSyncStatus,
 } from "@/libs/botRules";
 
 const EMPTY_FORM = {
@@ -23,8 +24,8 @@ const EMPTY_FORM = {
   homeLng: "",
   dailyAcceptCap: "",
   minNoticeHours: "",
-  zeitviewAvailable: false,
-  zeitviewRadiusMiles: "",
+  travelRadiusAvailable: false,
+  travelRadiusMiles: "",
 };
 
 function textValue(value) {
@@ -44,8 +45,8 @@ function formFromSettings(settings) {
     homeLng: textValue(settings.homeLng),
     dailyAcceptCap: textValue(settings.dailyAcceptCap),
     minNoticeHours: textValue(settings.minNoticeHours),
-    zeitviewAvailable: settings.zeitviewAvailable === true,
-    zeitviewRadiusMiles: settings.zeitviewRadiusMiles == null ? "" : String(settings.zeitviewRadiusMiles),
+    travelRadiusAvailable: settings.travelRadiusAvailable === true,
+    travelRadiusMiles: settings.travelRadiusMiles == null ? "" : String(settings.travelRadiusMiles),
   };
 }
 
@@ -62,8 +63,8 @@ function payloadFromForm(form) {
     homeLng: form.homeLng,
     dailyAcceptCap: optional(form.dailyAcceptCap),
     minNoticeHours: optional(form.minNoticeHours),
-    ...(form.zeitviewAvailable
-      ? { zeitviewRadiusMiles: form.zeitviewRadiusMiles === "" ? null : form.zeitviewRadiusMiles }
+    ...(form.travelRadiusAvailable
+      ? { travelRadiusMiles: form.travelRadiusMiles === "" ? null : form.travelRadiusMiles }
       : {}),
   };
 }
@@ -106,20 +107,20 @@ function displayValue(id, source) {
     return String(source.minNoticeHours).trim() === "" ? "Not checked" : `${source.minNoticeHours} hours`;
   }
   if (id === "homeAddress") return source.homeAddress || "No address pinned";
-  if (id === "zeitviewRadiusMiles") {
-    return String(source.zeitviewRadiusMiles).trim() === "" ? "Keep current" : `${source.zeitviewRadiusMiles} miles`;
+  if (id === "travelRadiusMiles") {
+    return String(source.travelRadiusMiles).trim() === "" ? "No maximum" : `${source.travelRadiusMiles} miles`;
   }
   return "";
 }
 
-const ZEITVIEW_RADIUS_OPTIONS = [
-  { value: "", label: "Keep current" },
-  { value: "10", label: "10 miles" },
-  { value: "25", label: "25 miles" },
-  { value: "50", label: "50 miles" },
-  { value: "100", label: "100 miles" },
-  { value: "200", label: "200 miles" },
-];
+function travelRadiusHint(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "Blank leaves the distance already set on each site.";
+  const snapped = snapZeitviewRadius(text);
+  if (!snapped || typeof snapped === "object") return "";
+  if (Number(text) === snapped) return `Zeitview profile uses ${snapped} miles.`;
+  return `Zeitview profile uses ${snapped} miles, the nearest allowed radius.`;
+}
 
 const RULES = [
   {
@@ -165,11 +166,10 @@ const RULES = [
     kind: "whole",
   },
   {
-    id: "zeitviewRadiusMiles",
-    label: "Zeitview travel radius",
-    help: "The radius the bot sets on the Zeitview profile. Keep current leaves the radius already there.",
-    kind: "select",
-    options: ZEITVIEW_RADIUS_OPTIONS,
+    id: "travelRadiusMiles",
+    label: "Travel radius",
+    help: "How far you will go for a gig, in miles. Leave blank for no maximum. Use 1 to 500 if you set one. This one number applies to every connected source. Zeitview's profile only accepts 10, 25, 50, 100, or 200 miles, so the bot snaps to the nearest of those. Droners uses this number as Max distance in miles.",
+    kind: "whole",
   },
   {
     id: "homeAddress",
@@ -313,15 +313,22 @@ function ReasonChips({ sample, fullWidth = false }) {
   );
 }
 
-export default function BotRulesSection() {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [savedForm, setSavedForm] = useState(EMPTY_FORM);
-  const [savedKey, setSavedKey] = useState("");
+function initialForm(preview) {
+  return preview?.settings ? formFromSettings(preview.settings) : EMPTY_FORM;
+}
+
+export default function BotRulesSection({ fixture = null }) {
+  const [form, setForm] = useState(() => initialForm(fixture));
+  const [savedForm, setSavedForm] = useState(() => initialForm(fixture));
+  const [savedKey, setSavedKey] = useState(() => {
+    const next = initialForm(fixture);
+    return fixture?.settings ? JSON.stringify(payloadFromForm(next)) : "";
+  });
   const [editing, setEditing] = useState(false);
   const [focusRuleId, setFocusRuleId] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [ruleError, setRuleError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!fixture);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [error, setError] = useState("");
@@ -329,14 +336,14 @@ export default function BotRulesSection() {
   const [mapsKeyConfigured, setMapsKeyConfigured] = useState(false);
   const [pinSource, setPinSource] = useState("saved");
   const [coordinateFallback, setCoordinateFallback] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(fixture?.settings?.updatedAt || null);
+  const [fixtureSources, setFixtureSources] = useState(fixture?.sources || null);
   const [updatedBy, setUpdatedBy] = useState(null);
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState("");
   const [previewSource, setPreviewSource] = useState("saved");
   const [previewDriveSource, setPreviewDriveSource] = useState("stored");
   const [driveTimesUpdating, setDriveTimesUpdating] = useState(false);
-  const [zeitviewProfile, setZeitviewProfile] = useState(null);
   const driveTimesUpdatingRef = useRef(false);
   const savedPreviewRef = useRef(null);
   const previewRequest = useRef(0);
@@ -372,17 +379,6 @@ export default function BotRulesSection() {
       setSavedKey(JSON.stringify(payloadFromForm(next)));
       setUpdatedAt(data.settings.updatedAt || null);
       setUpdatedBy(data.settings.updatedBy || null);
-      setZeitviewProfile(
-        data.settings.zeitviewAvailable
-          ? {
-              available: true,
-              lastSyncedAt: data.settings.zeitviewLastSyncedAt || null,
-              lastResult: data.settings.zeitviewLastResult || null,
-              lastError: data.settings.zeitviewLastError || "",
-              observed: data.settings.zeitviewObserved || null,
-            }
-          : null
-      );
     }
     setMapsKeyConfigured(Boolean(data.mapsKeyConfigured));
     setPreview(data.preview || null);
@@ -413,8 +409,10 @@ export default function BotRulesSection() {
   }, [applyResponse]);
 
   useEffect(() => {
+    if (fixture) return undefined;
     load();
-  }, [load]);
+    return undefined;
+  }, [load, fixture]);
 
   function setField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -580,7 +578,7 @@ export default function BotRulesSection() {
   }, [editing]);
 
   useEffect(() => {
-    if (unsavedPin || !savedKey || editing) return undefined;
+    if (fixture || unsavedPin || !savedKey || editing) return undefined;
     const saved = JSON.parse(savedKey);
     let cancelled = false;
     let intervalId = null;
@@ -648,7 +646,7 @@ export default function BotRulesSection() {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [editing, unsavedPin, savedKey, rememberSavedPreview]);
+  }, [editing, fixture, unsavedPin, savedKey, rememberSavedPreview]);
   const describedBy = (id) => {
     const ids = [`${id}-help`];
     if (fieldErrors[id]) ids.push(`${id}-error`);
@@ -667,22 +665,6 @@ export default function BotRulesSection() {
     previewStatus = "This preview uses the rules you're editing. Nothing is saved until you press Save changes.";
   }
 
-  const zeitviewSync = zeitviewProfile
-    ? zeitviewSyncStatus(
-        {
-          zeitviewAvailable: true,
-          zeitviewLastSyncedAt: zeitviewProfile.lastSyncedAt,
-          zeitviewLastResult: zeitviewProfile.lastResult,
-          zeitviewLastError: zeitviewProfile.lastError,
-          zeitviewObserved: zeitviewProfile.observed,
-        },
-        (value) => {
-          const date = new Date(value);
-          return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
-        }
-      )
-    : null;
-
   if (loading) {
     return (
       <div className="py-12 text-center text-gray-600 dark:text-gray-300">Loading bot rules...</div>
@@ -694,8 +676,10 @@ export default function BotRulesSection() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bot rules</h1>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
-          These are the rules the drone-gigs bot reads before it accepts a mission. Edit rules to
-          change them together. Save stores every change. Cancel puts the saved values back.
+          One set of rules for every connected gig source. The drone-gigs bot reads them before it
+          accepts a mission. Saving asks the bot to sync the home address and travel radius to each
+          enabled source. Edit rules to change them together. Save stores every change. Cancel puts
+          the saved values back.
         </p>
         {updatedAt ? (
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -703,24 +687,18 @@ export default function BotRulesSection() {
             {updatedBy ? ` by ${updatedBy}` : ""}.
           </p>
         ) : null}
-        {zeitviewSync?.state === "ok" ? (
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300" data-zeitview-sync>
-            Zeitview profile sync. {zeitviewSync.text}
-          </p>
-        ) : null}
-        {zeitviewSync?.state === "failed" ? (
-          <div
-            className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
-            role="alert"
-            data-zeitview-sync
-          >
-            <p className="font-medium">{zeitviewSync.title}</p>
-            {zeitviewSync.detail ? <p className="mt-1">{zeitviewSync.detail}</p> : null}
-          </div>
-        ) : null}
       </div>
 
-      <ConnectedSourcesSection />
+      <ConnectedSourcesSection
+        controlled={Boolean(fixture)}
+        sources={fixture ? fixtureSources : null}
+        tableReady={!fixture || fixture.tableReady !== false}
+        onToggle={(source, enabled) => {
+          setFixtureSources((current) =>
+            (current || []).map((row) => (row.key === source.key ? applyEnabled(row, enabled) : row))
+          );
+        }}
+      />
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
@@ -761,10 +739,15 @@ export default function BotRulesSection() {
           </div>
         )}
         <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
-          {RULES.filter((rule) => rule.id !== "zeitviewRadiusMiles" || form.zeitviewAvailable).map((rule) => {
-            const help = rule.id === "homeAddress" && editing && mapsKeyConfigured
-              ? "Drive time is measured from here. Start typing, then choose the address from the list."
-              : rule.help;
+          {RULES.filter((rule) => rule.id !== "travelRadiusMiles" || form.travelRadiusAvailable).map((rule) => {
+            let help = rule.help;
+            if (rule.id === "homeAddress" && editing && mapsKeyConfigured) {
+              help = "Drive time is measured from here. Start typing, then choose the address from the list.";
+            }
+            if (rule.id === "travelRadiusMiles") {
+              const hint = travelRadiusHint(editing ? form.travelRadiusMiles : savedForm.travelRadiusMiles);
+              if (hint) help = `${help} ${hint}`;
+            }
             return (
               <Rule
                 key={rule.id}
@@ -883,6 +866,7 @@ export default function BotRulesSection() {
         ) : null}
       </form>
 
+      {fixture ? null : (
       <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Last 30 days preview</h2>
@@ -1001,6 +985,7 @@ export default function BotRulesSection() {
           </>
         ) : null}
       </section>
+      )}
     </div>
   );
 }

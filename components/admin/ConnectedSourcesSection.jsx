@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { GIG_SOURCES_MIGRATION } from "@/libs/gigSources";
+import { GIG_SOURCES_MIGRATION, SHARED_BOT_RULES_MIGRATION } from "@/libs/gigSources";
 
 const DOT_CLASS = {
   green: "bg-green-500",
@@ -95,6 +95,11 @@ function SourceRow({ source, busy, onToggle }) {
           {source.summary}
         </p>
       ) : null}
+      {source.ruleNote ? (
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300" data-rule-note>
+          {source.ruleNote}
+        </p>
+      ) : null}
       <p
         id={`${source.key}-status`}
         className="mt-2 flex min-w-0 items-start gap-2 text-sm text-gray-600 dark:text-gray-300"
@@ -109,6 +114,21 @@ function SourceRow({ source, busy, onToggle }) {
           <span className="font-medium text-gray-900 dark:text-white">{source.statusLabel}.</span> {source.statusText}
         </span>
       </p>
+      {source.sync?.state === "failed" ? (
+        <div
+          className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+          role="alert"
+          data-source-sync={source.key}
+        >
+          <p className="font-medium">{source.sync.title}</p>
+          {source.sync.detail ? <p className="mt-1">{source.sync.detail}</p> : null}
+        </div>
+      ) : null}
+      {source.sync && source.sync.state !== "failed" ? (
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300" data-source-sync={source.key}>
+          {source.sync.text}
+        </p>
+      ) : null}
     </li>
   );
 }
@@ -216,8 +236,8 @@ export default function ConnectedSourcesSection({
       ) : null}
       {!loading && !tableReady ? (
         <p className="mt-4 text-sm text-amber-800 dark:text-amber-200">
-          The source list is not in the database yet, so every source stays enabled. Apply {GIG_SOURCES_MIGRATION}{" "}
-          before the switch can be saved.
+          The source list is not in the database yet. Sources that default to off stay off. Apply{" "}
+          {GIG_SOURCES_MIGRATION} and {SHARED_BOT_RULES_MIGRATION} before a switch can be saved.
         </p>
       ) : null}
 

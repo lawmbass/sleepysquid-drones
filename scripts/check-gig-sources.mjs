@@ -160,16 +160,62 @@ const withExtra = presentSources(
   ],
   { live: liveLike(), liveOk: true, now: NOW }
 );
-assert.deepEqual(withExtra.map((source) => source.key), ["zeitview", "acme", "other"]);
-assert.equal(withExtra[1].dot, "green");
-assert.equal(withExtra[1].logoSrc, null);
-assert.equal(withExtra[2].dot, "orange");
-assert.match(withExtra[2].statusText, /No status/);
-assert.equal(applyEnabled(withExtra[1], false).dot, "gray");
-assert.equal(applyEnabled(withExtra[1], false).health.level, "ok");
+assert.deepEqual(withExtra.map((source) => source.key), ["zeitview", "flyguys", "droners", "acme", "other"]);
+const acme = withExtra.find((source) => source.key === "acme");
+const other = withExtra.find((source) => source.key === "other");
+assert.equal(acme.dot, "green");
+assert.equal(acme.logoSrc, null);
+assert.equal(other.dot, "orange");
+assert.match(other.statusText, /No status/);
+assert.equal(applyEnabled(acme, false).dot, "gray");
+assert.equal(applyEnabled(acme, false).health.level, "ok");
 
-assert.deepEqual(knownSourceKeys([]), ["zeitview"]);
+assert.deepEqual(knownSourceKeys([]), ["zeitview", "flyguys", "droners"]);
 assert.equal(displayNameFor("zeitview", []), "Zeitview");
+assert.equal(displayNameFor("flyguys", []), "FlyGuys");
+assert.equal(displayNameFor("droners", []), "Droners.io");
+const defaults = presentSources([], { live: liveLike(), liveOk: true, now: NOW });
+assert.equal(defaults.find((source) => source.key === "zeitview").enabled, true);
+assert.equal(defaults.find((source) => source.key === "flyguys").enabled, false);
+assert.equal(defaults.find((source) => source.key === "droners").enabled, false);
+assert.match(defaults.find((source) => source.key === "droners").ruleNote, /Max distance in miles/);
+assert.match(defaults.find((source) => source.key === "flyguys").ruleNote, /nothing to sync/);
+const legacySynced = presentSources([], {
+  live: liveLike(),
+  liveOk: true,
+  now: NOW,
+  legacyZeitviewSync: {
+    result: "ok",
+    syncedAt: "2026-10-24T15:00:00.000Z",
+    observed: { street: "11205 Keystone Ave", city: "Clinton", travel_distance: 100 },
+  },
+}).find((source) => source.key === "zeitview");
+assert.match(legacySynced.sync.text, /100 mi from 11205 Keystone Ave, Clinton/);
+const storedSync = presentSources(
+  [
+    {
+      sourceKey: "flyguys",
+      enabled: false,
+      displayName: "FlyGuys",
+      profileSyncAvailable: true,
+      profileSyncResult: "nothing",
+      profileSyncAt: "2026-10-24T15:00:00.000Z",
+    },
+    {
+      sourceKey: "droners",
+      enabled: false,
+      displayName: "Droners.io",
+      profileSyncAvailable: true,
+      profileSyncResult: "failed",
+      profileSyncError: "Account Settings did not save.",
+      profileSyncAt: "2026-10-24T15:00:00.000Z",
+    },
+  ],
+  { live: liveLike(), liveOk: true, now: NOW }
+);
+assert.equal(storedSync.find((source) => source.key === "flyguys").sync.text, "Nothing to sync.");
+assert.equal(storedSync.find((source) => source.key === "droners").sync.state, "failed");
+assert.match(storedSync.find((source) => source.key === "droners").sync.title, /Droners.io sync broke/);
 assert.equal(displayNameFor("acme", [{ sourceKey: "acme", displayName: "Acme Air" }]), "Acme Air");
 assert.equal(parseSourceToggle({ sourceKey: "zeitview", enabled: false }, ["zeitview"]).ok, true);
 assert.equal(parseSourceToggle({ sourceKey: "nope", enabled: true }, ["zeitview"]).ok, false);
@@ -231,6 +277,17 @@ assert.match(migration, /last_success_at/);
 assert.match(migration, /last_error/);
 assert.match(migration, /updated_at/);
 assert.match(migration, /'zeitview', 'Zeitview', true/);
+
+const sharedMigration = fs.readFileSync(
+  new URL("../supabase/migrations/20261024200000_shared_bot_rules.sql", import.meta.url),
+  "utf8"
+);
+assert.match(sharedMigration, /'flyguys', 'FlyGuys', false/);
+assert.match(sharedMigration, /'droners', 'Droners.io', false/);
+assert.match(sharedMigration, /bookings_source_check/);
+assert.match(sharedMigration, /'customer', 'zeitview', 'manual', 'flyguys', 'droners'/);
+assert.match(sharedMigration, /travel_radius_miles/);
+assert.doesNotMatch(sharedMigration, /DROP COLUMN/);
 assert.match(migration, /is_dashboard_admin\(\)/);
 assert.match(migration, /gig_sources_admin_select/);
 assert.match(migration, /gig_sources_admin_update/);
@@ -252,14 +309,22 @@ assert.match(ui, /h-6 w-11/);
 assert.match(ui, /left-0\.5 top-0\.5 h-5 w-5/);
 assert.match(ui, /source\.enabled \? "translate-x-5" : "translate-x-0"/);
 assert.match(ui, /data-source-summary/);
+assert.match(ui, /data-rule-note/);
+assert.match(ui, /data-source-sync/);
+assert.match(ui, /role="alert"/);
 assert.doesNotMatch(ui, /w-full cursor-pointer items-center justify-between/);
 assert.doesNotMatch(ui, /Zeitview/);
 
 const rules = fs.readFileSync(new URL("../components/admin/BotRulesSection.jsx", import.meta.url), "utf8");
-assert.match(rules, /<ConnectedSourcesSection \/>/);
+assert.match(rules, /<ConnectedSourcesSection/);
 
 const logo = fs.readFileSync(new URL("../public/brand/sources/zeitview.svg", import.meta.url), "utf8");
 assert.match(logo, /<svg/);
 assert.match(logo, /Placeholder/);
+for (const file of ["flyguys.svg", "droners.svg"]) {
+  const mark = fs.readFileSync(new URL(`../public/brand/sources/${file}`, import.meta.url), "utf8");
+  assert.match(mark, /<svg/);
+  assert.match(mark, /Placeholder/);
+}
 
 console.log("Connected source checks passed.");

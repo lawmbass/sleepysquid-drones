@@ -76,7 +76,7 @@ assert.equal(validateManualBooking(payload({ finalPrice: -1 }), now).errors.fina
 assert.equal(validateManualBooking(payload({ date: soon }), now).errors.date, "Please select a date that is at least 2 days from today");
 assert.equal(validateManualBooking(payload({ email: "not-an-email" }), now).errors.email, "Please enter a valid email");
 assert.equal(validateManualBooking(payload({ phone: "123" }), now).errors.phone, "Please enter a valid phone number");
-assert.equal(validateManualBooking(payload({ phone: "" }), now).errors.phone, "Please enter your phone number");
+assert.equal(validateManualBooking(payload({ phone: "" }), now).errors.phone, "Please enter a phone number");
 assert.equal(validateManualBooking(payload({ status: "accepted" }), now).errors.status, "Please select a status");
 assert.equal(validateManualBooking(payload({ service: "aerial-photography" }), now).errors.service, "Please select a service");
 assert.equal(validateManualBooking(payload({ service: "inspection", package: "basic" }), now).errors.package, "Please select a valid package for this service");
@@ -145,6 +145,8 @@ assert.equal(isMissionSource(null), false);
 assert.equal(bookingSourceLabel("manual"), MANUAL_SOURCE_LABEL);
 assert.equal(bookingSourceLabel("manual"), "Added by admin");
 assert.equal(bookingSourceLabel("zeitview"), "Zeitview");
+assert.equal(bookingSourceLabel("flyguys"), "FlyGuys");
+assert.equal(bookingSourceLabel("droners"), "Droners.io");
 assert.equal(jobIsMission({ source: "manual", isMission: true }), false);
 assert.equal(jobIsMission({ source: "zeitview" }), true);
 assert.equal(jobIsMission({ unlinkedListing: true, source: "zeitview" }), true);

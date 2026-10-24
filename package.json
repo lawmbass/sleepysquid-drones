@@ -9,7 +9,7 @@
     "lint": "next lint",
     "check:rls": "node scripts/check-rls.js",
     "check:sources": "node scripts/check-gig-sources.mjs",
-    "test": "node --test scripts/tests/"
+    "test": "node --test scripts/tests/*.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

@@ -11,6 +11,7 @@ import {
   validateBotSettings,
 } from "@/libs/botRules";
 import { getBotSettings, loadPreviewListings, previewBotSettings, saveBotSettings } from "@/libs/db/botSettings";
+import { requestEnabledProfileSync } from "@/libs/db/gigSources";
 import { geocodeAddress, mapsApiKey } from "@/libs/geocode";
 import { computePreviewDriveTimes, listingsWithDraftDrives } from "@/libs/driveTimes";
 
@@ -237,6 +238,11 @@ export default async function handler(req, res) {
     }
 
     const settings = await saveBotSettings(pin.settings, session.user.email);
+    try {
+      await requestEnabledProfileSync();
+    } catch (syncError) {
+      console.error("Profile sync request failed:", syncError?.message || syncError);
+    }
     const { preview, previewError, previewDriveSource } = await buildPreview(settings);
     const pinMoved = Boolean(stored && !sameHomePin(stored, settings));
     return res.status(200).json({

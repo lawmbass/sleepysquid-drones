@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Droners.io">
+  <!-- Placeholder mark for the Droners.io row. This is not the Droners trademark. -->
+  <rect width="64" height="64" rx="14" fill="#B45309"/>
+  <circle cx="32" cy="32" r="8" fill="#FFF7ED"/>
+  <path fill="#FFF7ED" d="M32 10v8M32 46v8M10 32h8M46 32h8M16 16l6 6M42 42l6 6M48 16l-6 6M22 42l-6 6"/>
+</svg>
