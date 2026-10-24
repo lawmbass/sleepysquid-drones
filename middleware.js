@@ -60,6 +60,11 @@ export async function middleware(request) {
 
   const { pathname } = request.nextUrl;
 
+  // Old link: the bot rules page lives in a dashboard section.
+  if (pathname === '/admin/bot-rules' || pathname === '/admin/bot-rules/') {
+    return NextResponse.redirect(new URL('/dashboard?section=bot-rules', request.url));
+  }
+
   // API routes enforce their own 401 responses. Do not redirect them to the login page.
   const isProtectedPage = !pathname.startsWith('/api/') && protectedPages.some((route) => matchesRoute(pathname, route));
 
@@ -72,7 +77,7 @@ export async function middleware(request) {
 
       if (!token) {
         const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
+        loginUrl.searchParams.set('callbackUrl', `${request.nextUrl.origin}${pathname}${request.nextUrl.search}`);
         return NextResponse.redirect(loginUrl);
       }
 
@@ -105,7 +110,7 @@ export async function middleware(request) {
     } catch (error) {
       console.error('Error in middleware access check:', error);
       const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
+      loginUrl.searchParams.set('callbackUrl', `${request.nextUrl.origin}${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
     }
   }

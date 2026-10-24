@@ -53,3 +53,32 @@ export function originFromRequest(req, from) {
   return k || 'site';
 }
 export const senderNameFor = (k) => ORIGIN_SENDER_NAMES[normalizeOrigin(k)] || 'SleepySquid';
+
+// Trusted sign-in return hosts: the page's own origin plus https SleepySquid hosts (shared sign-in).
+export function isTrustedCallbackHost(urlObj, currentOrigin) {
+  if (currentOrigin && urlObj.origin === currentOrigin) return true;
+  const h = urlObj.hostname;
+  return urlObj.protocol === 'https:' && (h === 'sleepysquid.com' || h.endsWith('.sleepysquid.com'));
+}
+// Validate a callbackUrl from the query string. Relative same-site paths and absolute URLs on a trusted
+// host pass; anything else (other domains, protocol-relative //evil, javascript:, junk) falls back.
+export function safeCallback(raw, currentOrigin, fallback = '/dashboard') {
+  const v = String(Array.isArray(raw) ? raw[0] : raw || '').trim();
+  if (!v) return fallback;
+  if (v.startsWith('/')) return v.startsWith('//') || v.startsWith('/\\') ? fallback : v;
+  try {
+    const u = new URL(v);
+    return isTrustedCallbackHost(u, currentOrigin) ? u.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+// Navigate to a validated callback: client-side for same-origin, full page load for another trusted host.
+export function goToCallback(router, url) {
+  if (typeof window !== 'undefined' && /^https?:/i.test(url)) {
+    const u = new URL(url);
+    if (u.origin !== window.location.origin) { window.location.assign(url); return; }
+    return router.push(`${u.pathname}${u.search}${u.hash}`);
+  }
+  return router.push(url);
+}
