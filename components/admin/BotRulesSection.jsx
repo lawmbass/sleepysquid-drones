@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiEdit2 } from "react-icons/fi";
+import ConnectedSourcesSection from "@/components/admin/ConnectedSourcesSection";
 import HomeAddressField from "@/components/admin/HomeAddressField";
 import {
   DECISION_LABELS,
@@ -718,6 +719,8 @@ export default function BotRulesSection() {
           </div>
         ) : null}
       </div>
+
+      <ConnectedSourcesSection />
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
