@@ -5,6 +5,7 @@ import {
   BOOKING_SERVICES,
   BOOKING_STATUSES,
   availablePackages,
+  contactOptional,
   minBookingDateTime,
   validateManualBooking,
 } from "@/libs/manualBooking";
@@ -47,6 +48,7 @@ export default function AddBookingForm({ onCreated }) {
 
   const packages = availablePackages(form.service);
   const isDrone = form.serviceLine === "drones";
+  const optionalNote = contactOptional(form.status) ? " (optional while Pending)" : "";
 
   const update = (name, value) => {
     setForm((prev) => {
@@ -71,7 +73,7 @@ export default function AddBookingForm({ onCreated }) {
       result.ok = false;
       result.errors = { ...result.errors, serviceLine: "Please choose a business line" };
     }
-    if (isDrone && !form.placeId) {
+    if (isDrone && !form.placeId && (form.location.trim() || !contactOptional(form.status))) {
       result.ok = false;
       result.errors = {
         ...result.errors,
@@ -220,7 +222,7 @@ export default function AddBookingForm({ onCreated }) {
 
           {isDrone && (
           <div>
-            <label htmlFor="add-booking-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+            <label htmlFor="add-booking-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location{optionalNote}</label>
             <AddressAutocomplete
               id="add-booking-location"
               value={form.location}
@@ -270,7 +272,7 @@ export default function AddBookingForm({ onCreated }) {
               <FieldError message={errors.name} />
             </div>
             <div>
-              <label htmlFor="add-booking-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label htmlFor="add-booking-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email{optionalNote}</label>
               <input
                 id="add-booking-email"
                 type="email"
@@ -281,7 +283,7 @@ export default function AddBookingForm({ onCreated }) {
               <FieldError message={errors.email} />
             </div>
             <div>
-              <label htmlFor="add-booking-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+              <label htmlFor="add-booking-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone{optionalNote}</label>
               <input
                 id="add-booking-phone"
                 type="tel"

@@ -7,7 +7,7 @@
 import { DEFAULT_SERVICE_LINE, isServiceLine } from "./serviceLines.js";
 
 export const MANUAL_SOURCE = "manual";
-/** Location stored for non-drone bookings (bookings.location is NOT NULL). */
+/** Location stored for non-drone bookings. */
 export const REMOTE_LOCATION = "Remote";
 export const MANUAL_SOURCE_LABEL = "Added by admin";
 
@@ -71,6 +71,35 @@ export const BOOKING_STATUSES = [
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
 ];
+
+/** Pending bookings may be saved before the address, email, or phone is known. */
+export function contactOptional(status) {
+  return (status || "pending") === "pending";
+}
+
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const PHONE_RE = /^[+]?[\d\s\-()]{10,}$/;
+
+/** Format checks for location/email/phone. Blank is allowed when optional is true. */
+export function validateContactFields({ location, email, phone, optional, requireLocation = true }) {
+  const errors = {};
+  if (!location) {
+    if (requireLocation && !optional) errors.location = "Please enter a location";
+  } else if (location.length > 200) {
+    errors.location = "Location must be 200 characters or fewer";
+  }
+  if (!email) {
+    if (!optional) errors.email = "Please enter an email";
+  } else if (!EMAIL_RE.test(email)) {
+    errors.email = "Please enter a valid email";
+  }
+  if (!phone) {
+    if (!optional) errors.phone = "Please enter a phone number";
+  } else if (!PHONE_RE.test(phone)) {
+    errors.phone = "Please enter a valid phone number";
+  }
+  return errors;
+}
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -188,11 +217,12 @@ export function validateManualBooking(input, now = Date.now()) {
   } else if (!isValidBookingDate(date, now)) {
     errors.date = "Please select a date that is at least 2 days from today";
   }
-  if (!location) {
-    errors.location = "Please enter a location";
-  } else if (location.length > 200) {
-    errors.location = "Location must be 200 characters or fewer";
-  }
+  Object.assign(errors, validateContactFields({
+    location,
+    email,
+    phone,
+    optional: contactOptional(status),
+  }));
   if (details.length > 1000) {
     errors.details = "Details must be 1000 characters or fewer";
   }
@@ -200,16 +230,6 @@ export function validateManualBooking(input, now = Date.now()) {
     errors.name = "Please enter your name";
   } else if (name.length > 100) {
     errors.name = "Name must be 100 characters or fewer";
-  }
-  if (!email) {
-    errors.email = "Please enter your email";
-  } else if (!/\S+@\S+\.\S+/.test(email)) {
-    errors.email = "Please enter a valid email";
-  }
-  if (!phone) {
-    errors.phone = "Please enter your phone number";
-  } else if (!/^[+]?[\d\s\-()]{10,}$/.test(phone)) {
-    errors.phone = "Please enter a valid phone number";
   }
   if (!BOOKING_STATUSES.some((item) => item.value === status)) {
     errors.status = "Please select a status";
@@ -239,11 +259,11 @@ export function validateManualBooking(input, now = Date.now()) {
           service,
           package: packageId || null,
           date: new Date(date).toISOString(),
-          location,
+          location: location || null,
           details,
           name,
-          email,
-          phone,
+          email: email || null,
+          phone: phone || null,
           status,
           finalPrice,
           adminNotes,

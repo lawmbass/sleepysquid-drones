@@ -118,6 +118,8 @@ export default function AdminContent({ user, onUpdate }) {
       });
 
       if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        if (response.status === 400 && body?.message) return body.message;
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

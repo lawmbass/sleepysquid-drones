@@ -42,7 +42,7 @@ export default function AiAutomationContent() {
   const set = (p) => setQ({ client: client.id, from, to, ...p });
   const wages = d.rates.map((r) => r.wage), lo = Math.min(...wages), hi = Math.max(...wages);
   const rateText = d.rateIsDefault ? `the default rate ($${DEFAULT_RATE}/hr)` : !d.rates.length ? `${money(client.hourly_rate)}/hour` : lo === hi ? `$${lo.toFixed(2)}/hour` : `area wages of $${lo.toFixed(2)}–$${hi.toFixed(2)}/hour`;
-  const errs = (d.attention || []).reduce((t, a) => t + a.errors, 0);
+  const need = d.attention || [], infoNotes = d.issueNotes || [];
   const ratio = d.planPrice ? d.totals.dollars / (d.planPrice * Math.max(1, (Date.parse(to) - Date.parse(from)) / DAY + 1) / 30.44) : null;
   const noData = !d.lastUpdated, emptyRange = !noData && !d.workflows.length;
   const collecting = !noData && !(d.totals.dollars > 0);
@@ -82,8 +82,7 @@ export default function AiAutomationContent() {
     </>}
     <section className="p-stats"><div className="p-stat full" data-testid="live"><span>Automations</span><b>{plural(d.reportingCount, "automation")} reporting</b></div></section>
     {!emptyRange && d.weekly.length > 0 && <Charts d={d} money={money} />}
-    {admin && errs > 0 && <section className="p-panel p-admin-only" data-testid="admin-errors"><h2><span className="p-admin-badge">Admin only</span> Errors reported ({errs})</h2><p className="p-sub sm">Hidden from the client.</p>
-      <ul className="p-wins">{d.attention.map((a, i) => <li key={i}><time>{shortDate(a.at, client.timezone)}</time><span><b>{a.name}</b>: {a.note || `${plural(a.errors, "action")} didn't go through`}</span></li>)}</ul></section>}
+    {admin && (need.length > 0 || infoNotes.length > 0 || d.resolvedIssues?.length > 0) && <BotReports d={d} tz={client.timezone} reload={() => load({ client: client.id, from, to, ...q })} />}
     </>}
     {admin && d.testAutomations?.length > 0 && <section className="p-panel p-admin-only" data-testid="admin-tests"><h2><span className="p-admin-badge">Admin only</span> Test automations ({d.testAutomations.length})</h2><p className="p-sub sm">Connection tests and setup checks. Hidden from the client.</p>
       <ul className="p-wins">{d.testAutomations.map((a) => <li key={a.id}><time>test</time><span><b>{a.name}</b> <code>{a.id}</code>: {plural(a.reports, "report")} in this view</span></li>)}</ul></section>}
@@ -95,6 +94,38 @@ export default function AiAutomationContent() {
     </section>
     <p className="p-fine">{FOOTER}</p>
   </div>);
+}
+
+// Admin-only "Bot reports" box: Needs attention + Notes, with Resolve/Dismiss, Clear all notes and a Resolved view (reopen).
+function BotReports({ d, tz, reload }) {
+  const [view, setView] = useState("open");
+  const [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
+  const need = d.attention || [], notes = d.issueNotes || [], done = d.resolvedIssues || [], can = !!d.resolutionsAvailable;
+  const act = async (action, ids = []) => {
+    if (action === "clear_notes" && !window.confirm(`Clear all ${notes.length} notes? They move to Resolved and can be reopened.`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/ai-issues", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client: d.client.id, action, ids, from: d.from, to: d.to }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setMsg(j.error || "Couldn't save that change."); else await reload();
+    } catch { setMsg("Couldn't save that change."); }
+    setBusy(false);
+  };
+  const btn = (label, action, id, cls = "") => can && <button type="button" className={`p-mini ${cls}`} disabled={busy} data-testid={`issue-${action}`} onClick={() => act(action, [id])}>{label}</button>;
+  const row = (a, extra) => <li key={a.id} data-issue-id={a.id}><time>{shortDate(a.at, tz)}</time><span><b>{a.name}</b>: {a.noDetails ? <i>No details sent</i> : a.note}{a.fix && a.kind === "attention" && <small className="p-fix">Fix: {a.fix}</small>}{extra}</span>
+    <em className="p-acts">{a.resolved ? btn("Reopen", "reopen", a.id) : a.kind === "attention" ? btn("Resolve", "resolve", a.id) : btn("Dismiss", "dismiss", a.id, "ghost")}</em></li>;
+  return (<section className="p-panel p-admin-only" data-testid="admin-errors">
+    <div className="p-bothead"><h2><span className="p-admin-badge">Admin only</span> Bot reports</h2>
+      <div className="p-quick"><button type="button" className={`p-chip${view === "open" ? " on" : ""}`} onClick={() => setView("open")}>Open ({need.length + notes.length})</button><button type="button" data-testid="view-resolved" className={`p-chip${view === "resolved" ? " on" : ""}`} onClick={() => setView("resolved")}>Resolved ({done.length})</button></div></div>
+    <p className="p-sub sm">Hidden from the client.{!can && " Resolving switches on once the database update is applied."}</p>
+    {msg && <p className="p-info" role="alert">{msg}</p>}
+    {view === "open" ? <>
+      <h3 className="p-issue-head" data-testid="needs-attention">Needs attention ({need.length})</h3>
+      {need.length ? <ul className="p-wins p-issues">{need.map((a) => row(a))}</ul> : <p className="p-sub sm">Nothing needs attention.</p>}
+      <div className="p-notes-head"><h3 className="p-issue-head" data-testid="issue-notes">Notes ({notes.length})</h3>{can && notes.length > 0 && <button type="button" className="p-mini ghost" disabled={busy} data-testid="clear-notes" onClick={() => act("clear_notes")}>Clear all notes</button>}</div>
+      {notes.length ? <ul className="p-wins p-issues p-notes">{notes.map((a) => row(a))}</ul> : <p className="p-sub sm">No notes.</p>}
+    </> : <>{done.length ? <ul className="p-wins p-issues p-notes" data-testid="resolved-list">{done.map((a) => row(a, <small className="p-resolved-by">{a.resolvedAction === "clear_notes" ? "Cleared" : a.resolvedAction === "dismiss" ? "Dismissed" : "Resolved"} by {a.resolvedBy} · {when(a.resolvedAt, tz)}</small>))}</ul> : <p className="p-sub sm">Nothing resolved yet.</p>}</>}
+  </section>);
 }
 
 // Compact card for the dashboard overview. Renders nothing unless the user is linked to an AI client.

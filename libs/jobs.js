@@ -855,6 +855,11 @@ function byDateDesc(left, right) {
   return rightMs - leftMs;
 }
 
+/** Money, travel, and distance metrics only count completed jobs. */
+export function countsTowardMetrics(job) {
+  return job?.status === "completed";
+}
+
 export function summarizeJobs(jobs, { now = new Date() } = {}) {
   const list = jobs || [];
   const stats = {};
@@ -865,7 +870,7 @@ export function summarizeJobs(jobs, { now = new Date() } = {}) {
   let priced = 0;
 
   for (const job of list) {
-    const amount = jobAmount(job);
+    const amount = countsTowardMetrics(job) ? jobAmount(job) : 0;
     revenue += amount;
     if (amount > 0) priced += 1;
     const status = job.status || "unknown";
@@ -903,9 +908,10 @@ export function summarizeJobs(jobs, { now = new Date() } = {}) {
   }
 
   const missions = list.filter((job) => job.isMission);
-  const payouts = missions.map((job) => job.payout).filter((value) => value != null);
-  const distances = missions.map((job) => job.travelDistance).filter((value) => value != null);
-  const times = missions.map((job) => job.travelTime).filter((value) => value != null);
+  const completedMissions = missions.filter(countsTowardMetrics);
+  const payouts = completedMissions.map((job) => job.payout).filter((value) => value != null);
+  const distances = completedMissions.map((job) => job.travelDistance).filter((value) => value != null);
+  const times = completedMissions.map((job) => job.travelTime).filter((value) => value != null);
   const completed = stats.completed?.count || 0;
   const upcomingJobs = list
     .filter((job) => job.status !== "completed" && job.status !== "cancelled" && job.date && new Date(job.date) >= now)
@@ -977,17 +983,18 @@ export function summarizeAnalytics(jobs) {
   let timeCount = 0;
 
   for (const job of list) {
-    const amount = jobAmount(job);
-    if (job.payout != null) {
+    const counted = countsTowardMetrics(job);
+    const amount = counted ? jobAmount(job) : 0;
+    if (counted && job.payout != null) {
       payoutSum += job.payout;
       payoutCount += 1;
       efficiency.minPayout = efficiency.minPayout == null ? job.payout : Math.min(efficiency.minPayout, job.payout);
       efficiency.maxPayout = efficiency.maxPayout == null ? job.payout : Math.max(efficiency.maxPayout, job.payout);
-    } else if (amount > 0) {
+    } else if (counted && amount > 0) {
       efficiency.minPayout = efficiency.minPayout == null ? amount : Math.min(efficiency.minPayout, amount);
       efficiency.maxPayout = efficiency.maxPayout == null ? amount : Math.max(efficiency.maxPayout, amount);
     }
-    if (job.travelDistance != null) {
+    if (counted && job.travelDistance != null) {
       distanceSum += job.travelDistance;
       distanceCount += 1;
       efficiency.totalTravelDistance += job.travelDistance;
@@ -1001,7 +1008,7 @@ export function summarizeAnalytics(jobs) {
       bucket.count += 1;
       bucket.totalPayout += amount;
     }
-    if (job.travelTime != null) {
+    if (counted && job.travelTime != null) {
       timeSum += job.travelTime;
       timeCount += 1;
       efficiency.totalTravelTime += job.travelTime;
@@ -1023,13 +1030,13 @@ export function summarizeAnalytics(jobs) {
     const sourceRow = sourceBreakdown[sourceKey];
     sourceRow.count += 1;
     sourceRow.totalPayout += amount;
-    sourceRow.payoutCount += 1;
+    if (counted) sourceRow.payoutCount += 1;
     sourceRow.statusCounts[job.status] = (sourceRow.statusCounts[job.status] || 0) + 1;
-    if (job.travelDistance != null) {
+    if (counted && job.travelDistance != null) {
       sourceRow.distanceSum += job.travelDistance;
       sourceRow.distanceCount += 1;
     }
-    if (job.travelTime != null) {
+    if (counted && job.travelTime != null) {
       sourceRow.timeSum += job.travelTime;
       sourceRow.timeCount += 1;
     }
@@ -1049,7 +1056,7 @@ export function summarizeAnalytics(jobs) {
         const day = days.get(key);
         day.count += 1;
         day.totalPayout += amount;
-        day.payoutCount += 1;
+        if (counted) day.payoutCount += 1;
       }
     }
   }

@@ -10,6 +10,10 @@ import { isQuotePackage, packageLabel } from "@/libs/manualBooking";
  * @param {string} options.loginUrl - URL for login/account creation
  */
 export const sendBookingConfirmationEmail = async (booking, options = {}) => {
+  if (!booking || !booking.email) {
+    console.warn("Booking confirmation email skipped: booking has no email address");
+    return { skipped: true, reason: "no_email" };
+  }
   const { hasAccount = false, loginUrl = null } = options;
   
   const subject = `Booking Confirmation - ${booking.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Service`;
@@ -88,7 +92,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 12px 0; font-weight: 600; color: #4b5563;">Location:</td>
-            <td style="padding: 12px 0; color: #1f2937;">${booking.location}</td>
+            <td style="padding: 12px 0; color: #1f2937;">${booking.location || "TBD"}</td>
           </tr>
 
           ${estimatedPriceLabel ? `
@@ -154,7 +158,7 @@ BOOKING DETAILS:
 Booking ID: ${booking._id}
 Service: ${serviceDisplayName}
 ${packageDisplayName ? `Package: ${packageDisplayName}\n` : ''}Date: ${formattedDate}
-Location: ${booking.location}
+Location: ${booking.location || "TBD"}
 ${estimatedPriceLabel ? `Estimated Price: ${estimatedPriceLabel}\n` : ''}Status: Pending Confirmation
 
 ${booking.details ? `Additional Details: ${booking.details}\n\n` : ''}

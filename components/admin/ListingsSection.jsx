@@ -12,6 +12,7 @@ import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "seen", label: "Seen" },
+  { value: "needs_review", label: "Needs review" },
   { value: "accepted", label: "Accepted" },
   { value: "declined_by_filter", label: "Declined by filter" },
   { value: "expired", label: "Expired" },
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_STYLES = {
+  needs_review: "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
   seen: "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
   accepted: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
   declined_by_filter: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
@@ -84,6 +86,29 @@ function ChipList({ items, empty }) {
       ))}
     </div>
   );
+}
+
+const NOT_FOUND_TITLE = /^(?:404\b.*|not\s*found|page\s*not\s*found)$/i;
+const PAYOUT_PREFIX = /^\$?\s*\d[\d,]*(?:\.\d+)?\s*USD\s*(?:LOCATION|Address)?\s*:?\s*/i;
+
+// Title shown for a listing; a stored "Not Found" page title falls back to the mission id.
+export function listingTitle(listing) {
+  const title = String(listing?.title || "").trim();
+  if (!title || NOT_FOUND_TITLE.test(title)) return listing?.externalMissionId || "Mission listing";
+  return title;
+}
+
+// Address without an email "90 USD LOCATION" prefix.
+export function listingAddress(listing) {
+  const address = String(listing?.address || "").trim();
+  return address.replace(PAYOUT_PREFIX, "").trim() || null;
+}
+
+// True when the bot could not read the mission page.
+export function detailsUnavailable(listing) {
+  if (!listing) return false;
+  if (listing.rawDetail?.detail_status === "unavailable") return true;
+  return NOT_FOUND_TITLE.test(String(listing.title || "").trim());
 }
 
 function AggregateCard({ title, children }) {
@@ -357,8 +382,8 @@ export default function ListingsSection() {
                     onClick={() => openDetail(listing.id)}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900 dark:text-white">{listing.title || listing.externalMissionId}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{listing.address || listing.source}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{listingTitle(listing)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{listingAddress(listing) || listing.source}</div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1">
@@ -425,7 +450,7 @@ export default function ListingsSection() {
             <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {detail?.title || "Mission listing"}
+                  {detail ? listingTitle(detail) : "Mission listing"}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {detail ? `${detail.source} · ${detail.externalMissionId}` : "Loading…"}
@@ -463,14 +488,19 @@ export default function ListingsSection() {
                   )}
                 </div>
 
+                {detailsUnavailable(detail) && (
+                  <p className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+                    Details unavailable. The mission page returned Not Found when the bot opened it, so only the email details were stored.
+                  </p>
+                )}
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div><dt className="text-gray-500 dark:text-gray-400">Client</dt><dd className="text-gray-900 dark:text-white">{detail.clientName || "—"}</dd></div>
-                  <div><dt className="text-gray-500 dark:text-gray-400">Mission type</dt><dd className="text-gray-900 dark:text-white">{detail.missionType || "—"}</dd></div>
+                  <div><dt className="text-gray-500 dark:text-gray-400">Client</dt><dd className="text-gray-900 dark:text-white">{detail.clientName || (detailsUnavailable(detail) ? "Details unavailable" : "—")}</dd></div>
+                  <div><dt className="text-gray-500 dark:text-gray-400">Mission type</dt><dd className="text-gray-900 dark:text-white">{detail.missionType || (detailsUnavailable(detail) ? "Details unavailable" : "—")}</dd></div>
                   <div className="sm:col-span-2 flex gap-2">
                     <FiMapPin className="mt-0.5 text-gray-400" />
                     <div>
                       <dt className="text-gray-500 dark:text-gray-400">Address</dt>
-                      <dd className="text-gray-900 dark:text-white">{detail.address || "—"}</dd>
+                      <dd className="text-gray-900 dark:text-white">{listingAddress(detail) || "—"}</dd>
                       {(detail.latitude != null || detail.longitude != null) && (
                         <dd className="text-xs text-gray-500 dark:text-gray-400">{detail.latitude}, {detail.longitude}</dd>
                       )}
@@ -533,7 +563,7 @@ export default function ListingsSection() {
                       ))}
                     </ol>
                   ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No capture steps were stored for this listing.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{detailsUnavailable(detail) ? "Details unavailable: the mission page could not be read." : "No capture steps were stored for this listing."}</p>
                   )}
                 </section>
 

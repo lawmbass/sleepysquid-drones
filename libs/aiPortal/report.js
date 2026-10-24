@@ -4,7 +4,8 @@
 // duration_avg metrics are averaged, outcome metrics are summed; neither is $-valued. Unknown keys are kept as plain counts.
 import { bucketSize, bucketOf, bucketKeys, bucketLabel, bucketEnd } from "./chartRange";
 import { db } from "./db";
-import { FRIENDLY, TILE_GROUPS, DEFAULT_RATE, SHOW_ACTIVITY_TILES, KEEP_TILE_KEYS, isCountedTile, isRoutineKey, isErrorNote, isInternalAutomation, isTestCounts } from "./tags";
+import { issueId, loadResolutions } from "./issues";
+import { FRIENDLY, TILE_GROUPS, DEFAULT_RATE, SHOW_ACTIVITY_TILES, KEEP_TILE_KEYS, isCountedTile, isRoutineKey, isErrorNote, classifyIssue, isInternalAutomation, isTestCounts } from "./tags";
 
 async function dbAll(path) {
   const out = [];
@@ -130,8 +131,17 @@ export async function buildReport(clientId, from, to) {
   for (const r of inR) { const w = wkStart(r.period_start); const o = (weeks[w] ||= { w, dollars: {} }); o.dollars[r.automation_id] = (o.dollars[r.automation_id] || 0) + valueOf(r).dollars; }
   const weekly = Object.values(weeks).sort((a, b) => (a.w < b.w ? -1 : 1));
   const savableCount = (r) => Object.entries(r.counts || {}).filter(([k, n]) => n > 0 && catalog[k]?.kind !== "duration_avg" && !isDur(k) && !isRoutineKey(k)).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${Number(n).toLocaleString()} ${(catalog[k]?.label || pretty(k)).toLowerCase()}`);
-  const recentWins = [...inR].sort((a, b) => (a.period_start < b.period_start ? 1 : -1)).filter((r) => valueOf(r).dollars > 0).slice(0, 5).map((r) => ({ at: r.period_start, name: names[r.automation_id], what: savableCount(r).join(", "), note: isErrorNote(r.notes) ? null : wonNote(r.notes), dollars: valueOf(r).dollars }));
-  const attention = [...inR].sort((a, b) => (a.period_start < b.period_start ? 1 : -1)).filter((r) => r.errors > 0).slice(0, 20).map((r) => ({ at: r.period_start, name: names[r.automation_id], errors: r.errors, note: isErrorNote(r.notes) ? r.notes : null }));
+  const recentWins = [...inR].sort((a, b) => (a.period_start < b.period_start ? 1 : -1)).filter((r) => valueOf(r).dollars > 0).slice(0, 5).map((r) => ({ at: r.period_start, name: names[r.automation_id], what: savableCount(r).join(", "), note: isErrorNote(r.notes) || /^\[(error|note)\]/i.test(r.notes || "") ? null : wonNote(r.notes), dollars: valueOf(r).dollars }));
+  const issues = [...inR].sort((a, b) => (a.period_start < b.period_start ? 1 : -1)).map((r) => ({ r, c: (r.errors > 0 || /^\[(error|note)\]/i.test(r.notes || "")) ? classifyIssue(r.notes, r.errors) : null })).filter((x) => x.c);
+  const res = await loadResolutions(clientId);
+  const issueItem = ({ r, c }) => { const id = issueId(r.report_id, r.notes), z = res.byId[id];
+    return { id, reportId: r.report_id, kind: c.kind, at: r.period_start, name: names[r.automation_id], errors: r.errors || 0, note: c.reason, fix: c.fix, noDetails: !!c.noDetails,
+      resolved: z?.status === "resolved", resolvedBy: z?.status === "resolved" ? z.resolved_by : null, resolvedAt: z?.status === "resolved" ? z.resolved_at : null, resolvedAction: z?.status === "resolved" ? z.action : null }; };
+  const allIssues = issues.map(issueItem), open = allIssues.filter((x) => !x.resolved);
+  const attention = open.filter((x) => x.kind === "attention").slice(0, 20);
+  const issueNotes = open.filter((x) => x.kind === "note").slice(0, 20);
+  const resolvedIssues = allIssues.filter((x) => x.resolved).sort((a, b) => (a.resolvedAt < b.resolvedAt ? 1 : -1)).slice(0, 50);
+  const resolutionsAvailable = res.available;
   const lastUpdated = reports.length ? reports.reduce((m, r) => (r.emitted_at > m ? r.emitted_at : m), "") : null;
   const dataMonths = firstAny ? allKeys.filter((k) => k >= firstAny && k < curM).length : 0; // full months with data
   const workflows = Object.values(per).map((p) => ({ ...p, rates: [...p.rates], hours: p.minutes / 60, tag: tagOf(p.rates, p.legacy) })).sort((a, b) => b.dollars - a.dollars);
@@ -177,7 +187,7 @@ export async function buildReport(clientId, from, to) {
   for (const m of metrics) { m.series = bKeys.map((k) => { const x = bM[m.key]?.[k]; return { b: k, label: bucketLabel(k, size), v: !x || !x.n ? null : isAvg(m.key) ? x.sum / x.n : x.sum }; }); m.hasRangeData = m.series.some((p) => p.v != null && p.v !== 0); }
   const lyHas = Object.values(yoyW).some((y) => y.has);
   return {
-    ...v2, testAutomations: Object.values(hiddenNames), series, weekly, recentWins, attention, lastUpdated, dataMonths, automationCount: ids.length, planPrice: client.plan_price != null ? Number(client.plan_price) : null,
+    ...v2, testAutomations: Object.values(hiddenNames), series, weekly, recentWins, attention, issueNotes, resolvedIssues, resolutionsAvailable, lastUpdated, dataMonths, automationCount: ids.length, planPrice: client.plan_price != null ? Number(client.plan_price) : null,
     client, from, to, generated: new Date().toISOString(), ids, names, businessType: client.business_type,
     rates: [...new Set(usedRates.size || usedLegacy ? [...usedRates] : [...catRows.filter((c) => c.savable).map((c) => c.workflow_type)])].map((wt) => ({ ...rate(wt), metrics: catRows.filter((c) => c.workflow_type === wt).map((c) => catalog[c.metric_key].label) })),
     legacyRate: usedLegacy ? Number(client.hourly_rate) : null,
