@@ -228,6 +228,51 @@ The home address box searches through the server (`/api/admin/places/autocomplet
 
 Apply `supabase/migrations/20261013180000_bot_settings.sql` before deploying the page. The service role bypasses RLS. Authenticated dashboard admins (`is_dashboard_admin()`) can `SELECT` and `UPDATE`. Anon has no grant and no policy.
 
+### `public.gig_sources` (connected gig feeds)
+
+One row per source. Bot rules lists them under Connected sources. The first row is Zeitview. The page is data-driven: catalog entries in `libs/gigSources.js` plus any extra rows in this table. Apply `supabase/migrations/20261024010000_gig_sources.sql` before the Enabled switch can be saved. Do not apply it to production until you mean to. Until the table exists, the dashboard shows Zeitview as enabled and the switch returns 503.
+
+| Column | Who writes it | Notes |
+| --- | --- | --- |
+| `source_key` | migration | `zeitview` for the first row. |
+| `display_name` | migration, dashboard on insert | Shown as Zeitview. |
+| `enabled` | dashboard (`PATCH /api/admin/gig-sources`) | Default `true`. `false` tells the bot not to pull that source and not to add its bookings. |
+| `last_health` | drone-gigs bot | `ok`, `degraded`, or `down`. Fallback when `/health` cannot be reached. |
+| `last_success_at` | drone-gigs bot | Last clean pull that also filled bookings. |
+| `last_error` | drone-gigs bot | Short error. Null after a clean cycle. |
+| `updated_at` | trigger | Set on update. |
+| `updated_by` | dashboard | Admin email. The bot must leave this alone. |
+
+The dot is green, orange, red, or gray. Gray wins whenever `enabled` is false, including when the last health was bad. The other colors for Zeitview are derived from `GET https://drone-gigs.onrender.com/health` (`DRONE_GIGS_HEALTH_URL` overrides it). A 15 second server cache avoids hammering that host. The raw health document is not sent to the browser. It includes home addresses.
+
+Green means `status` is `ok`, Gmail poll is enabled, the last poll result is `ok`, `lastPollAt` is newer than 1.5 poll intervals (at least 6 minutes), `lastWatchError` is empty, the watch has not expired and is not inside 24 hours, `acceptFailures` and `unclearAccepts` are empty, profile sync is not failed and has no drift, recent mission outcomes have no failure, and drive-time backfill has no `error` and `failed` of 0. An unlocated backfill row does not change the dot.
+
+Orange means the pipeline is up but one of those soft checks failed: poll missing or late, profile drift, an unclear accept, a failed recent outcome, a drive-time fill failure, or the watch expiring within a day. Red means the health status is not ok, the watch errored or expired, the poll is off, failed, or stale (older than 3 intervals, at least 15 minutes), an accept failed, or Zeitview profile sync failed. If `/health` cannot be reached, the row's `last_health` and `last_error` are shown. With nothing stored, the dot is orange and the text says the health check could not be reached. Sources other than Zeitview use stored `last_health` only.
+
+Same admin check as the rest of Bot rules (`requireAdmin`: signed-in dashboard admin). Service role bypasses RLS. Authenticated admins (`is_dashboard_admin()`) can `SELECT` and `UPDATE`. Anon has no grant and no policy.
+
+The drone-gigs bot has to honor the switch. This repo only stores it.
+
+Read, with the service role, before each Zeitview poll and before creating a booking:
+
+```sql
+SELECT enabled FROM public.gig_sources WHERE source_key = 'zeitview';
+```
+
+No row means enabled. `enabled = false` means skip the Zeitview ingest (today that is the Gmail poll that feeds Zeitview) and do not insert `bookings` with `source = 'zeitview'`. Leave bookings that already exist. When more sources share one poller, skip only Zeitview messages.
+
+Write only the health columns, after a cycle. Do not change `enabled` or `updated_by`, and do not insert a second Zeitview row:
+
+```sql
+UPDATE public.gig_sources
+SET last_health = 'ok',
+    last_success_at = now(),
+    last_error = NULL
+WHERE source_key = 'zeitview';
+```
+
+Use `degraded` or `down` and a short `last_error` when the cycle was not clean, and leave `last_success_at` at the previous success. `ok` is a clean pull that filled bookings, `degraded` means it ran but something needs a fix, `down` means the pull, watch, profile sync, or an accept failed. The dashboard still prefers the live `/health` document for Zeitview when that request succeeds.
+
 ## Commands
 
 ```bash
@@ -235,6 +280,7 @@ npm run dev
 npm run lint
 npm run build
 npm run check:rls
+npm run check:sources
 node scripts/test-admin-login.js
 ```
 

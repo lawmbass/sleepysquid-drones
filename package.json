@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "check:rls": "node scripts/check-rls.js",
+    "check:sources": "node scripts/check-gig-sources.mjs",
     "test": "node --test scripts/tests/"
   },
   "dependencies": {
