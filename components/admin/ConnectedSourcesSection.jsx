@@ -50,13 +50,14 @@ function SourceSwitch({ source, busy, onToggle }) {
       type="button"
       role="switch"
       aria-checked={source.enabled}
-      aria-label={`${source.name} ${label}`}
+      aria-label={`${source.name} ${source.enabled ? "enabled" : "disabled"}`}
       aria-describedby={`${source.key}-status`}
       aria-busy={busy}
       disabled={busy}
       onClick={() => onToggle(source)}
-      className="inline-flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-left shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50/70 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:hover:border-blue-400 dark:hover:bg-gray-900 dark:focus:ring-blue-400 md:w-auto md:justify-start"
+      className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-gray-900"
     >
+      <span className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{label}</span>
       <span
         aria-hidden="true"
         className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
@@ -69,7 +70,6 @@ function SourceSwitch({ source, busy, onToggle }) {
           }`}
         />
       </span>
-      <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
     </button>
   );
 }
@@ -78,22 +78,25 @@ function SourceRow({ source, busy, onToggle }) {
   const spoken = `${source.statusLabel}. ${source.statusText}`;
   return (
     <li
-      className="grid grid-cols-1 gap-3 border-b border-gray-100 py-4 last:border-b-0 dark:border-gray-700 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.4fr)_auto] md:items-center md:gap-4"
+      className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900"
       data-source={source.key}
       data-health={source.dot}
     >
-      <div className="flex min-w-0 items-start gap-3">
-        <Mark source={source} />
-        <div className="min-w-0">
-          <p className="text-base font-medium text-gray-900 dark:text-white">{source.name}</p>
-          {source.summary ? (
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{source.summary}</p>
-          ) : null}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <Mark source={source} />
+          <div className="min-w-0 pt-0.5">
+            <p className="text-base font-medium leading-6 text-gray-900 dark:text-white">{source.name}</p>
+            {source.summary ? (
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{source.summary}</p>
+            ) : null}
+          </div>
         </div>
+        <SourceSwitch source={source} busy={busy} onToggle={onToggle} />
       </div>
       <p
         id={`${source.key}-status`}
-        className="flex min-w-0 items-start gap-2 text-sm text-gray-600 dark:text-gray-300"
+        className="mt-2 flex min-w-0 items-start gap-2 pl-[3.25rem] text-sm text-gray-600 dark:text-gray-300"
         title={spoken}
         aria-live="polite"
       >
@@ -105,7 +108,6 @@ function SourceRow({ source, busy, onToggle }) {
           <span className="font-medium text-gray-900 dark:text-white">{source.statusLabel}.</span> {source.statusText}
         </span>
       </p>
-      <SourceSwitch source={source} busy={busy} onToggle={onToggle} />
     </li>
   );
 }
@@ -219,23 +221,16 @@ export default function ConnectedSourcesSection({
       ) : null}
 
       {!loading && sources.length > 0 ? (
-        <>
-          <div className="mt-4 hidden border-b border-gray-100 pb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:text-gray-400 md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1.4fr)_auto] md:gap-4">
-            <span>Source</span>
-            <span>Status</span>
-            <span>Enabled</span>
-          </div>
-          <ul className="mt-1 md:mt-0">
-            {sources.map((source) => (
-              <SourceRow
-                key={source.key}
-                source={source}
-                busy={togglingKey === source.key}
-                onToggle={toggle}
-              />
-            ))}
-          </ul>
-        </>
+        <ul className="mt-4 space-y-3">
+          {sources.map((source) => (
+            <SourceRow
+              key={source.key}
+              source={source}
+              busy={togglingKey === source.key}
+              onToggle={toggle}
+            />
+          ))}
+        </ul>
       ) : null}
     </section>
   );

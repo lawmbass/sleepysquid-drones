@@ -247,6 +247,8 @@ assert.match(ui, /sources\.map/);
 assert.match(ui, /"Enabled"/);
 assert.match(ui, /"Disabled"/);
 assert.match(ui, /role="switch"/);
+assert.match(ui, /\$\{source\.name\} \$\{source\.enabled \? "enabled" : "disabled"\}/);
+assert.doesNotMatch(ui, /w-full cursor-pointer items-center justify-between/);
 assert.doesNotMatch(ui, /Zeitview/);
 
 const rules = fs.readFileSync(new URL("../components/admin/BotRulesSection.jsx", import.meta.url), "utf8");
