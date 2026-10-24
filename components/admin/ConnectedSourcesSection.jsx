@@ -60,13 +60,14 @@ function SourceSwitch({ source, busy, onToggle }) {
       <span className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{label}</span>
       <span
         aria-hidden="true"
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+        data-switch-track
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${
           source.enabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-            source.enabled ? "translate-x-5" : "translate-x-0.5"
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+            source.enabled ? "translate-x-5" : "translate-x-0"
           }`}
         />
       </span>
@@ -82,21 +83,21 @@ function SourceRow({ source, busy, onToggle }) {
       data-source={source.key}
       data-health={source.dot}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <Mark source={source} />
-          <div className="min-w-0 pt-0.5">
-            <p className="text-base font-medium leading-6 text-gray-900 dark:text-white">{source.name}</p>
-            {source.summary ? (
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{source.summary}</p>
-            ) : null}
-          </div>
+          <p className="min-w-0 truncate text-base font-medium leading-6 text-gray-900 dark:text-white">{source.name}</p>
         </div>
         <SourceSwitch source={source} busy={busy} onToggle={onToggle} />
       </div>
+      {source.summary ? (
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400" data-source-summary>
+          {source.summary}
+        </p>
+      ) : null}
       <p
         id={`${source.key}-status`}
-        className="mt-2 flex min-w-0 items-start gap-2 pl-[3.25rem] text-sm text-gray-600 dark:text-gray-300"
+        className="mt-2 flex min-w-0 items-start gap-2 text-sm text-gray-600 dark:text-gray-300"
         title={spoken}
         aria-live="polite"
       >

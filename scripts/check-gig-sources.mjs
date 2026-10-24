@@ -248,6 +248,10 @@ assert.match(ui, /"Enabled"/);
 assert.match(ui, /"Disabled"/);
 assert.match(ui, /role="switch"/);
 assert.match(ui, /\$\{source\.name\} \$\{source\.enabled \? "enabled" : "disabled"\}/);
+assert.match(ui, /h-6 w-11/);
+assert.match(ui, /left-0\.5 top-0\.5 h-5 w-5/);
+assert.match(ui, /source\.enabled \? "translate-x-5" : "translate-x-0"/);
+assert.match(ui, /data-source-summary/);
 assert.doesNotMatch(ui, /w-full cursor-pointer items-center justify-between/);
 assert.doesNotMatch(ui, /Zeitview/);
 
