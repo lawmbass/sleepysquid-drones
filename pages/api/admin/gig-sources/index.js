@@ -61,7 +61,9 @@ export default async function handler(req, res) {
     console.error("Admin gig sources error:", error?.message || error);
     return res.status(500).json({
       error: "Internal server error",
-      message: "Connected sources could not be loaded.",
+      message: req.method === "GET"
+        ? "Connected sources could not be loaded."
+        : "Connected sources could not be saved.",
     });
   }
 }
