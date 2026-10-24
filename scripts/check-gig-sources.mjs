@@ -183,6 +183,13 @@ assert.equal(defaults.find((source) => source.key === "droners").enabled, false)
 assert.match(defaults.find((source) => source.key === "droners").ruleNote, /Cloudflare blocks the bot/);
 assert.equal(defaults.find((source) => source.key === "droners").sync.text, "Manual, update on droners.io");
 assert.equal(defaults.find((source) => source.key === "droners").sync.state, "manual");
+assert.equal(defaults.find((source) => source.key === "droners").dot, "blue");
+assert.equal(defaults.find((source) => source.key === "droners").statusLabel, "Manual");
+assert.equal(
+  defaults.find((source) => source.key === "droners").statusText,
+  "Job alerts by email. Settings managed on droners.io."
+);
+assert.doesNotMatch(defaults.find((source) => source.key === "droners").statusText, /No status|Needs a fix/);
 assert.match(defaults.find((source) => source.key === "flyguys").ruleNote, /nothing to sync/);
 const legacySynced = presentSources([], {
   live: liveLike(),
@@ -247,6 +254,60 @@ assert.deepEqual(profileSyncRequestFields("zeitview", true, NOW), {
 assert.deepEqual(profileSyncRequestFields("flyguys", true, NOW), {
   profile_sync_requested_at: NOW.toISOString(),
 });
+assert.deepEqual(profileSyncRequestFields("flyguys", false, NOW), {});
+const manualDespiteHealth = presentSources(
+  [
+    {
+      sourceKey: "droners",
+      enabled: true,
+      displayName: "Droners.io",
+      lastHealth: "down",
+      lastError: "Cloudflare blocked the profile page.",
+      profileSyncAvailable: true,
+      profileSyncResult: "failed",
+      profileSyncError: "Account Settings did not save.",
+      profileSyncAt: "2026-10-24T15:00:00.000Z",
+    },
+  ],
+  { live: liveLike(), liveOk: true, now: NOW }
+).find((source) => source.key === "droners");
+assert.equal(manualDespiteHealth.enabled, true);
+assert.equal(manualDespiteHealth.dot, "blue");
+assert.equal(manualDespiteHealth.statusLabel, "Manual");
+assert.equal(manualDespiteHealth.statusText, "Job alerts by email. Settings managed on droners.io.");
+assert.notEqual(manualDespiteHealth.sync.state, "failed");
+assert.equal(manualDespiteHealth.health.level, "manual");
+const pendingOff = presentSources(
+  [
+    {
+      sourceKey: "flyguys",
+      enabled: false,
+      displayName: "FlyGuys",
+      profileSyncAvailable: true,
+      profileSyncRequestedAt: "2026-10-24T15:30:00.000Z",
+    },
+  ],
+  { live: liveLike(), liveOk: true, now: NOW }
+).find((source) => source.key === "flyguys");
+assert.equal(pendingOff.enabled, false);
+assert.equal(pendingOff.dot, "gray");
+assert.equal(pendingOff.sync, null);
+const pendingOn = presentSources(
+  [
+    {
+      sourceKey: "flyguys",
+      enabled: true,
+      displayName: "FlyGuys",
+      profileSyncAvailable: true,
+      profileSyncRequestedAt: "2026-10-24T15:30:00.000Z",
+    },
+  ],
+  { live: liveLike(), liveOk: true, now: NOW }
+).find((source) => source.key === "flyguys");
+assert.equal(pendingOn.sync.state, "pending");
+assert.equal(pendingOn.sync.text, "Sync requested. Waiting for the drone-gigs bot.");
+assert.equal(applyEnabled(pendingOn, false).sync, null);
+assert.equal(applyEnabled(pendingOn, false).enabled, false);
 assert.equal(displayNameFor("acme", [{ sourceKey: "acme", displayName: "Acme Air" }]), "Acme Air");
 assert.equal(parseSourceToggle({ sourceKey: "zeitview", enabled: false }, ["zeitview"]).ok, true);
 assert.equal(parseSourceToggle({ sourceKey: "nope", enabled: true }, ["zeitview"]).ok, false);
@@ -329,6 +390,7 @@ const sourceDb = fs.readFileSync(new URL("../libs/db/gigSources.js", import.meta
 assert.match(sourceDb, /profileSyncRequestFields\(sourceKey, enabled\)/);
 assert.match(sourceDb, /\.neq\("source_key", "droners"\)/);
 assert.match(sourceDb, /requestsProfileSync\("droners"\)/);
+assert.match(sourceDb, /\.eq\("enabled", true\)/);
 
 const route = fs.readFileSync(new URL("../pages/api/admin/gig-sources/index.js", import.meta.url), "utf8");
 assert.match(route, /requireAdmin/);
@@ -347,6 +409,8 @@ assert.match(ui, /source\.enabled \? "translate-x-5" : "translate-x-0"/);
 assert.match(ui, /data-source-summary/);
 assert.match(ui, /data-rule-note/);
 assert.match(ui, /data-source-sync/);
+assert.match(ui, /bg-blue-500/);
+assert.match(ui, /Blue means you update that site yourself/);
 assert.match(ui, /role="alert"/);
 assert.doesNotMatch(ui, /w-full cursor-pointer items-center justify-between/);
 assert.doesNotMatch(ui, /Zeitview/);

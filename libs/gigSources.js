@@ -43,7 +43,9 @@
  * locate, and the live bot reports them while the pull itself is fine.
  *
  * Other sources have no slice of /health yet. Their dot uses stored
- * last_health, or orange "No status for this source yet."
+ * last_health, or orange "No status for this source yet." A manual source
+ * (Droners) never uses that health dot. It stays a blue Manual status even
+ * when health is missing or a profile sync failed.
  */
 
 import { describeProfileSync } from "./botRules.js";
@@ -82,10 +84,12 @@ export const GIG_SOURCE_CATALOG = [
       "Cloudflare blocks the bot, so Droners settings stay manual. Update Max distance and the primary location on droners.io.",
     defaultEnabled: false,
     profileSync: "manual",
+    manualStatus: "Job alerts by email. Settings managed on droners.io.",
   },
 ];
 
 export const DRONERS_MANUAL_SYNC_TEXT = "Manual, update on droners.io";
+export const DRONERS_MANUAL_STATUS = "Job alerts by email. Settings managed on droners.io.";
 
 export function requestsProfileSync(sourceKey) {
   const source = GIG_SOURCE_CATALOG.find((item) => item.key === sourceKey);
@@ -142,6 +146,7 @@ function outcomeFailed(entry) {
 export function dotForLevel(level) {
   if (level === "ok") return "green";
   if (level === "down") return "red";
+  if (level === "manual") return "blue";
   return "orange";
 }
 
@@ -149,6 +154,7 @@ export function statusLabelFor(dot) {
   if (dot === "green") return "OK";
   if (dot === "red") return "Broken";
   if (dot === "gray") return "Disabled";
+  if (dot === "blue") return "Manual";
   return "Needs a fix";
 }
 
@@ -300,6 +306,13 @@ function storedHealth(row, name) {
 }
 
 export function healthForSource(source, row, { live, liveOk, now }) {
+  if (source?.profileSync === "manual" || source?.key === "droners") {
+    return {
+      level: "manual",
+      summary: source.manualStatus || DRONERS_MANUAL_STATUS,
+      from: "manual",
+    };
+  }
   if (source.key === "zeitview" && liveOk) {
     const derived = zeitviewHealthFromPayload(live, now);
     return { ...derived, from: "live" };
@@ -313,13 +326,20 @@ export function healthForSource(source, row, { live, liveOk, now }) {
 }
 
 export function applyEnabled(source, enabled) {
-  const dot = enabled ? dotForLevel(source.health?.level) : "gray";
+  const isEnabled = enabled === true;
+  const manual = source.health?.level === "manual";
+  const dot = manual ? dotForLevel("manual") : (isEnabled ? dotForLevel(source.health?.level) : "gray");
+  let sync = source.sync ?? null;
+  if (!isEnabled && sync?.state === "pending") sync = null;
   return {
     ...source,
-    enabled: enabled === true,
+    enabled: isEnabled,
     dot,
     statusLabel: statusLabelFor(dot),
-    statusText: enabled ? source.health.summary : disabledExplanation(source.name),
+    statusText: manual
+      ? source.health.summary
+      : (isEnabled ? source.health.summary : disabledExplanation(source.name)),
+    sync,
   };
 }
 

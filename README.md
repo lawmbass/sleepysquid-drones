@@ -262,7 +262,7 @@ One row per source. Bot rules lists them under Connected sources: Zeitview, FlyG
 | `source_key` | migration | `zeitview`, `flyguys`, or `droners`. |
 | `display_name` | migration, dashboard on insert | Zeitview, FlyGuys, or Droners.io. |
 | `enabled` | dashboard (`PATCH /api/admin/gig-sources`) | Zeitview defaults to true. FlyGuys and Droners.io are seeded false. `false` tells the bot not to pull that source, not to add its bookings, and not to sync its profile. |
-| `profile_sync_requested_at` | dashboard, on save of bot rules and when a source is enabled | Set only on enabled rows the bot can update. Not set for `droners`. The bot treats a request newer than `profile_sync_at` as work to do. |
+| `profile_sync_requested_at` | dashboard, on save of bot rules and when a source is enabled | Set only on enabled rows the bot can update. Not set for `droners`, and not set when a source is disabled. Saving rules updates only rows with `enabled` true. Turning a source off does not write this column. The bot treats a request newer than `profile_sync_at` as work to do, and only while that row is enabled. |
 | `profile_sync_at` | drone-gigs bot | When it last tried to sync this source. |
 | `profile_sync_result` | drone-gigs bot | `ok`, `failed`, or `nothing`. |
 | `profile_sync_error` | drone-gigs bot | Short error when the result is `failed`. |
@@ -291,7 +291,7 @@ SELECT enabled FROM public.gig_sources WHERE source_key = 'zeitview';
 
 A missing Zeitview row means enabled. A missing FlyGuys or Droners row means disabled. `enabled = false` means skip that source's ingest and do not insert its bookings. Leave bookings that already exist. Read `flyguys` and `droners` the same way, and do not treat a missing row for those two as enabled.
 
-Profile sync runs only for enabled sources the bot can update. The dashboard sets `profile_sync_requested_at` when bot rules are saved, and when a source is enabled, except for Droners. Cloudflare blocks the bot there, so the Droners card always says "Manual, update on droners.io" and ignores a stored `failed` or `nothing` result. The bot pushes the shared home address and travel radius for the other sources, then writes the `profile_sync_*` result columns. `nothing` means the site has no matching address or radius setting (the FlyGuys case when its profile has neither). A failed result is the red flag on that source's card. Do not accept missions while syncing.
+Profile sync runs only for enabled sources the bot can update. The dashboard sets `profile_sync_requested_at` when bot rules are saved, and when a source is turned on, except for Droners. A save does not touch disabled rows, and turning a source off does not write a new request. Cloudflare blocks the bot on Droners, so that card uses a blue Manual status ("Job alerts by email. Settings managed on droners.io.") instead of the orange missing-health state, and it always says "Manual, update on droners.io" instead of a stored `failed` or `nothing` result. A disabled source hides a pending "Sync requested" line. The bot pushes the shared home address and travel radius for the other enabled sources, then writes the `profile_sync_*` result columns. `nothing` means the site has no matching address or radius setting (the FlyGuys case when its profile has neither). A failed result is the red flag on that source's card. Do not accept missions while syncing.
 
 Write only the health columns, after a cycle. Do not change `enabled` or `updated_by`, and do not insert a second Zeitview row:
 
