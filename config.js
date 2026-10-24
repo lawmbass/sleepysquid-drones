@@ -3,7 +3,7 @@ const config = {
   appName: "SleepySquid Drones",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "Professional drone photography, videography, and specialized aerial services. Stunning aerial perspectives for real estate, events, and mapping projects.",
+    "Professional drone photography, videography, and specialized aerial services. FAA Part 107 Certified & Insured, with $1M liability coverage.",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
   domainName: "drones.sleepysquid.com",
   crisp: {

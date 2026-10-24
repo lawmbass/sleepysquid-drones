@@ -199,8 +199,8 @@ export function alwaysOnChecklist() {
     ),
     item(
       "insurance",
-      "Insurance check",
-      "Confirm the company policy covers this job. The certificate does not replace that check."
+      "$1M liability coverage",
+      "Confirm this job is within the liability policy. The Part 107 certificate does not replace that check."
     ),
     item(
       "b4ufly",

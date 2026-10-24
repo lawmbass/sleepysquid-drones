@@ -11,8 +11,11 @@ const Footer = () => {
           {/* Company Info */}
           <div>
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-sky-400 bg-clip-text text-transparent">SleepySquid Drones</h3>
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-400 mb-2">
               Professional drone services for photography, videography, mapping, and more.
+            </p>
+            <p className="text-gray-400 mb-4">
+              FAA Part 107 Certified &amp; Insured. $1M liability coverage.
             </p>
           </div>
 

@@ -445,7 +445,10 @@ export default function ClientContent({ user, onUpdate }) {
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
         <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Create New Service Request</h3>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Create New Service Request</h3>
+              <p className="text-sm text-gray-600">FAA Part 107 Certified &amp; Insured. $1M liability coverage.</p>
+            </div>
             <button
               onClick={handleCloseCreateModal}
               className="text-gray-400 hover:text-gray-600"

@@ -23,8 +23,12 @@ const HeroSection = () => {
             <motion.h1 {...fade(0.05)} className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5">
               Elevate Your Perspective with SleepySquid Drones
             </motion.h1>
-            <motion.p {...fade(0.2)} className="text-lg md:text-xl text-slate-700 dark:text-slate-200 mb-8 max-w-xl">
+            <motion.p {...fade(0.2)} className="text-lg md:text-xl text-slate-700 dark:text-slate-200 mb-4 max-w-xl">
               Stunning aerial photography, videography, and specialized drone solutions for your unique needs
+            </motion.p>
+            <motion.p {...fade(0.3)} className="text-sm font-semibold text-blue-700 dark:text-sky-300 mb-8">
+              FAA Part 107 Certified &amp; Insured
+              <span className="mt-1 block font-medium text-slate-600 dark:text-slate-300">$1M liability coverage</span>
             </motion.p>
             <motion.div {...fade(0.4)} className="flex flex-col sm:flex-row gap-4">
               <Link href="#booking" className="bg-gradient-to-r from-blue-600 to-teal-700 dark:from-blue-500 dark:to-teal-400 text-white px-8 py-3 rounded-full font-medium text-lg hover:shadow-lg transition-all text-center">

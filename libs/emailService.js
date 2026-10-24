@@ -142,6 +142,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
         <div style="color: #9ca3af; font-size: 14px;">
           <p style="margin: 5px 0;">${config.appName}</p>
           <p style="margin: 5px 0;">Professional drone photography, videography, and specialized aerial services</p>
+          <p style="margin: 5px 0;">FAA Part 107 Certified &amp; Insured. $1M liability coverage.</p>
         </div>
       </div>
     </body>
@@ -180,6 +181,7 @@ Questions? Contact us at ${config.mailgun.supportEmail}
 
 ${config.appName}
 Professional drone photography, videography, and specialized aerial services
+FAA Part 107 Certified & Insured. $1M liability coverage.
   `;
 
   await sendEmail({
@@ -445,6 +447,7 @@ export const sendWelcomeEmail = async (email, name = '') => {
         <p style="color: #4b5563; margin-top: 20px;">If you have any questions or need assistance getting started, don't hesitate to reach out to our support team at <a href="mailto:${config.mailgun.supportEmail}" style="color: #3b82f6;">${config.mailgun.supportEmail}</a>.</p>
         
         <p style="color: #4b5563;">Thank you for choosing SleepySquid Drones for your aerial service needs!</p>
+        <p style="color: #4b5563;">FAA Part 107 Certified &amp; Insured. $1M liability coverage.</p>
         <p style="color: #4b5563;">Best regards,<br>The SleepySquid Drones Team</p>
       </div>
 
@@ -473,6 +476,7 @@ What you can do now:
 If you have any questions or need assistance getting started, contact us at ${config.mailgun.supportEmail}.
 
 Thank you for choosing SleepySquid Drones!
+FAA Part 107 Certified & Insured. $1M liability coverage.
 
 Best regards,
 The SleepySquid Drones Team

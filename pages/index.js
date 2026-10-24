@@ -8,6 +8,7 @@ import PortfolioSection from '@/components/home/PortfolioSection';
 import PricingSection from '@/components/home/PricingSection';
 import BookingSection from '@/components/home/BookingSection';
 import ContactSection from '@/components/home/ContactSection';
+import { renderSchemaTags } from '@/libs/seo';
 
 export default function Home() {
   const [selectedService, setSelectedService] = useState('');
@@ -41,10 +42,11 @@ export default function Home() {
     <>
       <Head>
         <title>SleepySquid Drones | Professional Drone Services</title>
-        <meta name="description" content="Professional drone services including aerial photography, videography, mapping, and more. Elevate your perspective with SleepySquid Drones." />
+        <meta name="description" content="Professional drone services for aerial photography, videography, and mapping. FAA Part 107 Certified & Insured, with $1M liability coverage." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      
+      {renderSchemaTags()}
+
       <Layout>
         <PromoBanner />
         <HeroSection />

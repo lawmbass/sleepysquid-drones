@@ -83,6 +83,9 @@ test("the checklist keeps only the items that apply, plus the basics", () => {
 
   const clear = classifyAirspace(base());
   assert.deepEqual(ids(clear), ["part107", "insurance", "b4ufly"]);
+  const insurance = clear.checklist.find((entry) => entry.id === "insurance");
+  assert.match(insurance.label, /\$1M liability coverage/);
+  assert.doesNotMatch(`${insurance.label} ${insurance.why}`, /skywatch|fully insured|\bhull\b|bonded/i);
 
   const laanc = classifyAirspace(
     base({ facilityMap: { ok: true, ceilingFt: 100, airspaces: ["B"], controlled: true, airport: "BWI" } })
