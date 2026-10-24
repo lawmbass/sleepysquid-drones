@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FiClock } from 'react-icons/fi';
+import { FiClock, FiShield } from 'react-icons/fi';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 const ContactSection = () => {
@@ -294,6 +294,16 @@ const ContactSection = () => {
                   </div>
                 </div>
                 
+                <div className="flex items-start">
+                  <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-full mr-4">
+                    <FiShield className="text-blue-500 dark:text-blue-400 text-xl" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">FAA Part 107 Certified &amp; Insured</h4>
+                    <p className="text-gray-600 dark:text-gray-300">$1M liability coverage</p>
+                  </div>
+                </div>
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
                   <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">📧 Preferred Contact Method</h4>
                   <p className="text-blue-700 dark:text-blue-400 text-sm">

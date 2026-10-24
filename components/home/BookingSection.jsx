@@ -507,6 +507,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Schedule your drone service with ease. We&apos;ll be in touch to confirm the details.
           </p>
+          <p className="mt-3 text-base font-medium text-gray-700 dark:text-gray-300">
+            FAA Part 107 Certified &amp; Insured. $1M liability coverage.
+          </p>
         </div>
 
         <motion.div 

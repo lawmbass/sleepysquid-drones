@@ -30,8 +30,13 @@ const banned = [
   /Most Popular/,
   /survey-grade/i,
   /survey grade/i,
-  /\binsured\b/i,
-  /\binsurance\b/i,
+  /fully insured/i,
+  /\bbonded\b/i,
+  /skywatch/i,
+  /\bhull\b/i,
+  /policy number/i,
+  /equipment coverage/i,
+  // Held off public pages. Do not add these package names back.
   /Roof & Property Condition/,
   /Construction Progress/,
   /\$799/,
@@ -68,7 +73,25 @@ assert.match(pricing, /Longer video edits/);
 assert.match(pricing, /Travel fees may apply/);
 
 const services = fs.readFileSync(new URL("components/home/ServicesSection.jsx", root), "utf8");
-assert.match(services, /FAA Part 107 Certified/);
+assert.match(services, /FAA Part 107 Certified &(?:amp;)? Insured/);
+assert.match(services, /\$1M liability coverage/);
+
+const claim = /FAA Part 107 Certified &(?:amp;)? Insured/;
+const liability = /\$1M liability coverage/;
+for (const file of [
+  "components/home/HeroSection.jsx",
+  "components/layout/Footer.jsx",
+  "components/home/BookingSection.jsx",
+  "components/home/ContactSection.jsx",
+  "components/dashboard/ClientContent.jsx",
+  "pages/index.js",
+  "config.js",
+  "libs/emailService.js",
+]) {
+  const source = fs.readFileSync(new URL(file, root), "utf8");
+  assert.match(source, claim, `${file} is missing the certification line`);
+  assert.match(source, liability, `${file} is missing the liability line`);
+}
 
 const booking = fs.readFileSync(new URL("components/home/BookingSection.jsx", root), "utf8");
 assert.match(booking, /BOOKING_PACKAGES/);
