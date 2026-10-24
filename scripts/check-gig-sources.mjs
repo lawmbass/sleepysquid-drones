@@ -14,6 +14,8 @@ const {
   presentSources,
   previewPageAllowed,
   previewSources,
+  profileSyncRequestFields,
+  requestsProfileSync,
   zeitviewHealthFromPayload,
 } = await import("../libs/gigSources.js");
 
@@ -178,7 +180,9 @@ const defaults = presentSources([], { live: liveLike(), liveOk: true, now: NOW }
 assert.equal(defaults.find((source) => source.key === "zeitview").enabled, true);
 assert.equal(defaults.find((source) => source.key === "flyguys").enabled, false);
 assert.equal(defaults.find((source) => source.key === "droners").enabled, false);
-assert.match(defaults.find((source) => source.key === "droners").ruleNote, /Max distance in miles/);
+assert.match(defaults.find((source) => source.key === "droners").ruleNote, /Cloudflare blocks the bot/);
+assert.equal(defaults.find((source) => source.key === "droners").sync.text, "Manual, update on droners.io");
+assert.equal(defaults.find((source) => source.key === "droners").sync.state, "manual");
 assert.match(defaults.find((source) => source.key === "flyguys").ruleNote, /nothing to sync/);
 const legacySynced = presentSources([], {
   live: liveLike(),
@@ -214,8 +218,35 @@ const storedSync = presentSources(
   { live: liveLike(), liveOk: true, now: NOW }
 );
 assert.equal(storedSync.find((source) => source.key === "flyguys").sync.text, "Nothing to sync.");
-assert.equal(storedSync.find((source) => source.key === "droners").sync.state, "failed");
-assert.match(storedSync.find((source) => source.key === "droners").sync.title, /Droners.io sync broke/);
+assert.equal(storedSync.find((source) => source.key === "droners").sync.state, "manual");
+assert.equal(storedSync.find((source) => source.key === "droners").sync.text, "Manual, update on droners.io");
+assert.equal(storedSync.find((source) => source.key === "droners").sync.title, undefined);
+const dronersNothing = presentSources(
+  [
+    {
+      sourceKey: "droners",
+      enabled: true,
+      displayName: "Droners.io",
+      profileSyncAvailable: true,
+      profileSyncResult: "nothing",
+      profileSyncAt: "2026-10-24T15:00:00.000Z",
+    },
+  ],
+  { live: liveLike(), liveOk: true, now: NOW }
+).find((source) => source.key === "droners");
+assert.equal(dronersNothing.sync.text, "Manual, update on droners.io");
+assert.notEqual(dronersNothing.sync.state, "nothing");
+assert.equal(requestsProfileSync("droners"), false);
+assert.equal(requestsProfileSync("zeitview"), true);
+assert.equal(requestsProfileSync("flyguys"), true);
+assert.deepEqual(profileSyncRequestFields("droners", true, NOW), {});
+assert.deepEqual(profileSyncRequestFields("zeitview", false, NOW), {});
+assert.deepEqual(profileSyncRequestFields("zeitview", true, NOW), {
+  profile_sync_requested_at: NOW.toISOString(),
+});
+assert.deepEqual(profileSyncRequestFields("flyguys", true, NOW), {
+  profile_sync_requested_at: NOW.toISOString(),
+});
 assert.equal(displayNameFor("acme", [{ sourceKey: "acme", displayName: "Acme Air" }]), "Acme Air");
 assert.equal(parseSourceToggle({ sourceKey: "zeitview", enabled: false }, ["zeitview"]).ok, true);
 assert.equal(parseSourceToggle({ sourceKey: "nope", enabled: true }, ["zeitview"]).ok, false);
@@ -293,6 +324,11 @@ assert.match(migration, /gig_sources_admin_select/);
 assert.match(migration, /gig_sources_admin_update/);
 assert.doesNotMatch(migration, /TO anon/);
 assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+
+const sourceDb = fs.readFileSync(new URL("../libs/db/gigSources.js", import.meta.url), "utf8");
+assert.match(sourceDb, /profileSyncRequestFields\(sourceKey, enabled\)/);
+assert.match(sourceDb, /\.neq\("source_key", "droners"\)/);
+assert.match(sourceDb, /requestsProfileSync\("droners"\)/);
 
 const route = fs.readFileSync(new URL("../pages/api/admin/gig-sources/index.js", import.meta.url), "utf8");
 assert.match(route, /requireAdmin/);

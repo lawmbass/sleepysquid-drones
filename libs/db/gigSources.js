@@ -1,4 +1,4 @@
-import { displayNameFor, isMissingGigSourcesTable } from "@/libs/gigSources";
+import { displayNameFor, isMissingGigSourcesTable, profileSyncRequestFields, requestsProfileSync } from "@/libs/gigSources";
 import { assertNoError, db } from "@/libs/db/shared";
 
 const SYNC_RESULTS = new Set(["ok", "failed", "nothing"]);
@@ -61,7 +61,7 @@ export async function setGigSourceEnabled({ sourceKey, enabled, updatedBy, rows 
     enabled,
     updated_by: updatedBy || null,
   };
-  if (enabled) payload.profile_sync_requested_at = new Date().toISOString();
+  Object.assign(payload, profileSyncRequestFields(sourceKey, enabled));
   let saved = await upsertGigSource(payload);
   if (saved.error && missingSyncColumn(saved.error)) {
     delete payload.profile_sync_requested_at;
@@ -76,14 +76,17 @@ export async function setGigSourceEnabled({ sourceKey, enabled, updatedBy, rows 
 
 /**
  * Ask the drone-gigs bot to push the shared home address and travel radius
- * to every enabled source. Disabled sources are left alone. A missing sync
- * column does not fail the rules save.
+ * to every enabled source the bot can update. Droners stays manual because
+ * Cloudflare blocks the bot, so its row is not requested. Disabled sources
+ * are left alone. A missing sync column does not fail the rules save.
  */
 export async function requestEnabledProfileSync() {
-  const { error } = await db()
+  let query = db()
     .from("gig_sources")
     .update({ profile_sync_requested_at: new Date().toISOString() })
     .eq("enabled", true);
+  if (!requestsProfileSync("droners")) query = query.neq("source_key", "droners");
+  const { error } = await query;
   if (error && (isMissingGigSourcesTable(error) || missingSyncColumn(error))) {
     return { ok: false };
   }

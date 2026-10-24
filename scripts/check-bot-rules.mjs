@@ -380,6 +380,8 @@ assert.doesNotMatch(sharedSql, /USING\s*\(\s*true\s*\)/i);
 
 const rulesUi = fs.readFileSync(new URL("../components/admin/BotRulesSection.jsx", import.meta.url), "utf8");
 assert.match(rulesUi, /Travel radius/);
+assert.match(rulesUi, /A save does not update Droners/);
+assert.doesNotMatch(rulesUi, /Droners uses this number as Max distance/);
 assert.doesNotMatch(rulesUi, /zeitview_radius_miles|zeitviewRadiusMiles|Zeitview travel radius/);
 const settingsDb = fs.readFileSync(new URL("../libs/db/botSettings.js", import.meta.url), "utf8");
 assert.match(settingsDb, /radiusColumnsForSave/);
