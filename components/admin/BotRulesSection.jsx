@@ -168,7 +168,7 @@ const RULES = [
   {
     id: "travelRadiusMiles",
     label: "Travel radius",
-    help: "How far you will go for a gig, in miles. Leave blank for no maximum. Use 1 to 500 if you set one. This one number applies to every connected source. Zeitview's profile only accepts 10, 25, 50, 100, or 200 miles, so the bot snaps to the nearest of those. Droners uses this number as Max distance in miles.",
+    help: "How far you will go for a gig, in miles. Leave blank for no maximum. Use 1 to 500 if you set one. This one number applies to every connected source the bot can update. Zeitview's profile only accepts 10, 25, 50, 100, or 200 miles, so the bot snaps to the nearest of those. A save does not update Droners.",
     kind: "whole",
   },
   {
@@ -678,7 +678,8 @@ export default function BotRulesSection({ fixture = null }) {
         <p className="mt-1 text-gray-600 dark:text-gray-300">
           One set of rules for every connected gig source. The drone-gigs bot reads them before it
           accepts a mission. Saving asks the bot to sync the home address and travel radius to each
-          enabled source. Edit rules to change them together. Save stores every change. Cancel puts
+          enabled source it can update. A save does not update Droners. Edit rules to change them
+          together. Save stores every change. Cancel puts
           the saved values back.
         </p>
         {updatedAt ? (

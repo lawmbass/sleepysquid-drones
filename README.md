@@ -215,7 +215,7 @@ One row, `id = 1`. Read it with the service role. Do not insert another row. The
 | `home_lng` | double precision | Default `-76.894043` |
 | `daily_accept_cap` | int | Null means no cap. Most accepts on one Eastern calendar day. |
 | `min_notice_hours` | int | Null means notice is not checked. Hours the mission must be seen before the flight. |
-| `travel_radius_miles` | numeric | Shared travel radius in miles. Null leaves the distance already set on each site. 1 to 500. The live row's Zeitview radius is 100, and the migration copies that into this column. Droners uses the number as Max distance in miles. Zeitview's profile only accepts 10, 25, 50, 100, or 200, so a trigger snaps a copy into the compatibility column below. |
+| `travel_radius_miles` | numeric | Shared travel radius in miles. Null leaves the distance already set on each site. 1 to 500. The live row's Zeitview radius is 100, and the migration copies that into this column. Zeitview's profile only accepts 10, 25, 50, 100, or 200, so a trigger snaps a copy into the compatibility column below. Saving this value does not update Droners. Cloudflare blocks the bot, so that site stays manual. |
 | `zeitview_radius_miles` | numeric | Deprecated compatibility column. The live drone-gigs bot still reads it. Do not treat it as a shared field. A trigger fills it from `travel_radius_miles`. |
 | `updated_at` | timestamptz | Set on update. |
 | `updated_by` | text | Email of the admin who last saved the row. |
@@ -234,9 +234,9 @@ Apply `supabase/migrations/20261024200000_shared_bot_rules.sql` after `202610240
 
 - Read `travel_radius_miles`, `home_address`, `home_lat`, and `home_lng` as the shared profile settings. Until that change ships, keep reading `zeitview_radius_miles`. The trigger keeps that column equal to the snapped shared radius, so a dashboard save of 100 still shows up there as 100.
 - Read the other shared columns (`auto_accept_enabled`, `min_payout_usd`, `long_trip_minutes`, `long_trip_min_payout_usd`, `max_drive_minutes`, `daily_accept_cap`, `min_notice_hours`) and apply them to every enabled source. Those rules are not pushed to the websites.
-- When `gig_sources.profile_sync_requested_at` is newer than `profile_sync_at` and `enabled` is true, sync that source, then write `profile_sync_at`, `profile_sync_result` (`ok`, `failed`, or `nothing`), `profile_sync_error`, and `profile_sync_observed`. Do not change `enabled`, `updated_by`, or `profile_sync_requested_at`.
+- When `gig_sources.profile_sync_requested_at` is newer than `profile_sync_at` and `enabled` is true, sync that source, then write `profile_sync_at`, `profile_sync_result` (`ok`, `failed`, or `nothing`), `profile_sync_error`, and `profile_sync_observed`. Do not change `enabled`, `updated_by`, or `profile_sync_requested_at`. Skip `source_key` `droners`. The dashboard does not set `profile_sync_requested_at` on that row.
 - Zeitview: keep the existing profile sync. Set the address from `home_address` and the radius from `travel_radius_miles` snapped to 10, 25, 50, 100, or 200. Writing the old `zeitview_last_*` columns still works; the trigger mirrors them. Prefer writing the Zeitview `gig_sources` row directly once the bot is updated.
-- Droners.io: set Account Settings, Notifications, "Max distance in miles" to `travel_radius_miles` with no snap, and Account Settings, Locations, the primary location from `home_address`. Do not bid on or accept jobs.
+- Droners.io: do not sync the profile. Cloudflare blocks the bot. Lawrence updates Max distance and the primary location on droners.io. Do not bid on or accept jobs.
 - FlyGuys (`pilots.flyguys.com`): if the pilot profile has an address or a travel radius, set those from the shared home address and `travel_radius_miles`. If it has neither, set `profile_sync_result` to `nothing`. Mission alerts arrive by SMS. Do not accept missions.
 - A missing `zeitview` row still means enabled. A missing `flyguys` or `droners` row means disabled. The seed inserts FlyGuys and Droners with `enabled` false. Do not ingest or insert bookings for a disabled source.
 - Bookings may use `source` `flyguys` or `droners`. Zeitview mission ids stay `DBM` plus digits. FlyGuys and Droners ids are their own, 1 to 80 characters.
@@ -262,7 +262,7 @@ One row per source. Bot rules lists them under Connected sources: Zeitview, FlyG
 | `source_key` | migration | `zeitview`, `flyguys`, or `droners`. |
 | `display_name` | migration, dashboard on insert | Zeitview, FlyGuys, or Droners.io. |
 | `enabled` | dashboard (`PATCH /api/admin/gig-sources`) | Zeitview defaults to true. FlyGuys and Droners.io are seeded false. `false` tells the bot not to pull that source, not to add its bookings, and not to sync its profile. |
-| `profile_sync_requested_at` | dashboard, on save of bot rules and when a source is enabled | Set only on enabled rows. The bot treats a request newer than `profile_sync_at` as work to do. |
+| `profile_sync_requested_at` | dashboard, on save of bot rules and when a source is enabled | Set only on enabled rows the bot can update. Not set for `droners`. The bot treats a request newer than `profile_sync_at` as work to do. |
 | `profile_sync_at` | drone-gigs bot | When it last tried to sync this source. |
 | `profile_sync_result` | drone-gigs bot | `ok`, `failed`, or `nothing`. |
 | `profile_sync_error` | drone-gigs bot | Short error when the result is `failed`. |
@@ -291,7 +291,7 @@ SELECT enabled FROM public.gig_sources WHERE source_key = 'zeitview';
 
 A missing Zeitview row means enabled. A missing FlyGuys or Droners row means disabled. `enabled = false` means skip that source's ingest and do not insert its bookings. Leave bookings that already exist. Read `flyguys` and `droners` the same way, and do not treat a missing row for those two as enabled.
 
-Profile sync runs only for enabled sources. The dashboard sets `profile_sync_requested_at` when bot rules are saved. The bot pushes the shared home address and travel radius, then writes the `profile_sync_*` result columns. `nothing` means the site has no matching address or radius setting (the FlyGuys case when its profile has neither). A failed result is the red flag on that source's card. Do not accept missions while syncing.
+Profile sync runs only for enabled sources the bot can update. The dashboard sets `profile_sync_requested_at` when bot rules are saved, and when a source is enabled, except for Droners. Cloudflare blocks the bot there, so the Droners card always says "Manual, update on droners.io" and ignores a stored `failed` or `nothing` result. The bot pushes the shared home address and travel radius for the other sources, then writes the `profile_sync_*` result columns. `nothing` means the site has no matching address or radius setting (the FlyGuys case when its profile has neither). A failed result is the red flag on that source's card. Do not accept missions while syncing.
 
 Write only the health columns, after a cycle. Do not change `enabled` or `updated_by`, and do not insert a second Zeitview row:
 

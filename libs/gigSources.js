@@ -79,10 +79,24 @@ export const GIG_SOURCE_CATALOG = [
     logoSrc: "/brand/sources/droners.svg",
     summary: "Job alerts arrive by email.",
     ruleNote:
-      "Max distance in miles (Account Settings, Notifications) is the shared travel radius, in miles. The primary location (Account Settings, Locations) is the home address.",
+      "Cloudflare blocks the bot, so Droners settings stay manual. Update Max distance and the primary location on droners.io.",
     defaultEnabled: false,
+    profileSync: "manual",
   },
 ];
+
+export const DRONERS_MANUAL_SYNC_TEXT = "Manual, update on droners.io";
+
+export function requestsProfileSync(sourceKey) {
+  const source = GIG_SOURCE_CATALOG.find((item) => item.key === sourceKey);
+  return source?.profileSync !== "manual";
+}
+
+export function profileSyncRequestFields(sourceKey, enabled, now = new Date()) {
+  if (enabled !== true || !requestsProfileSync(sourceKey)) return {};
+  const at = now instanceof Date ? now : new Date(now);
+  return { profile_sync_requested_at: at.toISOString() };
+}
 
 const SOURCE_KEY = /^[a-z][a-z0-9_]{0,40}$/;
 const HEALTH_RANK = { ok: 0, degraded: 1, down: 2 };
@@ -328,6 +342,9 @@ function storedProfileSync(row) {
 }
 
 export function profileSyncForSource(source, row, legacyZeitviewSync) {
+  if (source?.profileSync === "manual" || source?.key === "droners") {
+    return { state: "manual", text: DRONERS_MANUAL_SYNC_TEXT };
+  }
   const stored = storedProfileSync(row);
   const sync = stored || (source.key === "zeitview" ? legacyZeitviewSync : null);
   if (!sync) return null;
