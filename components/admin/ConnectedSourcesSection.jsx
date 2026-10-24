@@ -6,6 +6,7 @@ const DOT_CLASS = {
   orange: "bg-orange-500",
   red: "bg-red-500",
   gray: "bg-gray-400 dark:bg-gray-500",
+  blue: "bg-blue-500",
 };
 
 function initials(name) {
@@ -213,8 +214,8 @@ export default function ConnectedSourcesSection({
       <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected sources</h2>
       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
         The drone-gigs bot pulls gigs from each enabled source and adds SleepySquid bookings. Disable a
-        source to stop that. Gray means off. Green means gigs are landing. Orange means something needs a
-        fix. Red means it is broken.
+        source to stop that. Gray means off. Blue means you update that site yourself. Green means gigs
+        are landing. Orange means something needs a fix. Red means it is broken.
       </p>
 
       {loading ? (
