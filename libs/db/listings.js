@@ -5,6 +5,7 @@ import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
 import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
 import { deriveMissionType, resolveListingMissionType } from "@/libs/missionType";
 import { messagePreview, receivedAt } from "@/libs/listingSources";
+import { listingRuleCheck } from "@/libs/listingRuleCheck";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -146,10 +147,11 @@ function withWorkComplete(listing, { keepDetail = false } = {}) {
   const workComplete = listingWorkComplete(listing)
     || scheduledFlightLongPast(listing)
     || bookingWorkComplete(bookingStatus);
-  if (keepDetail) return { ...listing, bookingStatus, workComplete };
+  if (keepDetail) return { ...listing, ruleCheck: listingRuleCheck(listing), bookingStatus, workComplete };
   const { rawDetail, rawEmailText, rawEmailHtml, ...rest } = listing;
   const preview = messagePreview(listing, 280);
-  return { ...rest, messagePreview: preview || null, bookingStatus, workComplete };
+  const ruleCheck = listingRuleCheck(listing);
+  return { ...rest, messagePreview: preview || null, ruleCheck, bookingStatus, workComplete };
 }
 
 export async function listListings(filters = {}, { sort = "-lastSeenAt", limit = 25, offset = 0 } = {}) {
