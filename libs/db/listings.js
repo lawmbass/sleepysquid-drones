@@ -3,7 +3,7 @@ import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 import { scheduledFlightLongPast } from "@/libs/jobs";
 import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
 import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
-import { deriveMissionType } from "@/libs/missionType";
+import { resolveListingMissionType } from "@/libs/missionType";
 import { messagePreview, receivedAt } from "@/libs/listingSources";
 
 export function mapListing(row) {
@@ -50,9 +50,10 @@ export function mapListing(row) {
     updatedAt: row.updated_at,
   };
   // mission_type is rarely stored by the bot; fall back to a type derived from the text.
-  const derived = deriveMissionType(listing);
-  listing.missionTypeDerived = !listing.missionType && Boolean(derived);
-  listing.missionType = derived;
+  const resolved = resolveListingMissionType({ ...listing, raw_detail: row.raw_detail });
+  listing.missionType = resolved.type;
+  listing.missionTypeSource = resolved.source;
+  listing.missionTypeDerived = resolved.source === "inferred";
   listing.receivedAt = receivedAt(listing);
   return listing;
 }
