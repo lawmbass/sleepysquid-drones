@@ -186,6 +186,43 @@ function CountList({ counts }) {
   );
 }
 
+const RULE_CHECK_STYLES = {
+  pass: "bg-green-50 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  fail: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
+  review: "bg-amber-50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  error: "bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-200",
+};
+
+function RuleCheckBadge({ check }) {
+  if (!check) return null;
+  return (
+    <span
+      title={check.reasons.join("; ") || undefined}
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${RULE_CHECK_STYLES[check.state] || RULE_CHECK_STYLES.fail}`}
+    >
+      {check.label}
+    </span>
+  );
+}
+
+function RuleCheckSection({ check }) {
+  if (!check) return null;
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Bot rules check</h3>
+      <div className="flex items-center gap-2 mb-1">
+        <RuleCheckBadge check={check} />
+        <span className="text-xs text-gray-500 dark:text-gray-400">Preview only. The bot does not accept this source.</span>
+      </div>
+      {check.reasons.length > 0 && (
+        <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200 space-y-0.5">
+          {check.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default function ListingsSection() {
   const [filters, setFilters] = useState({
     source: "",
@@ -502,6 +539,7 @@ export default function ListingsSection() {
                           {statusLabel(listing.status)}
                         </span>
                         <CancelStatusBadge status={listing.cancelStatus} />
+                        <RuleCheckBadge check={listing.ruleCheck} />
                         <CancelGigButton
                           listingId={listing.id}
                           listing={listing}
@@ -607,12 +645,14 @@ export default function ListingsSection() {
                       fetchListings();
                     }}
                   />
-                  {detail.declineReason && (
+                  {!detail.ruleCheck && detail.declineReason && (
                     <span className="inline-flex rounded-full bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200">
                       {detail.declineReason}
                     </span>
                   )}
                 </div>
+
+                <RuleCheckSection check={detail.ruleCheck} />
 
                 {listingMessageText(detail) && (isSparseListing(detail) || detail.source !== "zeitview") && (
                   <section>
