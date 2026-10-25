@@ -129,6 +129,7 @@ const PAYOUT_PREFIX = /^\$?\s*\d[\d,]*(?:\.\d+)?\s*USD\s*(?:LOCATION|Address)?\s
 // Title shown for a listing; a stored "Not Found" page title falls back to the mission id.
 export function listingTitle(listing) {
   const title = String(listing?.title || "").trim();
+  if (/^sms:/i.test(title) || (!title && /^sms:/i.test(String(listing?.externalMissionId || "")))) return `${sourceLabel(listing?.source)} text message`;
   if (!title || NOT_FOUND_TITLE.test(title)) return listing?.externalMissionId || "Mission listing";
   return title;
 }
