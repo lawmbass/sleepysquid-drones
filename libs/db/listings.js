@@ -3,7 +3,7 @@ import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 import { scheduledFlightLongPast } from "@/libs/jobs";
 import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
 import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
-import { resolveListingMissionType } from "@/libs/missionType";
+import { deriveMissionType, resolveListingMissionType } from "@/libs/missionType";
 import { messagePreview, receivedAt } from "@/libs/listingSources";
 
 export function mapListing(row) {
