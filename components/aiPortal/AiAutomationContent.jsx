@@ -84,8 +84,7 @@ export default function AiAutomationContent() {
     {!emptyRange && d.weekly.length > 0 && <Charts d={d} money={money} />}
     {admin && (need.length > 0 || infoNotes.length > 0 || d.resolvedIssues?.length > 0) && <BotReports d={d} tz={client.timezone} reload={() => load({ client: client.id, from, to, ...q })} />}
     </>}
-    {admin && d.testAutomations?.length > 0 && <section className="p-panel p-admin-only" data-testid="admin-tests"><h2><span className="p-admin-badge">Admin only</span> Test automations ({d.testAutomations.length})</h2><p className="p-sub sm">Connection tests and setup checks. Hidden from the client.</p>
-      <ul className="p-wins">{d.testAutomations.map((a) => <li key={a.id}><time>test</time><span><b>{a.name}</b> <code>{a.id}</code>: {plural(a.reports, "report")} in this view</span></li>)}</ul></section>}
+    {admin && d.testAutomations?.length > 0 && <TestAutomations d={d} reload={() => load({ client: client.id, from, to, ...q })} />}
     <section className="p-panel" id="how"><h2>How we calculate this</h2>
       <div className="p-tablewrap"><table className="p-table"><thead><tr><th>Task</th><th>Applies to</th><th>Minutes by hand</th><th>Hourly wage</th><th>Value each time</th></tr></thead>
         <tbody>{d.legacyTimings.map((t, i) => <tr key={"l" + i}><td>{t.label}</td><td>{t.automation}</td><td>{t.minutes}</td><td>${Number(client.hourly_rate).toFixed(2)}{d.rateIsDefault ? " (default)" : ""}</td><td>${(t.minutes / 60 * client.hourly_rate).toFixed(2)}</td></tr>)}{d.rates.map((r) => <tr key={r.id}><td>{r.name}</td><td>{r.metrics.join(", ") || "-"}</td><td>{r.minutes} <Tag t={r.minutesTag} /></td><td>${r.wage.toFixed(2)} <Tag t={r.wageTag} /></td><td>${r.unitValue.toFixed(2)} <Tag t={r.tag} /></td></tr>)}</tbody></table></div>
@@ -94,6 +93,25 @@ export default function AiAutomationContent() {
     </section>
     <p className="p-fine">{FOOTER}</p>
   </div>);
+}
+
+// Admin-only "Test automations" box: connection tests / setup checks, each with a permanent Delete.
+function TestAutomations({ d, reload }) {
+  const [busy, setBusy] = useState(null), [msg, setMsg] = useState(null);
+  const del = async (a) => {
+    if (!window.confirm(`Delete test automation "${a.name}" (${a.id}) and all of its test reports? This can't be undone.`)) return;
+    setBusy(a.id); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/ai-test-automations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client: d.client.id, automation_id: a.id }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setMsg(j.error || "Couldn't delete that."); else await reload();
+    } catch { setMsg("Couldn't delete that."); }
+    setBusy(null);
+  };
+  return (<section className="p-panel p-admin-only" data-testid="admin-tests"><h2><span className="p-admin-badge">Admin only</span> Test automations ({d.testAutomations.length})</h2><p className="p-sub sm">Connection tests and setup checks. Hidden from the client.</p>
+    {msg && <p className="p-sub sm" role="alert">{msg}</p>}
+    <ul className="p-wins">{d.testAutomations.map((a) => <li key={a.id}><time>test</time><span><b>{a.name}</b> <code>{a.id}</code>: {plural(a.reports, "report")} in this view</span>
+      <em className="p-acts"><button type="button" className="p-mini ghost" disabled={!!busy} data-testid="test-delete" onClick={() => del(a)}>{busy === a.id ? "Deleting…" : "Delete"}</button></em></li>)}</ul></section>);
 }
 
 // Admin-only "Bot reports" box: Needs attention + Notes, with Resolve/Dismiss, Clear all notes and a Resolved view (reopen).
