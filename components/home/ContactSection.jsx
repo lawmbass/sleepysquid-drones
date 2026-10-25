@@ -39,7 +39,9 @@ const ContactSection = () => {
       setFormErrors({ recaptcha: 'reCAPTCHA is required but not configured' });
       setIsSubmitting(false);
       return;
-    } else if (!recaptchaToken) {
+    }
+    const token = recaptchaRef.current?.getValue?.() || recaptchaToken;
+    if (!token) {
       setFormErrors({ recaptcha: 'Please complete the reCAPTCHA verification' });
       setIsSubmitting(false);
       return;
@@ -53,7 +55,7 @@ const ContactSection = () => {
         },
         body: JSON.stringify({
           ...data,
-          recaptchaToken
+          recaptchaToken: token
         }),
       });
 

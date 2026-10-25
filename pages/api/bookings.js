@@ -1,3 +1,4 @@
+import { verifyRecaptcha } from "@/libs/recaptcha";
 import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 import { estimatedPriceForPackage } from "@/libs/manualBooking";
 import { findSameDayBooking, insertBooking } from "@/libs/db/bookings";
@@ -79,46 +80,9 @@ export default async function handler(req, res) {
     // For session-authenticated users, bypass reCAPTCHA
     if (!isSessionAuthenticated) {
       // Verify reCAPTCHA token (required for non-authenticated users)
-      if (!recaptchaToken) {
-        return res.status(400).json({
-          error: 'Missing reCAPTCHA',
-          message: 'Please complete the reCAPTCHA verification'
-        });
-      }
-
-      // Ensure reCAPTCHA is configured on the server
-      if (!process.env.RECAPTCHA_SECRET_KEY) {
-        return res.status(500).json({
-          error: 'reCAPTCHA not configured',
-          message: 'reCAPTCHA verification is required but not configured on the server'
-        });
-      }
-
-      try {
-        const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-        });
-
-        const recaptchaData = await recaptchaResponse.json();
-
-        // reCAPTCHA v2 only returns success: true/false (no score)
-        // reCAPTCHA v3 would return both success and score (0.0-1.0)
-        if (!recaptchaData.success) {
-          return res.status(400).json({
-            error: 'reCAPTCHA verification failed',
-            message: 'Please try again with the reCAPTCHA verification'
-          });
-        }
-      } catch (recaptchaError) {
-        console.error('reCAPTCHA verification error:', recaptchaError);
-        return res.status(500).json({
-          error: 'reCAPTCHA verification failed',
-          message: 'Unable to verify reCAPTCHA. Please try again.'
-        });
+      const captcha = await verifyRecaptcha(recaptchaToken, req.headers['x-forwarded-for'] || req.socket?.remoteAddress);
+      if (!captcha.ok) {
+        return res.status(captcha.status).json({ error: captcha.error, message: captcha.message });
       }
     }
 
@@ -178,7 +142,7 @@ export default async function handler(req, res) {
 
     // Validate service type
     const validServices = [
-      'aerial-photography', 'drone-videography', 'mapping-surveying', 
+      'aerial-media', 'aerial-photography', 'drone-videography', 'mapping-surveying', 
       'real-estate', 'inspection', 'event-coverage', 'custom'
     ];
     if (!validServices.includes(sanitizedData.service)) {

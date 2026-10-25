@@ -3,6 +3,7 @@ import { FiChevronDown, FiChevronUp, FiFilter } from 'react-icons/fi';
 
 const services = [
   { value: '', label: 'All Services' },
+  { value: 'aerial-media', label: 'Aerial Photography & Videography' },
   { value: 'aerial-photography', label: 'Aerial Photography' },
   { value: 'drone-videography', label: 'Drone Videography' },
   { value: 'mapping-surveying', label: 'Mapping & Surveying' },
