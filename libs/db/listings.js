@@ -3,10 +3,12 @@ import { bookingWorkComplete, listingWorkComplete } from "@/libs/gigComplete";
 import { scheduledFlightLongPast } from "@/libs/jobs";
 import { knownZeitviewFlight } from "@/libs/zeitviewFlights";
 import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
+import { deriveMissionType } from "@/libs/missionType";
+import { messagePreview, receivedAt } from "@/libs/listingSources";
 
 export function mapListing(row) {
   if (!row) return null;
-  return {
+  const listing = {
     id: row.id,
     _id: row.id,
     source: row.source,
@@ -47,6 +49,12 @@ export function mapListing(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+  // mission_type is rarely stored by the bot; fall back to a type derived from the text.
+  const derived = deriveMissionType(listing);
+  listing.missionTypeDerived = !listing.missionType && Boolean(derived);
+  listing.missionType = derived;
+  listing.receivedAt = receivedAt(listing);
+  return listing;
 }
 
 const LIST_COLUMNS = [
@@ -138,12 +146,13 @@ function withWorkComplete(listing, { keepDetail = false } = {}) {
     || scheduledFlightLongPast(listing)
     || bookingWorkComplete(bookingStatus);
   if (keepDetail) return { ...listing, bookingStatus, workComplete };
-  const { rawDetail, ...rest } = listing;
-  return { ...rest, bookingStatus, workComplete };
+  const { rawDetail, rawEmailText, rawEmailHtml, ...rest } = listing;
+  const preview = messagePreview(listing, 280);
+  return { ...rest, messagePreview: preview || null, bookingStatus, workComplete };
 }
 
 export async function listListings(filters = {}, { sort = "-lastSeenAt", limit = 25, offset = 0 } = {}) {
-  let query = db().from("mission_listings").select(`${LIST_COLUMNS}, raw_detail`, { count: "exact" });
+  let query = db().from("mission_listings").select(`${LIST_COLUMNS}, raw_detail, raw_email_text, flight_plan`, { count: "exact" });
   query = applyListingFilters(query, filters);
   const { column, ascending } = parseSort(sort, "last_seen_at");
   const from = Number(offset) || 0;
@@ -246,10 +255,19 @@ export async function updateListingNotes(id, { adminNotes, tags }) {
 export async function listingAggregates(filters = {}) {
   const rows = await fetchAll(() =>
     applyListingFilters(
-      db().from("mission_listings").select("status, mission_type, payout, decline_reason"),
+      db().from("mission_listings").select("source, status, mission_type, payout, decline_reason, title, client_name, deliverables, flight_plan, raw_email_text"),
       filters
     )
   );
+  // Per-source counts ignore the source filter so every chip keeps its count.
+  const sourceRows = filters.source
+    ? await fetchAll(() => applyListingFilters(db().from("mission_listings").select("source"), { ...filters, source: undefined }))
+    : rows;
+  const bySource = {};
+  for (const row of sourceRows) {
+    const key = row.source || "unknown";
+    bySource[key] = (bySource[key] || 0) + 1;
+  }
 
   const byType = {};
   const byStatus = {};
@@ -260,7 +278,7 @@ export async function listingAggregates(filters = {}) {
   let payoutCount = 0;
 
   for (const row of rows) {
-    const type = row.mission_type || "Unknown";
+    const type = deriveMissionType(row) || "Unknown";
     byType[type] = (byType[type] || 0) + 1;
     const status = displayStatus(row.status, row.decline_reason);
     byStatus[status] = (byStatus[status] || 0) + 1;
@@ -279,6 +297,7 @@ export async function listingAggregates(filters = {}) {
 
   return {
     total: rows.length,
+    bySource,
     byType,
     byStatus,
     byDeclineReason,

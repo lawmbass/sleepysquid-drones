@@ -8,6 +8,41 @@ import {
   FiX,
 } from "react-icons/fi";
 import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
+import {
+  SOURCE_FILTERS,
+  isSparseListing,
+  listingMessageText,
+  missionPageUrl,
+  sourceBadgeClass,
+  sourceCounts,
+  sourceLabel,
+} from "@/libs/listingSources";
+
+function SourceBadge({ source }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sourceBadgeClass(source)}`}>
+      {sourceLabel(source)}
+    </span>
+  );
+}
+
+function MissionTypeText({ listing }) {
+  if (!listing?.missionType) return <span className="text-gray-400">—</span>;
+  return (
+    <span title={listing.missionTypeDerived ? "Guessed from the listing text" : undefined}>
+      {listing.missionType}
+      {listing.missionTypeDerived && <span className="text-gray-400">*</span>}
+    </span>
+  );
+}
+
+// Second line under the title: address, else the message text, else nothing.
+function ListingSubline({ listing }) {
+  const address = listingAddress(listing);
+  if (address) return <span>{address}</span>;
+  if (listing.messagePreview) return <span className="italic line-clamp-2">“{listing.messagePreview}”</span>;
+  return null;
+}
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -94,6 +129,7 @@ const PAYOUT_PREFIX = /^\$?\s*\d[\d,]*(?:\.\d+)?\s*USD\s*(?:LOCATION|Address)?\s
 // Title shown for a listing; a stored "Not Found" page title falls back to the mission id.
 export function listingTitle(listing) {
   const title = String(listing?.title || "").trim();
+  if (/^sms:/i.test(title) || (!title && /^sms:/i.test(String(listing?.externalMissionId || "")))) return `${sourceLabel(listing?.source)} text message`;
   if (!title || NOT_FOUND_TITLE.test(title)) return listing?.externalMissionId || "Mission listing";
   return title;
 }
@@ -139,6 +175,7 @@ function CountList({ counts }) {
 
 export default function ListingsSection() {
   const [filters, setFilters] = useState({
+    source: "",
     status: "",
     mission_type: "",
     equipment: "",
@@ -255,7 +292,7 @@ export default function ListingsSection() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mission listings</h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Every DroneBase and Zeitview gig the bot sees, including ones it declines. Use this to tune acceptance rules and read each flight plan.
+          Every gig the bot picks up from Zeitview, FlyGuys texts and Droners, including ones it declines. Use this to tune acceptance rules and read the details of each job.
         </p>
       </div>
 
@@ -283,6 +320,32 @@ export default function ListingsSection() {
           </AggregateCard>
         </div>
       )}
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Filter by source">
+        {SOURCE_FILTERS.map((option) => {
+          const counts = sourceCounts(aggregates?.bySource);
+          const active = filters.source === option.value;
+          return (
+            <button
+              key={option.value || "all"}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilters((prev) => ({ ...prev, source: option.value, page: 1 }))}
+              className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium ${
+                active
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+              }`}
+            >
+              {option.label}
+              <span className={`rounded-full px-1.5 text-xs ${active ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700"}`}>
+                {aggregates ? counts[option.value] || 0 : "…"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <input
@@ -360,14 +423,48 @@ export default function ListingsSection() {
           <p className="p-6 text-sm text-gray-500 dark:text-gray-400">Loading listings…</p>
         ) : listings.length === 0 ? (
           <p className="p-6 text-sm text-gray-500 dark:text-gray-400">
-            No mission listings yet. After the drone-gigs bot is pointed at this Supabase project, every gig it sees will show up here.
+            {filters.source ? `No ${sourceLabel(filters.source)} listings match these filters.` : "No mission listings match these filters yet. Every gig the bot sees from any source shows up here."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {listings.map((listing) => (
+              <li key={listing.id} className="p-4 active:bg-gray-50 dark:active:bg-gray-700/40" onClick={() => openDetail(listing.id)}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <SourceBadge source={listing.source} />
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
+                    {statusLabel(listing.status)}
+                  </span>
+                  <CancelStatusBadge status={listing.cancelStatus} />
+                  <span className="ml-auto text-sm font-semibold text-gray-900 dark:text-white">{listing.payout != null ? money(listing.payout) : ""}</span>
+                </div>
+                <div className="mt-2 font-medium text-gray-900 dark:text-white break-words">{listingTitle(listing)}</div>
+                <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 break-words"><ListingSubline listing={listing} /></div>
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  {listing.missionType && <span><MissionTypeText listing={listing} /></span>}
+                  {listing.travelDistance != null && <span>{listing.travelDistance} mi</span>}
+                  {(listing.deadline || listing.dueWindowStart)
+                    ? <span>Due {formatWhen(listing.deadline || listing.dueWindowStart)}</span>
+                    : <span>Received {formatWhen(listing.receivedAt || listing.firstSeenAt)}</span>}
+                </div>
+                <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+                  <CancelGigButton
+                    listingId={listing.id}
+                    listing={listing}
+                    bookingStatus={listing.bookingStatus}
+                    bookingAcceptedAt={listing.bookingAcceptedAt}
+                    workComplete={listing.workComplete}
+                    onUpdated={() => fetchListings()}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
-                  {["Mission", "Status", "Type", "Payout", "Distance", "Equipment", "Deadline"].map((heading) => (
+                  {["Mission", "Source", "Status", "Type", "Payout", "Distance", "Equipment", "Deadline / received"].map((heading) => (
                     <th key={heading} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       {heading}
                     </th>
@@ -383,8 +480,9 @@ export default function ListingsSection() {
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900 dark:text-white">{listingTitle(listing)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{listingAddress(listing) || listing.source}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 max-w-md"><ListingSubline listing={listing} /></div>
                     </td>
+                    <td className="px-4 py-3"><SourceBadge source={listing.source} /></td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
@@ -401,7 +499,7 @@ export default function ListingsSection() {
                         />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{listing.missionType || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200"><MissionTypeText listing={listing} /></td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{money(listing.payout)}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
                       {listing.travelDistance != null ? `${listing.travelDistance} mi` : "—"}
@@ -409,12 +507,17 @@ export default function ListingsSection() {
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 max-w-xs truncate">
                       {labelList(listing.requiredEquipment).join(", ") || "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{formatWhen(listing.deadline || listing.dueWindowStart)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                      {(listing.deadline || listing.dueWindowStart)
+                        ? formatWhen(listing.deadline || listing.dueWindowStart)
+                        : <span className="text-gray-500 dark:text-gray-400">Received {formatWhen(listing.receivedAt || listing.firstSeenAt)}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         )}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
@@ -452,9 +555,19 @@ export default function ListingsSection() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {detail ? listingTitle(detail) : "Mission listing"}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {detail ? `${detail.source} · ${detail.externalMissionId}` : "Loading…"}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  {detail ? (
+                    <>
+                      <SourceBadge source={detail.source} />
+                      <span className="font-mono text-xs break-all">{detail.externalMissionId}</span>
+                      {missionPageUrl(detail) && (
+                        <a href={missionPageUrl(detail)} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">
+                          Open on {sourceLabel(detail.source)}
+                        </a>
+                      )}
+                    </>
+                  ) : "Loading…"}
+                </div>
               </div>
               <button type="button" onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white" aria-label="Close">
                 <FiX className="h-5 w-5" />
@@ -488,25 +601,33 @@ export default function ListingsSection() {
                   )}
                 </div>
 
-                {detailsUnavailable(detail) && (
+                {listingMessageText(detail) && (isSparseListing(detail) || detail.source !== "zeitview") && (
+                  <section>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Message</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Received {formatWhen(detail.receivedAt || detail.firstSeenAt)}</p>
+                    <p className="whitespace-pre-wrap break-words rounded-lg bg-gray-50 dark:bg-gray-900 p-3 text-sm text-gray-900 dark:text-gray-100">{listingMessageText(detail)}</p>
+                  </section>
+                )}
+
+                {detail.source === "zeitview" && detailsUnavailable(detail) && (
                   <p className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
                     Details unavailable. The mission page returned Not Found when the bot opened it, so only the email details were stored.
                   </p>
                 )}
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div><dt className="text-gray-500 dark:text-gray-400">Client</dt><dd className="text-gray-900 dark:text-white">{detail.clientName || (detailsUnavailable(detail) ? "Details unavailable" : "—")}</dd></div>
-                  <div><dt className="text-gray-500 dark:text-gray-400">Mission type</dt><dd className="text-gray-900 dark:text-white">{detail.missionType || (detailsUnavailable(detail) ? "Details unavailable" : "—")}</dd></div>
+                  <div><dt className="text-gray-500 dark:text-gray-400">Mission type</dt><dd className="text-gray-900 dark:text-white">{detail.missionType ? <MissionTypeText listing={detail} /> : (detailsUnavailable(detail) ? "Details unavailable" : "—")}</dd></div>
                   <div className="sm:col-span-2 flex gap-2">
                     <FiMapPin className="mt-0.5 text-gray-400" />
                     <div>
                       <dt className="text-gray-500 dark:text-gray-400">Address</dt>
-                      <dd className="text-gray-900 dark:text-white">{listingAddress(detail) || "—"}</dd>
+                      <dd className="text-gray-900 dark:text-white">{listingAddress(detail) || (isSparseListing(detail) ? "Not in message" : "—")}</dd>
                       {(detail.latitude != null || detail.longitude != null) && (
                         <dd className="text-xs text-gray-500 dark:text-gray-400">{detail.latitude}, {detail.longitude}</dd>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2"><FiDollarSign className="mt-0.5 text-gray-400" /><div><dt className="text-gray-500 dark:text-gray-400">Payout</dt><dd className="text-gray-900 dark:text-white">{money(detail.payout)}</dd></div></div>
+                  <div className="flex gap-2"><FiDollarSign className="mt-0.5 text-gray-400" /><div><dt className="text-gray-500 dark:text-gray-400">Payout</dt><dd className="text-gray-900 dark:text-white">{detail.payout == null && isSparseListing(detail) ? "Not in message" : money(detail.payout)}</dd></div></div>
                   <div className="flex gap-2"><FiClock className="mt-0.5 text-gray-400" /><div><dt className="text-gray-500 dark:text-gray-400">Travel from home</dt><dd className="text-gray-900 dark:text-white">{detail.travelDistance != null ? `${detail.travelDistance} mi` : "—"}{detail.travelTime != null ? ` · ${detail.travelTime} min` : ""}</dd></div></div>
                   <div><dt className="text-gray-500 dark:text-gray-400">Due window</dt><dd className="text-gray-900 dark:text-white">{formatWhen(detail.dueWindowStart)} – {formatWhen(detail.dueWindowEnd)}</dd></div>
                   <div><dt className="text-gray-500 dark:text-gray-400">Deadline</dt><dd className="text-gray-900 dark:text-white">{formatWhen(detail.deadline)}</dd></div>
@@ -520,6 +641,9 @@ export default function ListingsSection() {
                   </p>
                 )}
 
+                {isSparseListing(detail) ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">This {sourceLabel(detail.source)} listing came in as a message, so equipment, deliverables and a flight plan were not provided. Read the message above for details.</p>
+                ) : (<>
                 <section>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Equipment and certifications</h3>
                   <ChipList items={[...labelList(detail.requiredEquipment), ...labelList(detail.requiredCertifications)]} empty="None listed." />
@@ -566,6 +690,8 @@ export default function ListingsSection() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">{detailsUnavailable(detail) ? "Details unavailable: the mission page could not be read." : "No capture steps were stored for this listing."}</p>
                   )}
                 </section>
+
+                </>)}
 
                 <section>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><FiTag className="mr-2" /> Notes and tags</h3>
@@ -620,7 +746,7 @@ export default function ListingsSection() {
 
                 {(detail.rawEmailText || detail.rawEmailHtml || detail.rawDetail) && (
                   <details className="text-sm">
-                    <summary className="cursor-pointer text-gray-700 dark:text-gray-200">Original email and scraped detail</summary>
+                    <summary className="cursor-pointer text-gray-700 dark:text-gray-200">Original message and raw detail</summary>
                     {detail.rawEmailText && (
                       <pre className="mt-3 whitespace-pre-wrap text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-md overflow-x-auto text-gray-800 dark:text-gray-100">{detail.rawEmailText}</pre>
                     )}

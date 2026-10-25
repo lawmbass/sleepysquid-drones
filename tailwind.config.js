@@ -3,6 +3,7 @@ module.exports = {
     "./pages/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./libs/serviceLines.js",
+    "./libs/listingSources.js",
   ],
   darkMode: 'class',
   theme: {
