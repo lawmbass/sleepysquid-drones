@@ -8,6 +8,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
+import { dedupeEquipment, formatItems } from "@/libs/listingSpecs";
 import {
   SOURCE_FILTERS,
   isSparseListing,
@@ -104,20 +105,32 @@ function labelList(items) {
   });
 }
 
-function ChipList({ items, empty }) {
-  const labels = labelList(items);
-  if (labels.length === 0) {
+function SpecList({ items, empty }) {
+  const { chips, blocks } = formatItems(items);
+  if (chips.length === 0 && blocks.length === 0) {
     return <span className="text-sm text-gray-500 dark:text-gray-400">{empty}</span>;
   }
   return (
-    <div className="flex flex-wrap gap-2">
-      {labels.map((label) => (
-        <span
-          key={label}
-          className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-medium text-gray-800 dark:text-gray-100"
+    <div className="space-y-3">
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {chips.map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-100"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+      {blocks.map((bullets, i) => (
+        <ul
+          key={i}
+          className="list-disc space-y-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 py-3 pl-8 pr-4 text-sm leading-relaxed text-gray-700 dark:text-gray-200 break-words"
         >
-          {label}
-        </span>
+          {bullets.map((line) => <li key={line}>{line}</li>)}
+        </ul>
       ))}
     </div>
   );
@@ -646,12 +659,17 @@ export default function ListingsSection() {
                 ) : (<>
                 <section>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Equipment and certifications</h3>
-                  <ChipList items={[...labelList(detail.requiredEquipment), ...labelList(detail.requiredCertifications)]} empty="None listed." />
+                  {(() => {
+                    const all = [...labelList(detail.requiredEquipment), ...labelList(detail.requiredCertifications)];
+                    const unique = dedupeEquipment(all, detail.deliverables);
+                    const moved = unique.length < all.length;
+                    return <SpecList items={unique} empty={moved ? "Camera specs are under Deliverables." : "None listed."} />;
+                  })()}
                 </section>
 
                 <section>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Deliverables</h3>
-                  <ChipList items={detail.deliverables} empty="None listed." />
+                  <SpecList items={detail.deliverables} empty="None listed." />
                 </section>
 
                 <section>
