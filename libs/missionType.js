@@ -31,6 +31,7 @@ const BOILERPLATE = [
 ];
 
 const KNOWN_TYPE_LABEL = /\b(?:mission|job|project)\s*type\s*[:\-]\s*([^\n,.;|$]{2,40})/i;
+const GENERIC_SCOPE = /^(?:aerial\s+)?(?:images?|photos?|photography|pictures?|stills?)$/i;
 const SCOPE_LABEL = /\bscope\s*:\s*([^\n.;|]{2,40})/i;
 
 const RULES = [
@@ -73,7 +74,10 @@ function realType({ explicit, specialInstructions, text, source }) {
   if (stated) return { type: stated, source: source || 'zeitview' };
   const special = textOf(specialInstructions);
   const scope = special.match(SCOPE_LABEL);
-  if (scope) return { type: titleCase(scope[1]), source: source || 'zeitview' };
+  if (scope) {
+    const type = titleCase(scope[1]);
+    return { type, source: source || 'zeitview', generic: GENERIC_SCOPE.test(type) };
+  }
   const labeled = String(text || '').match(KNOWN_TYPE_LABEL);
   if (labeled) return { type: titleCase(labeled[1]), source: source || 'zeitview' };
   return null;
@@ -101,7 +105,11 @@ function inferType({ title, clientName, partner, specialInstructions, flightPlan
 
 export function resolveMissionType(input = {}) {
   const real = realType(input);
-  if (real) return real;
+  // A generic Zeitview Scope ("Aerial images") loses to a for-sale property
+  // signal (Truplace etc.): those are real estate shoots. Specific scopes win.
+  if (real && !(real.generic && inferType(input) === 'Real Estate')) {
+    return { type: real.type, source: real.source };
+  }
   const inferred = inferType(input);
   return inferred ? { type: inferred, source: 'inferred' } : { type: null, source: null };
 }
