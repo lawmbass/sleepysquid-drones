@@ -540,6 +540,14 @@ export default function ListingsSection() {
                         </span>
                         <CancelStatusBadge status={listing.cancelStatus} />
                         <RuleCheckBadge check={listing.ruleCheck} />
+                        {listing.testAccept && (
+                          <span
+                            title="One-shot FlyGuys test accept. Cancel it with the Mission Coordinator."
+                            className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800"
+                          >
+                            Test accept
+                          </span>
+                        )}
                         <CancelGigButton
                           listingId={listing.id}
                           listing={listing}

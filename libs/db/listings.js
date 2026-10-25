@@ -56,6 +56,7 @@ export function mapListing(row) {
   listing.missionTypeSource = resolved.source;
   listing.missionTypeDerived = resolved.source === "inferred";
   listing.receivedAt = receivedAt(listing);
+  listing.testAccept = Boolean(row.raw_detail && row.raw_detail.test_accept === true);
   return listing;
 }
 
