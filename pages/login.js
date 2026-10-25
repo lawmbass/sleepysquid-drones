@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import HomeLink from '../components/common/HomeLink';
-import { saveOrigin, absoluteCallback } from '../libs/origin';
+import { saveOrigin, absoluteCallback, safeCallback, goToCallback } from '../libs/origin';
 import { FiMail, FiUser, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff, FiLock } from 'react-icons/fi';
 
 export default function Login() {
@@ -95,8 +95,8 @@ export default function Login() {
     
     // If already signed in, redirect based on user role
     if (session?.user && !router.query.link) {
-      const redirectTo = router.query.callbackUrl || getDefaultRedirectForUser(session.user);
-      router.push(redirectTo);
+      const redirectTo = safeCallback(router.query.callbackUrl, window.location.origin, getDefaultRedirectForUser(session.user));
+      goToCallback(router, redirectTo);
     }
   }, [session, router]);
 
@@ -112,7 +112,7 @@ export default function Login() {
     setError('');
     
     try {
-      const callbackUrl = router.query.callbackUrl || '/dashboard';
+      const callbackUrl = safeCallback(router.query.callbackUrl, window.location.origin);
       
       const result = await signIn('credentials', {
         email: formData.email,
@@ -129,7 +129,7 @@ export default function Login() {
           setError('Sign in failed. Please try again.');
         }
       } else if (result?.ok) {
-        router.push(callbackUrl);
+        goToCallback(router, callbackUrl);
       }
     } catch (error) {
       console.error('Credentials sign in error:', error);
@@ -145,7 +145,7 @@ export default function Login() {
     
     try {
       // Get callback URL from query params or determine default
-      const callbackUrl = router.query.callbackUrl || '/dashboard';
+      const callbackUrl = safeCallback(router.query.callbackUrl, window.location.origin);
       
       // Use standard NextAuth signin with redirect
       await signIn('google', {
