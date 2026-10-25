@@ -542,7 +542,7 @@ export default function ListingsSection() {
                         <RuleCheckBadge check={listing.ruleCheck} />
                         {listing.testAccept && (
                           <span
-                            title="One-shot FlyGuys test accept. Cancel it with the Mission Coordinator."
+                            title="FlyGuys test accept (temporary test rules). Cancel it with the Mission Coordinator."
                             className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800"
                           >
                             Test accept
