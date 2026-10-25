@@ -4,7 +4,7 @@ import {
   sourceLabel, sourceCounts, isSmsListing, listingMessageText, messagePreview,
   isSparseListing, missionPageUrl, receivedAt,
 } from "../../libs/listingSources.js";
-import { deriveMissionType } from "../../libs/missionType.js";
+import { deriveMissionType, resolveListingMissionType } from "../../libs/missionType.js";
 
 test("source labels spell Zeitview and handle unknowns", () => {
   assert.equal(sourceLabel("zeitview"), "Zeitview");
@@ -50,4 +50,13 @@ test("mission type: explicit wins, else derived", () => {
   assert.equal(deriveMissionType({ title: "Residential Real Estate - 12 Oak St" }), "Real Estate");
   assert.equal(deriveMissionType({ flightPlan: [{ shot_type: "grid/mapping" }] }), "Mapping / Survey");
   assert.equal(deriveMissionType({ title: "sms:SM1" }), null);
+});
+
+test("real Zeitview scope wins, then inference without boilerplate", () => {
+  const camera = "Check exposure and set your white balance depending on intensity of light. Video: 4K, 30fps";
+  assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Partner Name: Truplace", "Scope: Aerial images"] } } }), { type: "Aerial Images", source: "zeitview" });
+  assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Partner Name: Truplace"] } } }), { type: "Real Estate", source: "inferred" });
+  assert.deepEqual(resolveListingMissionType({ source: "zeitview", deliverables: [camera], raw_email_text: "A Client Mission is available near you. roof video" }), { type: null, source: null });
+  assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { partner: "DroneDeploy", acreage: 34.57 } } }), { type: "Mapping / Survey", source: "inferred" });
+  assert.deepEqual(resolveListingMissionType({ source: "flyguys", raw_email_text: "Job type: roof inspection $150" }), { type: "Roof Inspection", source: "flyguys" });
 });
