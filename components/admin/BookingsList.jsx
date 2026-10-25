@@ -38,6 +38,7 @@ function statusText(status) {
 }
 
 const serviceLabels = {
+  'aerial-media': 'Aerial Photography & Videography',
   'aerial-photography': 'Aerial Photography',
   'drone-videography': 'Drone Videography',
   'mapping-surveying': 'Mapping & Surveying',
