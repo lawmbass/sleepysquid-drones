@@ -57,6 +57,9 @@ test("real Zeitview scope wins, then inference without boilerplate", () => {
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Partner Name: Truplace", "Scope: Aerial images"] } } }), { type: "Real Estate", source: "inferred" });
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Partner Name: Truplace", "Scope: Roof inspection"] } } }), { type: "Roof Inspection", source: "zeitview" });
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Scope: Aerial images"] } } }), { type: "Aerial Images", source: "zeitview" });
+  assert.deepEqual(resolveListingMissionType({ source: "zeitview", flight_plan: [{ name: "Images - Cardinal Directions" }] }), { type: "Real Estate", source: "inferred" });
+  assert.deepEqual(resolveListingMissionType({ source: "flyguys", raw_email_text: "Foreclosure occupancy check $60" }), { type: "Real Estate", source: "inferred" });
+  assert.deepEqual(resolveListingMissionType({ source: "flyguys", raw_email_text: "Roof inspection, birds eye shots $90" }), { type: "Roof Inspection", source: "inferred" });
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { special_instructions: ["Partner Name: Truplace"] } } }), { type: "Real Estate", source: "inferred" });
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", deliverables: [camera], raw_email_text: "A Client Mission is available near you. roof video" }), { type: null, source: null });
   assert.deepEqual(resolveListingMissionType({ source: "zeitview", raw_detail: { parsed: { partner: "DroneDeploy", acreage: 34.57 } } }), { type: "Mapping / Survey", source: "inferred" });

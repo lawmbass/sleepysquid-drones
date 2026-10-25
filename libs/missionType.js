@@ -35,7 +35,7 @@ const GENERIC_SCOPE = /^(?:aerial\s+)?(?:images?|photos?|photography|pictures?|s
 const SCOPE_LABEL = /\bscope\s*:\s*([^\n.;|]{2,40})/i;
 
 const RULES = [
-  ['Real Estate', /\breal[\s-]?estate\b|\btruplace\b|\bmatterport\b|\bhomejab\b|\bvirtuance\b|\bhome listing\b|\blisting photos?\b/i],
+  ['Real Estate', /\breal[\s-]?estate\b|\btruplace\b|\bmatterport\b|\bhomejab\b|\bvirtuance\b|\bhome listing\b|\blisting photos?\b|\bforeclos\w*|\breo\b|\bbpo\b|\bbroker price opinion\b|\bapprais\w*|\brental (?:property|home|unit)s?\b|\bproperty (?:management|manager|condition|inspection|preservation)\b|\boccupancy (?:check|inspection|verification)\b/i],
   ['Roof Inspection', /\broof(?:top|ing)?\b/i],
   ['Solar Inspection', /\bsolar\b|\bpv (?:array|panel)s?\b/i],
   ['Cell Tower Inspection', /\b(?:cell|telecom)\s*(?:tower|site)\b|\bmonopole\b/i],
@@ -45,7 +45,8 @@ const RULES = [
   ['Inspection', /\binspection\b|\bbridge\b|\bwind turbine\b|\bpower ?lines?\b/i],
   ['Agriculture', /\bagricultur\w*|\bcrops?\b|\bfarm(?:land)?\b/i],
   ['Event', /\bwedding\b|\bconcert\b|\bevent coverage\b/i],
-  ['Property Photos', /\bcardinal directions\b|\bbirds?[\s-]?eye\b|\blow level shots?\b/i],
+  // Residential property shot list: Real Estate, but after the specific types above.
+  ['Real Estate', /\bcardinal directions\b|\bbirds?[\s-]?eye\b|\blow level shots?\b|\b(?:front|rear|back) (?:of (?:the )?)?(?:home|house|property)\b|\bfront low level\b/i],
   ['Video', /\bvideo(?:graphy)?\b|\bcinematic\b|\bfootage\b/i],
   ['Aerial Photos', /\baerial (?:photos?|images?|photography)\b/i],
 ];
