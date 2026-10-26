@@ -1,6 +1,7 @@
 import { verifyRecaptcha } from "@/libs/recaptcha";
 import { sendEmail } from "@/libs/mailgun";
 import adminConfig from "@/libs/adminConfig";
+import { buildContactEmail } from "@/libs/droneEmails.mjs";
 
 // Rate limiting for contact form (more restrictive than bookings)
 const contactAttempts = new Map();
@@ -156,87 +157,7 @@ export default async function handler(req, res) {
 
     const emailSubject = `New Contact Form Submission: ${sanitizedData.subject}`;
     
-    const emailText = `
-New contact form submission received:
-
-From: ${sanitizedData.name}
-Email: ${sanitizedData.email}
-Subject: ${sanitizedData.subject}
-
-Message:
-${sanitizedData.message}
-
----
-Technical Details:
-Submitted: ${timestamp}
-IP Address: ${clientIp}
-User Agent: ${userAgent}
-`;
-
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>New Contact Form Submission</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #3b82f6; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-    .content { background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }
-    .footer { background: #6c757d; color: white; padding: 15px; border-radius: 0 0 8px 8px; font-size: 12px; }
-    .field { margin-bottom: 15px; }
-    .label { font-weight: bold; color: #495057; }
-    .value { margin-top: 5px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #ced4da; }
-    .message-box { background: white; padding: 15px; border-radius: 4px; border: 1px solid #ced4da; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>🚁 New Contact Form Submission</h2>
-      <p>SleepySquid Drones - Contact Request</p>
-    </div>
-    
-    <div class="content">
-      <div class="field">
-        <div class="label">From:</div>
-        <div class="value">${sanitizedData.name}</div>
-      </div>
-      
-      <div class="field">
-        <div class="label">Email:</div>
-        <div class="value">
-          <a href="mailto:${sanitizedData.email}">${sanitizedData.email}</a>
-        </div>
-      </div>
-      
-      <div class="field">
-        <div class="label">Subject:</div>
-        <div class="value">${sanitizedData.subject}</div>
-      </div>
-      
-      <div class="field">
-        <div class="label">Message:</div>
-        <div class="message-box">${sanitizedData.message}</div>
-      </div>
-      
-      <div class="field">
-        <div class="label">Submitted:</div>
-        <div class="value">${timestamp}</div>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p><strong>Technical Details:</strong></p>
-      <p>IP Address: ${clientIp}</p>
-      <p>User Agent: ${userAgent}</p>
-      <p>This email was automatically generated from the SleepySquid Drones contact form.</p>
-    </div>
-  </div>
-</body>
-</html>
-`;
+    const { html: emailHtml, text: emailText } = buildContactEmail({ ...sanitizedData, timestamp, clientIp, userAgent });
 
     // Send email to all admin emails
     const emailPromises = adminEmails.map(adminEmail => 
