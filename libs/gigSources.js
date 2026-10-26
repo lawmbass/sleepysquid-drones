@@ -43,7 +43,8 @@
  * locate, and the live bot reports them while the pull itself is fine.
  *
  * Other sources have no slice of /health yet. Their dot uses stored
- * last_health, or orange "No status for this source yet." A manual source
+ * last_health, or a gray "Waiting" status when nothing has been seen yet.
+ * FlyGuys reads the flyguysSms slice of /health when it is present. A manual source
  * (Droners) never uses that health dot. It stays a blue Manual status even
  * when health is missing or a profile sync failed.
  */
@@ -147,6 +148,7 @@ export function dotForLevel(level) {
   if (level === "ok") return "green";
   if (level === "down") return "red";
   if (level === "manual") return "blue";
+  if (level === "waiting") return "gray";
   return "orange";
 }
 
@@ -289,6 +291,19 @@ export function zeitviewHealthFromPayload(payload, now = new Date()) {
   return { level: state.level, summary: state.summary };
 }
 
+export function flyguysHealthFromPayload(sms) {
+  if (text(sms.lastError)) {
+    return { level: "degraded", summary: clip(sms.lastError) || "The last FlyGuys alert could not be handled." };
+  }
+  if (sms.lastForwardOk === false) {
+    return { level: "degraded", summary: "The last FlyGuys alert could not be forwarded." };
+  }
+  if (!sms.lastInboundAt) {
+    return { level: "waiting", summary: "Waiting for the first FlyGuys text alert." };
+  }
+  return { level: "ok", summary: "Receiving FlyGuys text alerts." };
+}
+
 function storedHealth(row, name) {
   if (!row) return null;
   if (row.lastHealth !== "ok" && row.lastHealth !== "degraded" && row.lastHealth !== "down") return null;
@@ -313,6 +328,9 @@ export function healthForSource(source, row, { live, liveOk, now }) {
       from: "manual",
     };
   }
+  if (source.key === "flyguys" && liveOk && live?.flyguysSms && typeof live.flyguysSms === "object") {
+    return { ...flyguysHealthFromPayload(live.flyguysSms), from: "live" };
+  }
   if (source.key === "zeitview" && liveOk) {
     const derived = zeitviewHealthFromPayload(live, now);
     return { ...derived, from: "live" };
@@ -322,7 +340,7 @@ export function healthForSource(source, row, { live, liveOk, now }) {
   if (!liveOk) {
     return { level: "degraded", summary: "Could not reach the drone-gigs health check.", from: "unreachable" };
   }
-  return { level: "degraded", summary: "No status for this source yet.", from: "missing" };
+  return { level: "waiting", summary: "No status for this source yet. Waiting for its first gig.", from: "missing" };
 }
 
 export function applyEnabled(source, enabled) {
@@ -335,7 +353,7 @@ export function applyEnabled(source, enabled) {
     ...source,
     enabled: isEnabled,
     dot,
-    statusLabel: statusLabelFor(dot),
+    statusLabel: isEnabled && !manual && source.health?.level === "waiting" ? "Waiting" : statusLabelFor(dot),
     statusText: manual
       ? source.health.summary
       : (isEnabled ? source.health.summary : disabledExplanation(source.name)),

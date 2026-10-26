@@ -167,8 +167,19 @@ const acme = withExtra.find((source) => source.key === "acme");
 const other = withExtra.find((source) => source.key === "other");
 assert.equal(acme.dot, "green");
 assert.equal(acme.logoSrc, null);
-assert.equal(other.dot, "orange");
+assert.equal(other.dot, "gray");
+assert.equal(other.statusLabel, "Waiting");
 assert.match(other.statusText, /No status/);
+{
+  const { flyguysHealthFromPayload } = await import("../libs/gigSources.js");
+  assert.equal(flyguysHealthFromPayload({ lastInboundAt: null, lastError: null }).level, "waiting");
+  assert.equal(flyguysHealthFromPayload({ lastInboundAt: "2026-10-26T10:00:00Z" }).level, "ok");
+  assert.equal(flyguysHealthFromPayload({ lastInboundAt: "2026-10-26T10:00:00Z", lastError: "boom" }).level, "degraded");
+  assert.equal(flyguysHealthFromPayload({ lastInboundAt: "2026-10-26T10:00:00Z", lastForwardOk: false }).level, "degraded");
+  const waitingFly = presentSources([{ sourceKey: "flyguys", enabled: true }], { live: { ...liveLike(), flyguysSms: { lastInboundAt: null } }, liveOk: true, now: NOW }).find((s) => s.key === "flyguys");
+  assert.equal(waitingFly.statusLabel, "Waiting");
+  assert.doesNotMatch(waitingFly.statusLabel, /Needs a fix/);
+}
 assert.equal(applyEnabled(acme, false).dot, "gray");
 assert.equal(applyEnabled(acme, false).health.level, "ok");
 
