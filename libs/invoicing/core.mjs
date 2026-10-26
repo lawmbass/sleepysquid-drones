@@ -1,11 +1,12 @@
 /**
  * Pure invoicing helpers (no I/O) so they can be unit-tested with node --test.
- * Hub products are Stripe Products tagged metadata.business_line = drones | ai | website.
+ * Hub products are Stripe Products tagged metadata.service = drones | ai | web (the existing
+ * hub tag; "web" is shown as the Website line in the UI). Dispatch products are always excluded.
  * Anything else (including Dispatch) is ignored entirely.
  */
 import crypto from "node:crypto";
 
-export const BUSINESS_LINES = ["drones", "ai", "website"];
+export const BUSINESS_LINES = ["drones", "ai", "web"];
 export const INVOICE_SOURCE = "sleepysquid-hub";
 export const DEFAULT_DUE_DAYS = 14;
 export const MAX_LINES = 25;
@@ -33,7 +34,8 @@ export function writesAllowed(key, env = {}) {
 }
 
 export function productBusinessLine(product) {
-  const tag = String(product?.metadata?.business_line || "").trim().toLowerCase();
+  const tag = String(product?.metadata?.service || "").trim().toLowerCase();
+  if (/dispatch/i.test(String(product?.name || ""))) return null; // never offer Dispatch products
   return BUSINESS_LINES.includes(tag) ? tag : null;
 }
 

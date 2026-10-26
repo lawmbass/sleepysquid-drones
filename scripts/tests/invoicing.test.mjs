@@ -9,12 +9,15 @@ import { createStripeClient, loadCatalog, ensureCustomer, createDraftInvoice, fi
 
 const NOW = new Date("2026-10-26T21:00:00Z");
 const products = [
-  { id: "prod_d", active: true, name: "Listing Photos", metadata: { business_line: "drones" } },
-  { id: "prod_a", active: true, name: "AI Starter setup", metadata: { business_line: "ai" } },
-  { id: "prod_w", active: true, name: "Website development", metadata: { business_line: "website" } },
-  { id: "prod_x", active: true, name: "Dispatch Pro", metadata: { business_line: "dispatch", service: "dispatch" } },
-  { id: "prod_old", active: true, name: "Untagged (service only)", metadata: { service: "drones" } },
-  { id: "prod_off", active: false, name: "Archived", metadata: { business_line: "drones" } },
+  { id: "prod_d", active: true, name: "Listing Photos", metadata: { service: "drones" } },
+  { id: "prod_a", active: true, name: "AI Starter setup", metadata: { service: "ai" } },
+  { id: "prod_w", active: true, name: "Website development", metadata: { service: "web" } },
+  { id: "prod_x", active: true, name: "Dispatch Pro", metadata: { service: "dispatch" } },
+  { id: "prod_x2", active: true, name: "Dispatch Solo", metadata: { service: "web" } },
+  { id: "prod_bl", active: true, name: "Old tag only", metadata: { business_line: "drones" } },
+  { id: "prod_y", active: true, name: "Some product", metadata: { service: "dispatch" } },
+  { id: "prod_old", active: true, name: "Untagged", metadata: {} },
+  { id: "prod_off", active: false, name: "Archived", metadata: { service: "drones" } },
 ];
 const prices = [
   { id: "price_d", active: true, product: "prod_d", type: "one_time", unit_amount: 25000, currency: "usd" },
@@ -25,7 +28,7 @@ const prices = [
   { id: "price_old", active: true, product: "prod_old", type: "one_time", unit_amount: 100, currency: "usd" },
 ];
 
-test("catalog keeps only business_line drones/ai/website, active, one-time prices", () => {
+test("catalog keeps only service drones/ai/web (no Dispatch, business_line ignored), active, one-time prices", () => {
   const cat = buildCatalog(products, prices);
   assert.deepEqual(cat.map((p) => p.productId).sort(), ["prod_a", "prod_d", "prod_w"]);
   assert.deepEqual(cat.find((p) => p.productId === "prod_w").prices.map((p) => p.priceId), ["price_w"]);
@@ -62,9 +65,9 @@ test("status mapping: overdue derived from due date; mirror ignores non-hub invo
   assert.equal(displayStatus({ status: "open", due_date: "2026-12-01T00:00:00Z" }, NOW), "open");
   assert.equal(displayStatus({ status: "paid", due_date: "2026-10-01T00:00:00Z" }, NOW), "paid");
   assert.equal(mirrorFromStripe({ object: "invoice", id: "in_1", metadata: { service: "dispatch" } }, NOW), null);
-  const m = mirrorFromStripe({ object: "invoice", id: "in_2", customer: "cus_1", status: "open", due_date: 1, total: 5, metadata: { source: INVOICE_SOURCE, business_lines: "drones,ai,dispatch" } }, NOW);
+  const m = mirrorFromStripe({ object: "invoice", id: "in_2", customer: "cus_1", status: "open", due_date: 1, total: 5, metadata: { source: INVOICE_SOURCE, business_lines: "drones,ai,web,dispatch" } }, NOW);
   assert.equal(m.overdue, true);
-  assert.deepEqual(m.business_lines, ["drones", "ai"]);
+  assert.deepEqual(m.business_lines, ["drones", "ai", "web"]);
 });
 
 test("webhook signature verification", () => {

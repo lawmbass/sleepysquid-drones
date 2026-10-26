@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const money = (cents, currency = 'usd') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format((cents || 0) / 100);
-const LINE_LABEL = { drones: 'Drones', ai: 'AI automation', website: 'Website dev' };
+const LINE_LABEL = { drones: 'Drones', ai: 'AI automation', web: 'Website' };
 const STATUS_CHIP = {
   draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
   open: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
@@ -74,7 +74,7 @@ function NewInvoice({ userId, client, onDone, onCancel }) {
   if (error && !catalog) return <p className="text-sm text-red-600">{error}</p>;
   if (!catalog) return <p className="text-sm text-gray-500">Loading products…</p>;
   if (!catalog.writesAllowed) return <p className="text-sm text-amber-700">Invoicing is turned off for this Stripe key (live mode not approved yet).</p>;
-  if (catalog.products.length === 0) return <p className="text-sm text-amber-700">No Stripe products are tagged business_line = drones, ai or website yet.</p>;
+  if (catalog.products.length === 0) return <p className="text-sm text-amber-700">No Stripe products are tagged service = drones, ai or web yet.</p>;
 
   if (step === 'review') {
     return (

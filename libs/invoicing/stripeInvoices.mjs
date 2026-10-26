@@ -65,7 +65,7 @@ export function createStripeClient({ env = process.env, fetchImpl = globalThis.f
   return { call, listAll, mode: keyMode(key) };
 }
 
-/** Catalog of hub products (business_line = drones|ai|website) with their existing one-time Prices. */
+/** Catalog of hub products (metadata.service = drones|ai|web, Dispatch excluded) with their existing one-time Prices. */
 export async function loadCatalog(client) {
   const [products, prices] = await Promise.all([
     client.listAll("/products", { active: true }),
