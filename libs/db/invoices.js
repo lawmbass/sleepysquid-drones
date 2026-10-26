@@ -9,6 +9,21 @@ export async function getClientForInvoicing(userId) {
   return data ? { id: data.id, name: data.name, email: data.email, company: data.company, stripeCustomerId: data.stripe_customer_id } : null;
 }
 
+/** Client lookup that works before the invoicing migration (no stripe_customer_id column). */
+export async function getClientBasic(userId) {
+  if (!isUuid(userId)) return null;
+  const { data, error } = await db().from("users").select("id,name,email,company").eq("id", userId).maybeSingle();
+  assertNoError(error);
+  return data ? { id: data.id, name: data.name, email: data.email, company: data.company, stripeCustomerId: null } : null;
+}
+
+/** Zero-row probes used to check the invoicing migration has been applied. */
+export const schemaProbes = [
+  async () => { const { error } = await db().from("users").select("stripe_customer_id").limit(1); assertNoError(error); },
+  async () => { const { error } = await db().from("invoices").select("id").limit(1); assertNoError(error); },
+  async () => { const { error } = await db().from("invoice_audit_log").select("id").limit(1); assertNoError(error); },
+];
+
 export async function saveStripeCustomerId(userId, customerId) {
   const { error } = await db().from("users").update({ stripe_customer_id: customerId }).eq("id", userId);
   assertNoError(error);

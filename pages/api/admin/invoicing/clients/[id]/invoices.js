@@ -1,19 +1,28 @@
 import { requireAdmin } from "@/libs/adminRequest";
 import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
-import { approvalSignature, mirrorFromStripe, validateDraftInput } from "@/libs/invoicing/core.mjs";
+import { NOT_MIGRATED_MESSAGE, approvalSignature, invoicingSchemaReady, loadClientInvoices, mirrorFromStripe, validateDraftInput } from "@/libs/invoicing/core.mjs";
 import { createDraftInvoice, createStripeClient, ensureCustomer, invoicingMode, invoicingWritesAllowed, loadCatalog } from "@/libs/invoicing/stripeInvoices.mjs";
-import { getClientForInvoicing, insertInvoice, listInvoicesForUser, saveStripeCustomerId, writeAudit } from "@/libs/db/invoices";
+import { getClientBasic, getClientForInvoicing, insertInvoice, schemaProbes, listInvoicesForUser, saveStripeCustomerId, writeAudit } from "@/libs/db/invoices";
 
 export default async function handler(req, res) {
   const session = await requireAdmin(req, res, ["GET", "POST"]);
   if (!session) return;
-  const client = await getClientForInvoicing(String(req.query.id || ""));
-  if (!client) return res.status(404).json({ error: "Not found", message: "Client not found" });
+  const userId = String(req.query.id || "");
 
   if (req.method === "GET") {
-    const rows = await listInvoicesForUser(client.id);
-    return res.status(200).json({ success: true, data: { mode: invoicingMode(), client: { name: client.name, email: client.email }, invoices: rows.map(publicInvoice) } });
+    try {
+      const { client, invoices, migrated } = await loadClientInvoices(userId, { getClient: getClientForInvoicing, getClientBasic, listInvoices: listInvoicesForUser });
+      if (!client) return res.status(404).json({ error: "Not found", message: "Client not found" });
+      return res.status(200).json({ success: true, data: { mode: invoicingMode(), migrated, notice: migrated ? null : NOT_MIGRATED_MESSAGE, client: { name: client.name, email: client.email }, invoices: invoices.map(publicInvoice) } });
+    } catch (error) {
+      console.error("List invoices error:", error?.message);
+      return res.status(500).json({ error: "Server error", message: "Could not load invoices" });
+    }
   }
+
+  if (!(await invoicingSchemaReady(schemaProbes))) return res.status(503).json({ error: "Not migrated", message: NOT_MIGRATED_MESSAGE });
+  const client = await getClientForInvoicing(userId);
+  if (!client) return res.status(404).json({ error: "Not found", message: "Client not found" });
 
   if (!invoicingWritesAllowed()) return res.status(403).json({ error: "Forbidden", message: "Invoicing is only enabled with a Stripe test key until live mode is approved." });
   const requestId = String(req.body?.requestId || "");

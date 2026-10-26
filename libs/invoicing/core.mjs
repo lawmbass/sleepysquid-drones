@@ -171,3 +171,51 @@ export function verifyStripeSignature(rawBody, header, secret, toleranceSec = 30
 export function idempotencyKey(...parts) {
   return crypto.createHash("sha256").update(parts.map(String).join("|")).digest("hex").slice(0, 48);
 }
+
+/**
+ * True when a database error means the invoicing migration has not been applied yet
+ * (missing users.stripe_customer_id column or missing invoices / invoice_audit_log tables).
+ * Covers Postgres codes and PostgREST schema-cache codes.
+ */
+export function isMissingSchemaError(error) {
+  const code = String(error?.code || "");
+  if (["42703", "42P01", "PGRST204", "PGRST205"].includes(code)) return true;
+  const msg = String(error?.message || "");
+  return /stripe_customer_id|invoice_audit_log|relation "?(public\.)?invoices"?|table '?(public\.)?invoices'?/i.test(msg)
+    && /does not exist|could not find|schema cache/i.test(msg);
+}
+
+export const NOT_MIGRATED_MESSAGE = "Invoicing database tables are not set up yet (migration 20261026210000_invoicing.sql has not been applied). Drafts can't be saved until it is.";
+
+/**
+ * Loads a client's invoice list without failing when the migration is missing.
+ * deps: { getClient(id) -> client|null, getClientBasic(id) -> client|null, listInvoices(userId) -> rows }
+ * Returns { client, invoices, migrated }.
+ */
+export async function loadClientInvoices(userId, deps) {
+  let client;
+  let migrated = true;
+  try {
+    client = await deps.getClient(userId);
+  } catch (error) {
+    if (!isMissingSchemaError(error)) throw error;
+    migrated = false;
+    client = await deps.getClientBasic(userId);
+  }
+  if (!client) return { client: null, invoices: [], migrated };
+  if (!migrated) return { client, invoices: [], migrated };
+  try {
+    return { client, invoices: await deps.listInvoices(client.id), migrated: true };
+  } catch (error) {
+    if (!isMissingSchemaError(error)) throw error;
+    return { client, invoices: [], migrated: false };
+  }
+}
+
+/** Probes the schema; resolves true only when every probe succeeds. Rethrows unrelated errors. */
+export async function invoicingSchemaReady(probes) {
+  for (const probe of probes) {
+    try { await probe(); } catch (error) { if (isMissingSchemaError(error)) return false; throw error; }
+  }
+  return true;
+}

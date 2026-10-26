@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const money = (cents, currency = 'usd') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format((cents || 0) / 100);
+const NOT_MIGRATED_NOTE = 'Invoicing database tables are not set up yet (migration not applied), so drafts can\'t be saved. You can still browse products and build the invoice.';
 const LINE_LABEL = { drones: 'Drones', ai: 'AI automation', web: 'Website' };
 const STATUS_CHIP = {
   draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
@@ -32,23 +33,15 @@ export function ModeBadge({ mode }) {
   );
 }
 
-function NewInvoice({ userId, client, onDone, onCancel }) {
-  const [catalog, setCatalog] = useState(null);
+function NewInvoice({ userId, client, catalog, migrated, onDone, onCancel }) {
   const [error, setError] = useState('');
   const [lines, setLines] = useState([]);
   const [memo, setMemo] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(catalog?.defaultDueDate || '');
   const [step, setStep] = useState('edit');
   const [busy, setBusy] = useState(false);
   const requestId = useRef(newId());
 
-  useEffect(() => {
-    api('/api/admin/invoicing/products').then(({ ok, body }) => {
-      if (!ok) return setError(body.message || 'Could not load products');
-      setCatalog(body.data);
-      setDueDate(body.data.defaultDueDate);
-    });
-  }, []);
 
   const prices = (catalog?.products || []).flatMap((p) => p.prices.map((pr) => ({ ...pr, product: p })));
   const addLine = (priceId) => {
@@ -61,6 +54,7 @@ function NewInvoice({ userId, client, onDone, onCancel }) {
   const valid = lines.length > 0 && lines.every((l) => Number(l.amount) > 0) && dueDate;
 
   const createDraft = async () => {
+    if (migrated === false) { setError(NOT_MIGRATED_NOTE); return; }
     setBusy(true); setError('');
     const { ok, body } = await api(`/api/admin/invoicing/clients/${userId}/invoices`, {
       method: 'POST',
@@ -71,8 +65,6 @@ function NewInvoice({ userId, client, onDone, onCancel }) {
     onDone(body.data.invoice);
   };
 
-  if (error && !catalog) return <p className="text-sm text-red-600">{error}</p>;
-  if (!catalog) return <p className="text-sm text-gray-500">Loading products…</p>;
   if (!catalog.writesAllowed) return <p className="text-sm text-amber-700">Invoicing is turned off for this Stripe key (live mode not approved yet).</p>;
   if (catalog.products.length === 0) return <p className="text-sm text-amber-700">No Stripe products are tagged service = drones, ai or web yet.</p>;
 
@@ -91,7 +83,8 @@ function NewInvoice({ userId, client, onDone, onCancel }) {
         {error && <p className="text-red-600">{error}</p>}
         <div className="flex gap-2">
           <button type="button" className={`${btn} border`} disabled={busy} onClick={() => setStep('edit')}>Back</button>
-          <button type="button" className={`${btn} bg-blue-600 text-white`} disabled={busy} onClick={createDraft}>{busy ? 'Creating…' : 'Create draft'}</button>
+          <button type="button" className={`${btn} bg-blue-600 text-white`} disabled={busy || migrated === false} title={migrated === false ? NOT_MIGRATED_NOTE : undefined} onClick={createDraft}>{busy ? 'Creating…' : 'Create draft'}</button>
+          {migrated === false && <p className="text-sm text-amber-700 w-full">{NOT_MIGRATED_NOTE}</p>}
         </div>
       </div>
     );
@@ -194,22 +187,35 @@ export default function ClientInvoices({ userId }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState('');
   const load = useCallback(async () => {
     const { ok, body } = await api(`/api/admin/invoicing/clients/${userId}/invoices`);
     if (!ok) { setError(body.message || 'Could not load invoices'); return; }
     setError(''); setData(body.data);
   }, [userId]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    api('/api/admin/invoicing/products').then(({ ok, body }) => {
+      if (!ok) return setCatalogError(body.message || 'Could not load products');
+      setCatalog(body.data);
+    });
+  }, []);
+  const mode = data?.mode || catalog?.mode;
+  const migrated = data ? data.migrated !== false : undefined;
 
   return (
     <section className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
       <div className="flex items-center mb-2">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Invoices<ModeBadge mode={data?.mode} /></h4>
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Invoices<ModeBadge mode={mode} /></h4>
         <span className="flex-1" />
-        {!creating && data && <button type="button" className={`${btn} bg-blue-600 text-white`} onClick={() => setCreating(true)}>New invoice</button>}
+        {!creating && catalog && <button type="button" className={`${btn} bg-blue-600 text-white`} onClick={() => setCreating(true)}>New invoice</button>}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {creating && data && <NewInvoice userId={userId} client={data.client} onCancel={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} />}
+      {migrated === false && <p className="text-sm text-amber-700 mb-2" data-testid="invoicing-not-migrated">{NOT_MIGRATED_NOTE}</p>}
+      {catalogError && <p className="text-sm text-red-600">{catalogError}</p>}
+      {!catalog && !catalogError && <p className="text-sm text-gray-500">Loading products…</p>}
+      {creating && catalog && <NewInvoice userId={userId} client={data?.client || {}} catalog={catalog} migrated={migrated} onCancel={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} />}
       {data && (data.invoices.length === 0
         ? !creating && <p className="text-sm text-gray-500">No invoices yet.</p>
         : <ul className="divide-y divide-gray-200 dark:divide-gray-700">{data.invoices.map((inv) => <InvoiceRow key={inv.id} inv={inv} client={data.client} onChanged={load} />)}</ul>)}

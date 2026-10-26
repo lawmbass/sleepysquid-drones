@@ -176,3 +176,39 @@ test("draft discard deletes; live key without flag cannot write", async () => {
   assert.equal(fake.calls.length, before, "no request reached Stripe");
   await loadCatalog(live); // reads are fine
 });
+
+import { isMissingSchemaError, loadClientInvoices, invoicingSchemaReady, NOT_MIGRATED_MESSAGE } from "../../libs/invoicing/core.mjs";
+
+test("missing-schema detection covers Postgres and PostgREST codes, not other errors", () => {
+  assert.ok(isMissingSchemaError({ code: "42703", message: "column users.stripe_customer_id does not exist" }));
+  assert.ok(isMissingSchemaError({ code: "42P01" }));
+  assert.ok(isMissingSchemaError({ code: "PGRST205", message: "Could not find the table 'public.invoices' in the schema cache" }));
+  assert.ok(isMissingSchemaError({ message: "Could not find the 'stripe_customer_id' column of 'users' in the schema cache" }));
+  assert.ok(!isMissingSchemaError({ code: "23505", message: "duplicate key" }));
+  assert.ok(!isMissingSchemaError(new Error("connection refused")));
+  assert.match(NOT_MIGRATED_MESSAGE, /20261026210000_invoicing\.sql/);
+});
+
+test("invoice list returns empty + migrated:false instead of failing when not migrated", async () => {
+  const client = { id: "u1", name: "Ana", email: "ana@example.com" };
+  const missingCol = Object.assign(new Error("column users.stripe_customer_id does not exist"), { code: "42703" });
+  const missingTable = Object.assign(new Error("relation \"invoices\" does not exist"), { code: "42P01" });
+  let listed = false;
+  const a = await loadClientInvoices("u1", { getClient: async () => { throw missingCol; }, getClientBasic: async () => client, listInvoices: async () => { listed = true; return []; } });
+  assert.deepEqual(a, { client, invoices: [], migrated: false });
+  assert.equal(listed, false);
+  const b = await loadClientInvoices("u1", { getClient: async () => client, getClientBasic: async () => client, listInvoices: async () => { throw missingTable; } });
+  assert.deepEqual(b, { client, invoices: [], migrated: false });
+  const c = await loadClientInvoices("u1", { getClient: async () => client, getClientBasic: async () => client, listInvoices: async () => [{ id: "r1" }] });
+  assert.deepEqual(c, { client, invoices: [{ id: "r1" }], migrated: true });
+  const d = await loadClientInvoices("nope", { getClient: async () => null, getClientBasic: async () => null, listInvoices: async () => [] });
+  assert.equal(d.client, null);
+  await assert.rejects(loadClientInvoices("u1", { getClient: async () => { throw new Error("db down"); }, getClientBasic: async () => client, listInvoices: async () => [] }), /db down/);
+});
+
+test("draft creation is blocked until every schema probe passes", async () => {
+  const missing = Object.assign(new Error("x"), { code: "PGRST205" });
+  assert.equal(await invoicingSchemaReady([async () => {}, async () => { throw missing; }]), false);
+  assert.equal(await invoicingSchemaReady([async () => {}, async () => {}]), true);
+  await assert.rejects(invoicingSchemaReady([async () => { throw new Error("timeout"); }]), /timeout/);
+});
