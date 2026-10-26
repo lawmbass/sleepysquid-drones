@@ -190,6 +190,15 @@ export default function UsersList({
                     >
                       Edit user
                     </button>
+                    {(user.id || user._id) && !user.isPendingInvitation && (
+                      <a
+                        role="menuitem"
+                        href={`/dashboard?section=invoices&client=${user.id || user._id}`}
+                        className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        New invoice
+                      </a>
+                    )}
                     {user.canDelete && (
                       <button
                         type="button"
@@ -578,6 +587,15 @@ export default function UsersList({
                                 >
                                   <FiEdit2 className="h-4 w-4" />
                                 </button>
+                                {(user.id || user._id) && !user.isPendingInvitation && (
+                                  <a
+                                    href={`/dashboard?section=invoices&client=${user.id || user._id}`}
+                                    className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm"
+                                    title="New invoice"
+                                  >
+                                    New invoice
+                                  </a>
+                                )}
                                 {user.canDelete && (
                                   <button
                                     onClick={() => handleDeleteUser(user)}

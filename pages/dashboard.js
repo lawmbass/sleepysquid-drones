@@ -11,7 +11,7 @@ import AiAutomationContent, { AiSummaryCard } from '@/components/aiPortal/AiAuto
 import Settings from '@/components/dashboard/Settings';
 import AiSettings from '@/components/aiPortal/AiSettings';
 
-const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users'];
+const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users', 'invoices'];
 
 export default function Dashboard() {
   const { data: session, status, update } = useSession();

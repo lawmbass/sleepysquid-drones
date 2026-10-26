@@ -212,3 +212,37 @@ test("draft creation is blocked until every schema probe passes", async () => {
   assert.equal(await invoicingSchemaReady([async () => {}, async () => {}]), true);
   await assert.rejects(invoicingSchemaReady([async () => { throw new Error("timeout"); }]), /timeout/);
 });
+
+import { filterInvoices, STATUS_FILTERS } from "../../libs/invoicing/core.mjs";
+import fs from "node:fs";
+
+test("invoice list filters by display status and service line", () => {
+  const list = [
+    { id: 1, status: "draft", businessLines: ["drones"] },
+    { id: 2, status: "open", businessLines: ["ai"] },
+    { id: 3, status: "overdue", businessLines: ["web", "ai"] },
+    { id: 4, status: "paid", businessLines: ["web"] },
+    { id: 5, status: "void", businessLines: [] },
+    { id: 6, status: "deleted", businessLines: ["drones"] },
+  ];
+  assert.deepEqual(filterInvoices(list).map((i) => i.id), [1, 2, 3, 4, 5]);
+  assert.deepEqual(filterInvoices(list, { status: "overdue" }).map((i) => i.id), [3]);
+  assert.deepEqual(filterInvoices(list, { line: "ai" }).map((i) => i.id), [2, 3]);
+  assert.deepEqual(filterInvoices(list, { status: "paid", line: "web" }).map((i) => i.id), [4]);
+  assert.deepEqual(filterInvoices(list, { status: "open", line: "web" }), []);
+  for (const s of ["draft", "open", "paid", "overdue", "void"]) assert.ok(STATUS_FILTERS.includes(s));
+});
+
+test("Invoices section is wired for SleepySquid admins only and the modal panel is gone", () => {
+  const read = (p) => fs.readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
+  const roles = read("libs/userRoles.js");
+  const block = roles.slice(roles.indexOf("if (isSleepySquidAdmin) {"), roles.indexOf("return adminNav;"));
+  assert.match(block, /name: 'Invoices', href: '\/dashboard\?section=invoices'/);
+  assert.match(read("pages/dashboard.js"), /'invoices'\]/);
+  const admin = read("components/dashboard/AdminContent.jsx");
+  assert.match(admin, /case 'invoices':\s*\n\s*if \(!isSleepySquidAdmin\)/);
+  assert.doesNotMatch(read("components/admin/UserModal.jsx"), /ClientInvoices/);
+  assert.match(read("components/admin/UsersList.jsx"), /section=invoices&client=/);
+  const api = read("pages/api/admin/invoicing/invoices/index.js");
+  assert.match(api, /requireAdmin\(req, res, \["GET"\]\)/);
+});

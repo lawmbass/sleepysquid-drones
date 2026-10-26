@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 const money = (cents, currency = 'usd') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format((cents || 0) / 100);
 const NOT_MIGRATED_NOTE = 'Invoicing database tables are not set up yet (migration not applied), so drafts can\'t be saved. You can still browse products and build the invoice.';
-const LINE_LABEL = { drones: 'Drones', ai: 'AI automation', web: 'Website' };
+export const LINE_LABEL = { drones: 'Drones', ai: 'AI automation', web: 'Website' };
 const STATUS_CHIP = {
   draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
   open: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
@@ -121,7 +121,7 @@ function NewInvoice({ userId, client, catalog, migrated, onDone, onCancel }) {
   );
 }
 
-function InvoiceRow({ inv, client, onChanged }) {
+export function InvoiceRow({ inv, client, onChanged }) {
   const [confirm, setConfirm] = useState(null); // 'send' | 'void'
   const [confirmedAt, setConfirmedAt] = useState(0);
   const [reapprove, setReapprove] = useState(null);
@@ -183,10 +183,10 @@ function InvoiceRow({ inv, client, onChanged }) {
   );
 }
 
-export default function ClientInvoices({ userId }) {
+export default function ClientInvoices({ userId, startCreating = false }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(startCreating);
   const [catalog, setCatalog] = useState(null);
   const [catalogError, setCatalogError] = useState('');
   const load = useCallback(async () => {
