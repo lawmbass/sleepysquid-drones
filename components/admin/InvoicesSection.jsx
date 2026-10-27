@@ -76,7 +76,7 @@ export default function InvoicesSection() {
 
       {clientId && (
         <div className="rounded border border-blue-200 dark:border-blue-800 p-4">
-          <div className="flex"><span className="flex-1" /><button type="button" className={`${btn} border`} onClick={closeClient}>Back to all invoices</button></div>
+          <div className="flex items-center"><h3 className="text-base font-semibold text-gray-900 dark:text-white" data-testid="invoice-form-title">New invoice</h3><span className="flex-1" /><button type="button" className={`${btn} border`} onClick={closeClient}>Back to all invoices</button></div>
           <ClientInvoices key={clientId} userId={clientId} startCreating />
         </div>
       )}

@@ -1,4 +1,4 @@
-import { HANDLED_EVENTS, mirrorFromStripe, verifyStripeSignature } from "@/libs/invoicing/core.mjs";
+import { HANDLED_EVENTS, mirrorFromStripe, shouldApplyWebhook, verifyStripeSignature } from "@/libs/invoicing/core.mjs";
 import { findInvoiceByStripeId, updateMirror } from "@/libs/db/invoices";
 
 export const config = { api: { bodyParser: false } };
@@ -12,7 +12,7 @@ async function readRaw(req) {
 /**
  * Stripe webhook for hub invoices. Secret: STRIPE_INVOICING_WEBHOOK_SECRET.
  * Only invoices with metadata.source = sleepysquid-hub that already exist in the mirror
- * are updated, so Dispatch (same Stripe account) is ignored.
+ * are updated (never inserted), so Dispatch and invoices deleted from the hub (same Stripe account) is ignored.
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -28,7 +28,8 @@ export default async function handler(req, res) {
   if (!mirror) return res.status(200).json({ received: true, ignored: true });
   try {
     const existing = await findInvoiceByStripeId(inv.id);
-    if (!existing) return res.status(200).json({ received: true, ignored: true });
+    // Deleted invoices have no row: skip, never re-insert.
+    if (!shouldApplyWebhook(existing)) return res.status(200).json({ received: true, ignored: true });
     const patch = { ...mirror };
     if (event.type === "invoice.payment_failed") patch.last_payment_error = inv.last_finalization_error?.message || "Payment failed";
     if (event.type === "invoice.paid") patch.last_payment_error = null;

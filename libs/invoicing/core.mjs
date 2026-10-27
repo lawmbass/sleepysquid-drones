@@ -229,3 +229,38 @@ export function filterInvoices(invoices, { status = "all", line = "all" } = {}) 
     && (status === "all" || inv.status === status)
     && (line === "all" || (inv.businessLines || []).includes(line)));
 }
+
+/* ---------- Deleting invoices from the hub list ---------- */
+export const DELETABLE_STATUSES = ["void", "draft"];
+export function canDeleteInvoice(row) { return Boolean(row) && DELETABLE_STATUSES.includes(row.status); }
+
+/**
+ * Remove a void or draft invoice from the hub database. The audit row is written first so a
+ * delete never happens unaudited. Drafts are also deleted in Stripe (Stripe allows that);
+ * void invoices stay in Stripe as a $0 voided record (Stripe can't delete finalized invoices).
+ */
+export async function deleteInvoiceFlow(row, { getStripeInvoice, deleteStripeDraft, deleteRow, writeAudit, actorEmail, stripeWritesAllowed = true }) {
+  if (!row) return { ok: false, status: 404, message: "Invoice not found" };
+  if (!canDeleteInvoice(row)) return { ok: false, status: 409, message: `Only void or draft invoices can be deleted (this one is ${row.status}).` };
+  let stripeDraftDeleted = false;
+  if (row.status === "draft" && row.stripe_invoice_id) {
+    let inv = null;
+    try { inv = await getStripeInvoice(row.stripe_invoice_id); } catch (e) { if (e?.status !== 404) throw e; }
+    if (inv && inv.status === "draft") {
+      if (!stripeWritesAllowed) return { ok: false, status: 403, message: "Stripe writes are disabled, so the Stripe draft can't be deleted." };
+      await deleteStripeDraft(row.stripe_invoice_id);
+      stripeDraftDeleted = true;
+    } else if (inv && inv.status !== "void" && inv.status !== "deleted") {
+      return { ok: false, status: 409, message: `Stripe shows this invoice is ${inv.status} now. Refresh the list.` };
+    }
+  }
+  await writeAudit({ invoiceId: row.id, stripeInvoiceId: row.stripe_invoice_id, action: "delete", actorEmail, amountCents: row.total_cents, currency: row.currency, livemode: row.livemode });
+  await deleteRow(row.id);
+  return { ok: true, status: 200, stripeDraftDeleted };
+}
+
+/**
+ * Webhook guard: only update invoices still in the hub database. Deleted invoices have no row,
+ * so later Stripe events for them are skipped and never re-inserted.
+ */
+export function shouldApplyWebhook(existing) { return Boolean(existing) && existing.status !== "deleted"; }

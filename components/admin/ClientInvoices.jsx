@@ -145,6 +145,13 @@ export function InvoiceRow({ inv, client, onChanged }) {
     if (!ok) { setError(body.message || 'Could not void'); return; }
     setConfirm(null); onChanged();
   };
+  const doDelete = async () => {
+    setBusy(true); setError('');
+    const { ok, body } = await api(`/api/admin/invoicing/invoices/${inv.id}`, { method: 'DELETE', body: JSON.stringify({ confirm: 'DELETE' }) });
+    setBusy(false);
+    if (!ok) { setError(body.message || 'Could not delete'); return; }
+    setConfirm(null); onChanged();
+  };
 
   return (
     <li className="py-2 text-sm text-gray-800 dark:text-gray-100">
@@ -158,6 +165,7 @@ export function InvoiceRow({ inv, client, onChanged }) {
         {inv.invoicePdf && <a className="text-blue-600 underline" href={inv.invoicePdf} target="_blank" rel="noreferrer">PDF</a>}
         {inv.rawStatus === 'draft' && <button type="button" className={`${btn} bg-blue-600 text-white`} disabled={busy} onClick={() => { setConfirm('send'); setConfirmedAt(0); }}>Send invoice to {client.email}</button>}
         {['draft', 'open', 'uncollectible'].includes(inv.rawStatus) && <button type="button" className={`${btn} border border-red-300 text-red-700`} disabled={busy} onClick={() => setConfirm('void')}>{inv.rawStatus === 'draft' ? 'Discard draft' : 'Void'}</button>}
+        {['void', 'draft'].includes(inv.rawStatus) && <button type="button" className={`${btn} border border-gray-300 text-gray-700 dark:text-gray-200`} disabled={busy} onClick={() => setConfirm('delete')} data-testid="invoice-delete">Delete</button>}
       </div>
       {inv.lastPaymentError && <p className="text-xs text-red-600">Last payment failed: {inv.lastPaymentError}</p>}
       {confirm === 'send' && (
@@ -175,6 +183,15 @@ export function InvoiceRow({ inv, client, onChanged }) {
         <div className="mt-2 p-2 rounded border border-red-300 bg-red-50 dark:bg-red-900/20">
           <p>{inv.rawStatus === 'draft' ? 'Discard this draft? It was never sent.' : `Void ${inv.number || 'this invoice'} for ${money(inv.totalCents, inv.currency)}? The client can no longer pay it. This cannot be undone.`}</p>
           <button type="button" className={`${btn} bg-red-600 text-white mt-1`} disabled={busy} onClick={doVoid}>{busy ? 'Working…' : 'Yes, void'}</button>
+          <button type="button" className={`${btn} ml-2`} disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
+        </div>
+      )}
+      {confirm === 'delete' && (
+        <div className="mt-2 p-2 rounded border border-red-300 bg-red-50 dark:bg-red-900/20" data-testid="invoice-delete-confirm">
+          <p>{inv.rawStatus === 'draft'
+            ? `Delete this draft? It is removed from this list and deleted in Stripe. It was never sent.`
+            : `Delete ${inv.number || 'this invoice'}? It is removed from this list. Stripe keeps a $0 voided record.`}</p>
+          <button type="button" className={`${btn} bg-red-600 text-white mt-1`} disabled={busy} onClick={doDelete}>{busy ? 'Deleting…' : 'Yes, delete'}</button>
           <button type="button" className={`${btn} ml-2`} disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
         </div>
       )}
@@ -207,7 +224,12 @@ export default function ClientInvoices({ userId, startCreating = false }) {
   return (
     <section className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
       <div className="flex items-center mb-2">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Invoices<ModeBadge mode={mode} /></h4>
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-white" data-testid="client-invoices-heading">
+          {startCreating
+            ? (data?.client ? <>Invoices for {data.client.name || data.client.email}{data.client.name && <span className="font-normal text-gray-500"> · {data.client.email}</span>}</> : 'Loading client…')
+            : 'Invoices'}
+          <ModeBadge mode={mode} />
+        </h4>
         <span className="flex-1" />
         {!creating && catalog && <button type="button" className={`${btn} bg-blue-600 text-white`} onClick={() => setCreating(true)}>New invoice</button>}
       </div>
