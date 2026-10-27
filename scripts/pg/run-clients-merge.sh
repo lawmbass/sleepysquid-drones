@@ -12,4 +12,13 @@ run -f supabase/down/20261027040000_clients_merge.down.sql
 run -f scripts/pg/clients-merge.down-assert.sql
 run -f supabase/migrations/20261027040000_clients_merge.sql   # up again after down
 run -c "SELECT count(*) AS clients FROM public.clients" -t
-echo "clients-merge up/down: OK"
+run -f supabase/migrations/20261027040000_clients_merge.sql   # rerun: no-op
+run -f scripts/pg/clients-merge.assert.sql
+# Partial apply (prod 2026-10-27) -> migration fixes forward, twice.
+run -f scripts/pg/clients-merge.fixture.sql
+run -f scripts/pg/clients-merge.partial.sql
+run -f supabase/migrations/20261027040000_clients_merge.sql
+run -f supabase/migrations/20261027040000_clients_merge.sql
+run -f scripts/pg/clients-merge.assert.sql
+run -x -f scripts/pg/clients-merge-state.sql > /dev/null
+echo "clients-merge up/down/rerun/partial: OK"
