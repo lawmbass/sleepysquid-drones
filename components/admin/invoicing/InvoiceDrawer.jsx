@@ -37,7 +37,7 @@ export default function InvoiceDrawer({ invoiceId, onClose, onEdit, onNewForClie
               {data.linesError && <p className="text-amber-700">{data.linesError}</p>}
               <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {(data.lines || []).map((l, i) => (
-                  <li key={i} className="py-1.5 flex gap-2"><span className="flex-1 min-w-0">{l.description}{l.quantity > 1 && <span className="text-gray-500"> × {l.quantity}</span>}</span><span>{money(l.amountCents, inv.currency)}</span></li>
+                  <li key={i} className="py-1.5 flex gap-2"><span className="flex-1 min-w-0">{l.custom && <span className="mr-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800">Custom</span>}{l.description}{l.quantity > 1 && <span className="text-gray-500"> × {l.quantity}</span>}</span><span>{money(l.amountCents, inv.currency)}</span></li>
                 ))}
               </ul>
               {inv.memo && <p className="mt-2 text-gray-600 dark:text-gray-300">Memo: {inv.memo}</p>}

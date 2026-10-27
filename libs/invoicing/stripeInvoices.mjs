@@ -87,7 +87,39 @@ export async function ensureCustomer(client, user) {
   return c.id;
 }
 
+/**
+ * Stripe Customer for an AI client (no hub user row to cache the id on): reuse an existing
+ * customer with the same email, else create one with email + name. Never touches Products/Prices.
+ */
+export async function ensureCustomerByEmail(client, { email, name, aiClientId }) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) throw new InvoicingError("Client has no email", { status: 400 });
+  const found = await client.call("GET", "/customers", { email: e, limit: 10 });
+  const hit = (found?.data || []).find((c) => !c.deleted);
+  if (hit) return hit.id;
+  const c = await client.call("POST", "/customers", {
+    email: e, name: name || undefined,
+    metadata: { source: INVOICE_SOURCE, ...(aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) },
+  }, { idempotency: idempotencyKey(aiClientId ? "customer-ai" : "customer-email", aiClientId || e, client.mode) });
+  return c.id;
+}
+
 /** Create a DRAFT invoice + invoice items. auto_advance=false so nothing is sent until an admin clicks Send. */
+/**
+ * Stripe invoice item params for one validated line. Catalog lines use the list price (or price_data
+ * on that product when the amount was edited). Custom lines use unit_amount + currency + description
+ * only, so no Stripe Product or Price is created.
+ */
+export function invoiceItemParams(l, { customerId, invoiceId, currency }) {
+  const base = { customer: customerId, invoice: invoiceId, description: l.description, quantity: l.quantity || 1 };
+  if (l.custom) {
+    return { ...base, currency: currency || "usd", unit_amount: l.amountCents,
+      metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, custom: "1" } };
+  }
+  const item = l.amountCents === l.listAmountCents ? { price: l.priceId } : { price_data: { product: l.productId, currency, unit_amount: l.amountCents } };
+  return { ...base, ...item, metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId } };
+}
+
 export async function createDraftInvoice(client, { customerId, user, draft, requestId }) {
   const businessLines = [...new Set(draft.lines.map((l) => l.businessLine))].join(",");
   const invoice = await client.call("POST", "/invoices", {
@@ -98,17 +130,11 @@ export async function createDraftInvoice(client, { customerId, user, draft, requ
     pending_invoice_items_behavior: "exclude",
     description: draft.memo || undefined,
     currency: draft.currency,
-    metadata: { source: INVOICE_SOURCE, business_lines: businessLines, hub_user_id: user.id },
+    metadata: { source: INVOICE_SOURCE, business_lines: businessLines, ...(user.aiClientId ? { ai_client_id: user.aiClientId } : user.userId === null ? { one_time: "1" } : { hub_user_id: user.id }) },
   }, { idempotency: idempotencyKey("invoice", requestId) });
   for (let i = 0; i < draft.lines.length; i++) {
     const l = draft.lines[i];
-    const item = l.amountCents === l.listAmountCents
-      ? { price: l.priceId }
-      : { price_data: { product: l.productId, currency: draft.currency, unit_amount: l.amountCents } };
-    await client.call("POST", "/invoiceitems", {
-      customer: customerId, invoice: invoice.id, description: l.description, ...item, quantity: l.quantity || 1,
-      metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId },
-    }, { idempotency: idempotencyKey("item", requestId, i) });
+    await client.call("POST", "/invoiceitems", invoiceItemParams(l, { customerId, invoiceId: invoice.id, currency: draft.currency }), { idempotency: idempotencyKey("item", requestId, i) });
   }
   return client.call("GET", `/invoices/${invoice.id}`);
 }
@@ -130,11 +156,7 @@ export async function updateDraftInvoice(client, id, { draft, requestId }) {
   const customerId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
   for (let i = 0; i < draft.lines.length; i++) {
     const l = draft.lines[i];
-    const item = l.amountCents === l.listAmountCents ? { price: l.priceId } : { price_data: { product: l.productId, currency: draft.currency, unit_amount: l.amountCents } };
-    await client.call("POST", "/invoiceitems", {
-      customer: customerId, invoice: id, description: l.description, ...item, quantity: l.quantity || 1,
-      metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId },
-    }, { idempotency: idempotencyKey("edit-item", requestId, i) });
+    await client.call("POST", "/invoiceitems", invoiceItemParams(l, { customerId, invoiceId: id, currency: draft.currency }), { idempotency: idempotencyKey("edit-item", requestId, i) });
   }
   return getInvoice(client, id);
 }

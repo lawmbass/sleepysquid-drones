@@ -12,6 +12,7 @@ export const DEFAULT_DUE_DAYS = 14;
 export const MAX_LINES = 25;
 export const MAX_LINE_CENTS = 5_000_000; // $50,000 per unit guardrail
 export const MAX_QTY = 999;
+export const CUSTOM_CURRENCY = "usd";
 export const MAX_INVOICE_CENTS = 25_000_000; // $250,000 per invoice guardrail
 export const HANDLED_EVENTS = [
   "invoice.finalized",
@@ -84,6 +85,20 @@ export function validateDraftInput(body, catalog, now = new Date()) {
   const lines = [];
   let currency = null;
   rawLines.slice(0, MAX_LINES).forEach((l, i) => {
+    if (l?.custom || !l?.priceId) {
+      // Custom line: free-text description + amount. Never creates a Stripe Product/Price.
+      const description = String(l?.description || "").trim().slice(0, 200);
+      if (!description) { errors[`lines.${i}`] = "Describe the custom item"; return; }
+      const cents = Math.round(Number(l?.amountCents));
+      if (!Number.isInteger(cents) || cents < 1 || cents > MAX_LINE_CENTS) { errors[`lines.${i}`] = "Amount must be between $0.01 and $50,000"; return; }
+      const quantity = l?.quantity == null ? 1 : Number(l.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QTY) { errors[`lines.${i}`] = `Quantity must be 1 to ${MAX_QTY}`; return; }
+      if (currency && currency !== CUSTOM_CURRENCY) { errors[`lines.${i}`] = "All lines must use one currency"; return; }
+      currency = CUSTOM_CURRENCY;
+      const businessLine = BUSINESS_LINES.includes(l?.businessLine) ? l.businessLine : "custom";
+      lines.push({ custom: true, priceId: null, productId: null, businessLine, amountCents: cents, quantity, lineCents: cents * quantity, listAmountCents: null, description });
+      return;
+    }
     const hit = priceIndex.get(String(l?.priceId || ""));
     if (!hit) { errors[`lines.${i}`] = "Pick a Drones, AI or Website product"; return; }
     const cents = Math.round(Number(l?.amountCents ?? hit.unitAmount));
@@ -225,7 +240,7 @@ export async function invoicingSchemaReady(probes) {
   return true;
 }
 
-export { STATUS_FILTERS, filterInvoices, LIST_CHIPS, CHIP_LABEL, STATUS_CHIP_LABEL, daysOverdue, matchesClientSearch, chipCounts, rowActions, dueDateForChip, composerProblems } from "./ui.mjs";
+export { STATUS_FILTERS, filterInvoices, LIST_CHIPS, CHIP_LABEL, STATUS_CHIP_LABEL, daysOverdue, matchesClientSearch, chipCounts, rowActions, dueDateForChip, composerProblems, AI_REF_PREFIX, parseRecipientRef, aiRecipientRef, recipientRefusal, canInvoiceUserRow, canInvoiceAiRow, EMAIL_REF_PREFIX, isValidEmail, emailRecipientRef, oneTimeEmailOffer, addProductLine } from "./ui.mjs";
 
 
 /* ---------- Deleting invoices from the hub list ---------- */

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/libs/adminRequest";
-import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
+import { listClient, publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
+import { aiClientsByIds } from "@/libs/invoicing/recipients";
 import { BUSINESS_LINES, STATUS_FILTERS, chipCounts, filterInvoices, matchesClientSearch, isMissingSchemaError, NOT_MIGRATED_MESSAGE } from "@/libs/invoicing/core.mjs";
 import { invoicingMode } from "@/libs/invoicing/stripeInvoices.mjs";
 import { listAllInvoices } from "@/libs/db/invoices";
@@ -12,7 +13,9 @@ export default async function handler(req, res) {
   const line = BUSINESS_LINES.includes(String(req.query.line)) ? String(req.query.line) : "all";
   try {
     const rows = await listAllInvoices();
-    const all = rows.map((r) => ({ ...publicInvoice(r), client: r.client ? { id: r.client.id, name: r.client.name, email: r.client.email, company: r.client.company } : null }));
+    let aiById = {};
+    try { aiById = await aiClientsByIds(rows.map((r) => r.ai_client_id)); } catch (e) { console.error("AI client names:", e?.message); }
+    const all = rows.map((r) => ({ ...publicInvoice(r), client: listClient(r, aiById) }));
     const byLine = filterInvoices(all, { line });
     const invoices = filterInvoices(byLine.filter((i) => matchesClientSearch(i, q)), { status });
     return res.status(200).json({ success: true, data: { mode: invoicingMode(), migrated: true, invoices, counts: chipCounts(byLine, q), filters: { status, line, q } } });

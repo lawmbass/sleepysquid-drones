@@ -19,9 +19,9 @@ export async function api(url, options) {
 }
 
 export function ModeBadge({ mode }) {
-  if (!mode || mode === 'none') return null;
-  const live = mode === 'live';
-  return <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold align-middle ${live ? 'bg-red-600 text-white' : 'bg-yellow-300 text-yellow-900'}`}>{live ? 'LIVE' : 'TEST'}</span>;
+  // Live is the normal state: no badge. Only flag test mode.
+  if (mode !== 'test') return null;
+  return <span className="ml-2 px-2 py-0.5 rounded text-xs font-bold align-middle bg-yellow-300 text-yellow-900" data-testid="mode-badge-test">TEST</span>;
 }
 
 export const CHIP_CLASS = {

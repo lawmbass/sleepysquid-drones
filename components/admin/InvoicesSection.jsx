@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { CHIP_LABEL, LIST_CHIPS, STATUS_CHIP_LABEL, daysOverdue, rowActions } from '@/libs/invoicing/ui.mjs';
 import { api, btn, CHIP_CLASS, ConfirmDialog, fmtDate, input, ModeBadge, money } from './invoicing/shared';
-import InvoiceComposer from './invoicing/InvoiceComposer';
+import InvoiceComposer, { RecipientTag } from './invoicing/InvoiceComposer';
 import InvoiceDrawer from './invoicing/InvoiceDrawer';
 
 const ACTION_LABEL = { edit: 'Edit', send: 'Send', delete: 'Delete', copyLink: 'Copy pay link', resend: 'Resend', void: 'Void', receipt: 'View receipt' };
@@ -13,7 +13,7 @@ function InvoiceListRow({ inv, onOpen, onAction, copied }) {
   return (
     <li className="px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => onOpen(inv)} data-testid="invoice-row">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="flex-1 min-w-[10rem] font-medium text-gray-900 dark:text-white truncate">{who}</span>
+        <span className="flex-1 min-w-[10rem] font-medium text-gray-900 dark:text-white truncate">{who}<RecipientTag kind={inv.client?.kind} /></span>
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${CHIP_CLASS[inv.status] || CHIP_CLASS.draft}`}>{STATUS_CHIP_LABEL[inv.status] || inv.status}</span>
         <span className="font-semibold text-right sm:w-24">{money(inv.totalCents, inv.currency)}</span>
       </div>
@@ -60,8 +60,8 @@ export default function InvoicesSection() {
   // Coming from a client row (?client=<id>): open the composer with that client locked.
   useEffect(() => {
     if (!clientId) return;
-    api(`/api/admin/invoicing/clients/${clientId}/invoices`).then(({ ok, body }) => {
-      if (ok && body.data?.client) setComposer({ lockedClient: { id: clientId, ...body.data.client } });
+    api(`/api/admin/invoicing/clients/${encodeURIComponent(clientId)}/invoices`).then(({ ok, body }) => {
+      if (ok && body.data?.client) setComposer({ lockedClient: { ...body.data.client, id: clientId } });
     });
   }, [clientId]);
 
