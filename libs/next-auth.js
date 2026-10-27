@@ -168,6 +168,11 @@ export const authOptions = {
               console.error("Failed to persist admin role:", persistError);
             }
           }
+          if (user && !session.user.isAdmin) {
+            // Accepting a portal invite: the first sign-in with a client's email links that client to this login.
+            try { const { linkClientLogin } = await import("./db/clients"); await linkClientLogin(user.email, user.id); }
+            catch (linkError) { console.error("Client login link failed:", linkError?.message); }
+          }
           if (user) {
             session.user.id = user.id;
             session.user.role = session.user.isAdmin ? "admin" : (user.role || "client");

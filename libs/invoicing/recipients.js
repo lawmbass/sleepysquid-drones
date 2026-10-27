@@ -3,6 +3,7 @@
 import { assertNoError, db } from "@/libs/db/shared";
 import { db as portalDb, portalConfigured } from "@/libs/aiPortal/db";
 import { adminConfig } from "@/libs/adminConfig";
+import { clientsReady, findClientBy, getClient, searchClients } from "@/libs/db/clients";
 import { aiRecipientRef, emailRecipientRef, parseRecipientRef, recipientRefusal } from "./ui.mjs";
 
 const enc = encodeURIComponent;
@@ -16,10 +17,24 @@ async function aiEmails(ids) {
   return out;
 }
 
-/** { ref, kind, userId, aiClientId, name, email, company, role, stripeCustomerId } or null. */
+/** A public.clients row as an invoice recipient (never an admin: admins aren't in clients). */
+export function clientRecipient(c) {
+  if (!c) return null;
+  return { id: `client:${c.id}`, ref: `client:${c.id}`, kind: "client", clientId: c.id, userId: null, aiClientId: null, name: c.contact_name || c.business_name,
+    email: c.email, company: c.business_name, role: "client", stripeCustomerId: c.stripe_customer_id || null, archived: Boolean(c.archived_at), services: c.services || [] };
+}
+
+/** { ref, kind, userId, aiClientId, name, email, company, role, stripeCustomerId } or null.
+ * After the clients merge, user and AI refs resolve to their client row so new invoices get client_id. */
 export async function getRecipient(ref) {
   const p = parseRecipientRef(ref);
   if (!p) return null;
+  if (p.kind === "client") return clientRecipient(await getClient(p.id));
+  if (p.kind !== "email" && (await clientsReady())) {
+    const c = await findClientBy(p.kind === "user" ? "user_id" : "portal_client_id", p.id);
+    if (c) return clientRecipient(c);
+    if (p.kind === "ai") return null;
+  }
   if (p.kind === "user") {
     const { data, error } = await db().from("users").select("id,name,email,company,role,stripe_customer_id").eq("id", p.id).maybeSingle();
     assertNoError(error);
@@ -40,10 +55,20 @@ export async function getInvoiceableRecipient(ref) {
 }
 
 export async function getRecipientForRow(row) {
+  if (row?.client_id) return clientRecipient(await getClient(row.client_id));
   if (row?.user_id) return getRecipient(row.user_id);
   if (row?.ai_client_id) return getRecipient(aiRecipientRef(row.ai_client_id));
   if (row?.recipient_email) return { ...(await getRecipient(emailRecipientRef(row.recipient_email))), name: row.recipient_name || null };
   return null;
+}
+
+/** { [clientId]: { id, name, email, kind } } for list rows after the merge. */
+export async function clientsByIds(ids) {
+  const uniq = [...new Set(ids.filter(Boolean))];
+  if (!uniq.length) return {};
+  const { data, error } = await db().from("clients").select("id,business_name,contact_name,email").in("id", uniq);
+  assertNoError(error);
+  return Object.fromEntries((data || []).map((c) => [c.id, { id: `client:${c.id}`, name: c.business_name, email: c.email, company: c.contact_name, kind: "client" }]));
 }
 
 /** { [aiClientId]: { id, name, email } } for list rows. */
@@ -60,6 +85,9 @@ const clean = (q) => String(q || "").replace(/[^\p{L}\p{N}@._+\- ]/gu, "").trim(
 /** Type-ahead: client accounts (never admins) + AI clients without a portal account. */
 export async function searchRecipients(q, limit = 8) {
   const term = clean(q);
+  if (await clientsReady()) {
+    return (await searchClients(term, limit)).map((c) => { const r = clientRecipient(c); return { id: r.ref, name: c.business_name, email: c.email, company: c.contact_name, kind: "client", services: r.services }; });
+  }
   let query = db().from("users").select("id,name,email,company,role").in("role", ["client", "user"]).order("name").limit(limit * 2);
   if (term) query = query.or(`name.ilike.%${term}%,email.ilike.%${term}%,company.ilike.%${term}%`);
   const { data, error } = await query;

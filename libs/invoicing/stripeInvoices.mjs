@@ -91,7 +91,7 @@ export async function ensureCustomer(client, user) {
  * Stripe Customer for an AI client (no hub user row to cache the id on): reuse an existing
  * customer with the same email, else create one with email + name. Never touches Products/Prices.
  */
-export async function ensureCustomerByEmail(client, { email, name, aiClientId }) {
+export async function ensureCustomerByEmail(client, { email, name, aiClientId, clientId }) {
   const e = String(email || "").trim().toLowerCase();
   if (!e) throw new InvoicingError("Client has no email", { status: 400 });
   const found = await client.call("GET", "/customers", { email: e, limit: 10 });
@@ -99,8 +99,8 @@ export async function ensureCustomerByEmail(client, { email, name, aiClientId })
   if (hit) return hit.id;
   const c = await client.call("POST", "/customers", {
     email: e, name: name || undefined,
-    metadata: { source: INVOICE_SOURCE, ...(aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) },
-  }, { idempotency: idempotencyKey(aiClientId ? "customer-ai" : "customer-email", aiClientId || e, client.mode) });
+    metadata: { source: INVOICE_SOURCE, ...(clientId ? { client_id: clientId } : aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) },
+  }, { idempotency: idempotencyKey(clientId ? "customer-client" : aiClientId ? "customer-ai" : "customer-email", clientId || aiClientId || e, client.mode) });
   return c.id;
 }
 

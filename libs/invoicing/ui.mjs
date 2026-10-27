@@ -75,12 +75,14 @@ export const AI_REF_PREFIX = "ai:";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AI_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 export const EMAIL_REF_PREFIX = "email:";
+const CLIENT_PREFIX = "client:"; // public.clients.id (after the clients merge)
 const EMAIL_RE = /^[^\s@,;<>()"]{1,64}@[A-Za-z0-9.-]{1,190}\.[A-Za-z]{2,24}$/;
 export const isValidEmail = (e) => EMAIL_RE.test(String(e || "").trim());
 export const emailRecipientRef = (e) => `${EMAIL_REF_PREFIX}${String(e).trim().toLowerCase()}`;
 export function parseRecipientRef(ref) {
   const s = String(ref || "").trim();
   if (s.startsWith(EMAIL_REF_PREFIX)) { const e = s.slice(EMAIL_REF_PREFIX.length).toLowerCase(); return isValidEmail(e) ? { kind: "email", id: e } : null; }
+  if (s.startsWith(CLIENT_PREFIX)) { const id = s.slice(CLIENT_PREFIX.length); return UUID_RE.test(id) ? { kind: "client", id } : null; }
   if (s.startsWith(AI_REF_PREFIX)) { const id = s.slice(AI_REF_PREFIX.length); return AI_ID_RE.test(id) ? { kind: "ai", id } : null; }
   return UUID_RE.test(s) ? { kind: "user", id: s } : null;
 }

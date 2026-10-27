@@ -3,6 +3,7 @@ import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
 import { NOT_MIGRATED_MESSAGE, approvalSignature, invoicingSchemaReady, loadClientInvoices, mirrorFromStripe, validateDraftInput } from "@/libs/invoicing/core.mjs";
 import { createDraftInvoice, createStripeClient, ensureCustomer, ensureCustomerByEmail, invoicingMode, invoicingWritesAllowed, loadCatalog } from "@/libs/invoicing/stripeInvoices.mjs";
 import { getInvoiceableRecipient, getRecipient } from "@/libs/invoicing/recipients";
+import { listInvoicesForClient, updateClient } from "@/libs/db/clients";
 import { parseRecipientRef } from "@/libs/invoicing/ui.mjs";
 import { getClientBasic, insertInvoice, schemaProbes, listInvoicesForUser, listInvoicesForAiClient, listInvoicesForEmail, saveStripeCustomerId, writeAudit } from "@/libs/db/invoices";
 
@@ -16,7 +17,11 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const { client, invoices, migrated } = await loadClientInvoices(ref, parsedRef.kind === "ai"
+      // After the clients merge, user/AI refs resolve to a client row, whose invoices are keyed by client_id.
+      const resolved = parsedRef.kind === "email" ? null : await getRecipient(ref);
+      const { client, invoices, migrated } = await loadClientInvoices(ref, resolved?.kind === "client"
+        ? { getClient: getRecipient, getClientBasic: getRecipient, listInvoices: () => listInvoicesForClient(resolved.clientId) }
+        : parsedRef.kind === "ai"
         ? { getClient: getRecipient, getClientBasic: getRecipient, listInvoices: () => listInvoicesForAiClient(parsedRef.id) }
         : parsedRef.kind === "email"
         ? { getClient: getRecipient, getClientBasic: getRecipient, listInvoices: () => listInvoicesForEmail(parsedRef.id) }
@@ -33,6 +38,7 @@ export default async function handler(req, res) {
   const { recipient: client, refusal } = await getInvoiceableRecipient(ref);
   if (!client) return res.status(404).json({ error: "Not found", message: "Client not found" });
   if (refusal) return res.status(400).json({ error: "Invalid recipient", message: refusal });
+  if (client.archived) return res.status(400).json({ error: "Invalid recipient", message: "This client is archived" });
 
   if (!invoicingWritesAllowed()) return res.status(403).json({ error: "Forbidden", message: "Invoicing is only enabled with a Stripe test key until live mode is approved." });
   const requestId = String(req.body?.requestId || "");
@@ -45,7 +51,10 @@ export default async function handler(req, res) {
     let customerId;
     const recipientName = client.kind === "email" ? String(req.body?.recipientName || "").trim().slice(0, 120) || null : null;
     if (client.kind === "email") client.name = recipientName;
-    if (client.kind !== "user") customerId = await ensureCustomerByEmail(stripe, { email: client.email, name: client.name, aiClientId: client.aiClientId });
+    if (client.kind === "client") {
+      customerId = client.stripeCustomerId || await ensureCustomerByEmail(stripe, { email: client.email, name: client.company, clientId: client.clientId });
+      if (customerId !== client.stripeCustomerId) await updateClient(client.clientId, { stripe_customer_id: customerId });
+    } else if (client.kind !== "user") customerId = await ensureCustomerByEmail(stripe, { email: client.email, name: client.name, aiClientId: client.aiClientId });
     else {
       customerId = await ensureCustomer(stripe, client);
       if (customerId !== client.stripeCustomerId) await saveStripeCustomerId(client.userId, customerId);
@@ -53,7 +62,7 @@ export default async function handler(req, res) {
     const inv = await createDraftInvoice(stripe, { customerId, user: client, draft: parsed.value, requestId });
     const mirror = mirrorFromStripe(inv);
     const row = await insertInvoice({
-      ...mirror, user_id: client.userId, ai_client_id: client.aiClientId,
+      ...mirror, ...(client.kind === "client" ? { client_id: client.clientId } : { user_id: client.userId, ai_client_id: client.aiClientId }),
       ...(client.kind === "email" ? { recipient_email: client.email, recipient_name: recipientName } : {}), created_by: session.user.email.toLowerCase(),
       approved_total_cents: parsed.value.totalCents,
       approved_signature: approvalSignature(parsed.value),
