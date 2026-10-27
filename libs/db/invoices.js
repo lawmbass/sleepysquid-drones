@@ -35,6 +35,18 @@ export async function listInvoicesForUser(userId) {
   return data || [];
 }
 
+export async function listInvoicesForAiClient(aiClientId) {
+  const { data, error } = await db().from("invoices").select(COLS).eq("ai_client_id", aiClientId).neq("status", "deleted").order("created_at", { ascending: false }).limit(100);
+  assertNoError(error);
+  return data || [];
+}
+
+export async function listInvoicesForEmail(email) {
+  const { data, error } = await db().from("invoices").select(COLS).is("user_id", null).is("ai_client_id", null).eq("recipient_email", String(email).toLowerCase()).neq("status", "deleted").order("created_at", { ascending: false }).limit(100);
+  assertNoError(error);
+  return data || [];
+}
+
 /** All hub invoices with their client, newest first (admin Invoices section). */
 export async function listAllInvoices(limit = 500) {
   const { data, error } = await db().from("invoices").select("*, client:users!invoices_user_id_fkey(id,name,email,company)").neq("status", "deleted").order("created_at", { ascending: false }).limit(limit);

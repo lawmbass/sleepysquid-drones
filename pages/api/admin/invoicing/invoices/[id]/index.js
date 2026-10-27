@@ -2,7 +2,8 @@ import { requireAdmin } from "@/libs/adminRequest";
 import { approvalSignature, deleteInvoiceFlow, idempotencyKey, mirrorFromStripe, validateDraftInput } from "@/libs/invoicing/core.mjs";
 import { createStripeClient, getInvoice, invoicingWritesAllowed, loadCatalog, updateDraftInvoice } from "@/libs/invoicing/stripeInvoices.mjs";
 
-import { deleteInvoiceRow, findInvoiceById, getClientBasic, listAuditForInvoice, updateMirror, writeAudit } from "@/libs/db/invoices";
+import { getRecipientForRow } from "@/libs/invoicing/recipients";
+import { deleteInvoiceRow, findInvoiceById, listAuditForInvoice, updateMirror, writeAudit } from "@/libs/db/invoices";
 import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
 
 /**
@@ -41,7 +42,7 @@ async function detail(id, res) {
   try {
     const row = await findInvoiceById(id);
     if (!row || row.status === "deleted") return res.status(404).json({ error: "Not found" });
-    const [client, audit] = await Promise.all([getClientBasic(row.user_id), listAuditForInvoice(row.stripe_invoice_id)]);
+    const [client, audit] = await Promise.all([getRecipientForRow(row), listAuditForInvoice(row.stripe_invoice_id)]);
     let lines = null; let linesError = null;
     try {
       const inv = await getInvoice(createStripeClient(), row.stripe_invoice_id);
@@ -54,7 +55,7 @@ async function detail(id, res) {
       row.last_payment_error && { at: row.stripe_updated_at, label: `Payment failed: ${row.last_payment_error}` },
     ].filter(Boolean).sort((a, b) => new Date(a.at) - new Date(b.at));
     return res.status(200).json({ success: true, data: {
-      invoice: publicInvoice(row), client: client ? { id: row.user_id, name: client.name, email: client.email } : null,
+      invoice: publicInvoice(row), client: client ? { id: client.id, name: client.name, email: client.email, kind: client.kind } : null,
       lines, linesError, timeline, stripe: { invoiceId: row.stripe_invoice_id, customerId: row.stripe_customer_id },
     } });
   } catch (error) {

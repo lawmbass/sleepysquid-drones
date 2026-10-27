@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/libs/adminRequest";
 import { mirrorFromStripe, signatureFromStripeInvoice } from "@/libs/invoicing/core.mjs";
 import { createStripeClient, finalizeAndSend, getInvoice, invoicingWritesAllowed } from "@/libs/invoicing/stripeInvoices.mjs";
-import { findInvoiceById, getClientForInvoicing, updateMirror, writeAudit } from "@/libs/db/invoices";
+import { getRecipientForRow } from "@/libs/invoicing/recipients";
+import { findInvoiceById, updateMirror, writeAudit } from "@/libs/db/invoices";
 import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
 
 const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   if (!invoicingWritesAllowed()) return res.status(403).json({ error: "Forbidden", message: "Invoicing is only enabled with a Stripe test key until live mode is approved." });
   const row = await findInvoiceById(String(req.query.id || ""));
   if (!row) return res.status(404).json({ error: "Not found" });
-  const client = await getClientForInvoicing(row.user_id);
+  const client = await getRecipientForRow(row);
   const confirmedAt = Number(req.body?.confirmedAt);
   if (!client || String(req.body?.confirmEmail || "").toLowerCase() !== String(client.email).toLowerCase()) {
     return res.status(400).json({ error: "Confirm required", message: "Confirm the client's email to send" });

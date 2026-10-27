@@ -1,3 +1,4 @@
+import { aiRecipientRef, canInvoiceAiRow, canInvoiceUserRow } from '@/libs/invoicing/ui.mjs';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
@@ -190,7 +191,7 @@ export default function UsersList({
                     >
                       Edit user
                     </button>
-                    {(user.id || user._id) && !user.isPendingInvitation && (
+                    {canInvoiceUserRow(user) && (
                       <a
                         role="menuitem"
                         href={`/dashboard?section=invoices&client=${user.id || user._id}`}
@@ -402,6 +403,9 @@ export default function UsersList({
                 <div className="h-12 w-12 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center"><FiUser className="h-6 w-6 text-emerald-700" /></div>
                 <AiOnlyBody c={c} />
               </div>
+              {canInvoiceAiRow(c) && (
+                <a href={`/dashboard?section=invoices&client=${encodeURIComponent(aiRecipientRef(c.id))}`} className="mt-2 inline-block text-sm text-blue-600 hover:text-blue-900" data-testid="ai-new-invoice">New invoice</a>
+              )}
             </div>
           ))}
         </div>
@@ -587,7 +591,7 @@ export default function UsersList({
                                 >
                                   <FiEdit2 className="h-4 w-4" />
                                 </button>
-                                {(user.id || user._id) && !user.isPendingInvitation && (
+                                {canInvoiceUserRow(user) && (
                                   <a
                                     href={`/dashboard?section=invoices&client=${user.id || user._id}`}
                                     className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm"
@@ -631,7 +635,11 @@ export default function UsersList({
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">No account</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.deleted_at ? 'Deleted' : 'AI report access'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.created_at ? formatDate(c.created_at) : '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">—</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">
+                    {canInvoiceAiRow(c) ? (
+                      <a href={`/dashboard?section=invoices&client=${encodeURIComponent(aiRecipientRef(c.id))}`} className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm" title="New invoice" data-testid="ai-new-invoice">New invoice</a>
+                    ) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

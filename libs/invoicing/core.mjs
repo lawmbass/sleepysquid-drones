@@ -240,7 +240,7 @@ export async function invoicingSchemaReady(probes) {
   return true;
 }
 
-export { STATUS_FILTERS, filterInvoices, LIST_CHIPS, CHIP_LABEL, STATUS_CHIP_LABEL, daysOverdue, matchesClientSearch, chipCounts, rowActions, dueDateForChip, composerProblems } from "./ui.mjs";
+export { STATUS_FILTERS, filterInvoices, LIST_CHIPS, CHIP_LABEL, STATUS_CHIP_LABEL, daysOverdue, matchesClientSearch, chipCounts, rowActions, dueDateForChip, composerProblems, AI_REF_PREFIX, parseRecipientRef, aiRecipientRef, recipientRefusal, canInvoiceUserRow, canInvoiceAiRow, EMAIL_REF_PREFIX, isValidEmail, emailRecipientRef, oneTimeEmailOffer, addProductLine } from "./ui.mjs";
 
 
 /* ---------- Deleting invoices from the hub list ---------- */

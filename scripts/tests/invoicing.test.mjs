@@ -101,6 +101,7 @@ function fakeStripe() {
     let m0;
     if (path === "/products") return json({ data: products, has_more: false });
     if (path === "/prices") return json({ data: prices, has_more: false });
+    if (path === "/customers" && method === "GET") return json({ data: p.email === "known@x.com" ? [{ id: "cus_known" }] : [], has_more: false });
     if (path === "/customers" && method === "POST") return json({ id: "cus_new" });
     if (path === "/invoices" && method === "POST") {
       const id = `in_${++n}`;
@@ -324,5 +325,28 @@ test("custom line items: validated like other lines, never create Products/Price
   const edited = await updateDraftInvoice(client, inv.id, { draft: v2, requestId: "req-custom-00000000002" });
   assert.equal(edited.total, 20000);
   assert.deepEqual(edited.lines.data.map((l) => l.description), ["Web dev (revised)"]);
+  assert.ok(!fake.calls.some((c) => c.method === "POST" && /^\/v1\/(products|prices)/.test(c.path)));
+});
+
+import { ensureCustomerByEmail } from "../../libs/invoicing/stripeInvoices.mjs";
+test("AI clients + one-time emails: Stripe customer found or created by email, never Products/Prices", async () => {
+  const fake = fakeStripe();
+  const client = createStripeClient({ env: { STRIPE_INVOICING_SECRET_KEY: "sk_test_fake" }, fetchImpl: fake.fetchImpl });
+  assert.equal(await ensureCustomerByEmail(client, { email: "Known@X.com", name: "Known" }), "cus_known");
+  assert.ok(!fake.calls.some((c) => c.method === "POST" && c.path === "/v1/customers"), "reuses existing customer");
+  assert.equal(await ensureCustomerByEmail(client, { email: "admin@alphaandomegasolutions.org", name: "Alpha And Omega Solutions", aiClientId: "alpha-and-omega" }), "cus_new");
+  const created = fake.calls.find((c) => c.method === "POST" && c.path === "/v1/customers");
+  assert.equal(created.params.email, "admin@alphaandomegasolutions.org");
+  assert.equal(created.params.name, "Alpha And Omega Solutions");
+  assert.equal(created.params["metadata[ai_client_id]"], "alpha-and-omega");
+  await ensureCustomerByEmail(client, { email: "one@time.com", name: "" });
+  assert.equal(fake.calls.filter((c) => c.method === "POST" && c.path === "/v1/customers").at(-1).params["metadata[one_time]"], "1");
+  await assert.rejects(ensureCustomerByEmail(client, { email: "" }));
+  const cat = await loadCatalog(client);
+  const v = validateDraftInput({ lines: [{ priceId: "price_d" }] }, cat, NOW).value;
+  await createDraftInvoice(client, { customerId: "cus_new", user: { id: "ai:alpha-and-omega", userId: null, aiClientId: "alpha-and-omega" }, draft: v, requestId: "req-ai-000000000000001" });
+  const invCall = fake.calls.find((c) => c.method === "POST" && c.path === "/v1/invoices");
+  assert.equal(invCall.params["metadata[ai_client_id]"], "alpha-and-omega");
+  assert.equal(invCall.params["metadata[hub_user_id]"], undefined);
   assert.ok(!fake.calls.some((c) => c.method === "POST" && /^\/v1\/(products|prices)/.test(c.path)));
 });

@@ -87,6 +87,23 @@ export async function ensureCustomer(client, user) {
   return c.id;
 }
 
+/**
+ * Stripe Customer for an AI client (no hub user row to cache the id on): reuse an existing
+ * customer with the same email, else create one with email + name. Never touches Products/Prices.
+ */
+export async function ensureCustomerByEmail(client, { email, name, aiClientId }) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) throw new InvoicingError("Client has no email", { status: 400 });
+  const found = await client.call("GET", "/customers", { email: e, limit: 10 });
+  const hit = (found?.data || []).find((c) => !c.deleted);
+  if (hit) return hit.id;
+  const c = await client.call("POST", "/customers", {
+    email: e, name: name || undefined,
+    metadata: { source: INVOICE_SOURCE, ...(aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) },
+  }, { idempotency: idempotencyKey(aiClientId ? "customer-ai" : "customer-email", aiClientId || e, client.mode) });
+  return c.id;
+}
+
 /** Create a DRAFT invoice + invoice items. auto_advance=false so nothing is sent until an admin clicks Send. */
 /**
  * Stripe invoice item params for one validated line. Catalog lines use the list price (or price_data
@@ -113,7 +130,7 @@ export async function createDraftInvoice(client, { customerId, user, draft, requ
     pending_invoice_items_behavior: "exclude",
     description: draft.memo || undefined,
     currency: draft.currency,
-    metadata: { source: INVOICE_SOURCE, business_lines: businessLines, hub_user_id: user.id },
+    metadata: { source: INVOICE_SOURCE, business_lines: businessLines, ...(user.aiClientId ? { ai_client_id: user.aiClientId } : user.userId === null ? { one_time: "1" } : { hub_user_id: user.id }) },
   }, { idempotency: idempotencyKey("invoice", requestId) });
   for (let i = 0; i < draft.lines.length; i++) {
     const l = draft.lines[i];
