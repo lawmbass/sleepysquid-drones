@@ -257,7 +257,7 @@ test("Invoices section is wired for SleepySquid admins only and the modal panel 
   const admin = read("components/dashboard/AdminContent.jsx");
   assert.match(admin, /case 'invoices':\s*\n\s*if \(!isSleepySquidAdmin\)/);
   assert.doesNotMatch(read("components/admin/UserModal.jsx"), /ClientInvoices/);
-  assert.match(read("components/admin/UsersList.jsx"), /section=invoices&client=/);
+  assert.match(read("components/admin/ClientsSection.jsx"), /section=invoices&client=/);
   const api = read("pages/api/admin/invoicing/invoices/index.js");
   assert.match(api, /requireAdmin\(req, res, \["GET"\]\)/);
 });

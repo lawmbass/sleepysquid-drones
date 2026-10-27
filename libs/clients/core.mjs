@@ -32,8 +32,14 @@ export function validateClient(body = {}) {
 }
 
 export const canInvite = (c) => Boolean(c && c.email && !c.archivedAt && !c.userId);
+/** True when the client can sign in somewhere: a linked drones account or an AI report login email. */
+export const hasLogin = (c) => Boolean(c && (c.userId || (c.aiLogins || []).length));
+/** "Remove login" is offered when there's a login or an outstanding invite to take back. */
+export const canRemoveLogin = (c) => Boolean(c && (hasLogin(c) || c.invitedAt));
+export const removeLoginText = (c) => `${c.businessName} won't be able to sign in to the client portal${(c.aiLogins || []).length ? " or see their AI report" : ""}. The client, their invoices${c.portalClientId ? ", AI report data and API keys" : ""} stay. You can invite them again later.`;
 export function portalStatus(c) {
   if (c?.userId) return { key: "login", label: "Has login" };
+  if ((c?.aiLogins || []).length) return { key: "login", label: "AI login" };
   if (c?.invitedAt) return { key: "invited", label: `Invited ${new Date(c.invitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` };
   return { key: "none", label: "No login" };
 }
@@ -58,6 +64,7 @@ export function rowActionsFor(c) {
   const a = [];
   if (!c.archivedAt && c.email) a.push("invoice");
   if (canInvite(c)) a.push(c.invitedAt ? "resend" : "invite");
+  if (canRemoveLogin(c)) a.push("remove-login");
   if (c.portalClientId) a.push("report");
   a.push("edit");
   if (!c.archivedAt) a.push("archive");
@@ -66,6 +73,6 @@ export function rowActionsFor(c) {
 export function publicClient(row, agg = {}) {
   return { id: row.id, ref: clientRef(row.id), businessName: row.business_name, contactName: row.contact_name, email: row.email, phone: row.phone,
     services: row.services || [], hourlyRate: row.hourly_rate == null ? null : Number(row.hourly_rate), notes: row.notes, userId: row.user_id,
-    portalClientId: row.portal_client_id, invitedAt: row.invited_at, lastInviteAt: row.last_invite_at || row.invited_at, archivedAt: row.archived_at,
+    portalClientId: row.portal_client_id, aiLogins: agg.aiLogins || [], invitedAt: row.invited_at, lastInviteAt: row.last_invite_at || row.invited_at, archivedAt: row.archived_at,
     owedCents: agg.owedCents || 0, lastInvoiceAt: agg.lastInvoiceAt || null, createdAt: row.created_at };
 }

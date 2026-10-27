@@ -63,11 +63,20 @@ export async function listInvoicesForClient(clientId) {
 }
 
 const linked = new Set();
-/** Link an unlinked, unarchived client with this email to the signed-in user (never admins; caller checks). */
+/**
+ * Accepting a portal invite: link an invited, unlinked, unarchived client with this email to the signed-in user
+ * (never admins; caller checks) and give that account dashboard access. Only invited clients link, so a client
+ * whose login was removed (invited_at cleared) doesn't silently get it back on their next sign-in.
+ */
 export async function linkClientLogin(email, userId) {
   const e = String(email || "").trim().toLowerCase();
   if (!e || !isUuid(userId) || linked.has(e) || /@sleepysquid\.com$/.test(e) || !(await clientsReady())) return;
-  const { error } = await db().from("clients").update({ user_id: userId, updated_at: new Date().toISOString() }).eq("email", e).is("user_id", null).is("archived_at", null);
+  const { data, error } = await db().from("clients").update({ user_id: userId, updated_at: new Date().toISOString() })
+    .eq("email", e).is("user_id", null).is("archived_at", null).not("invited_at", "is", null).select("id");
   assertNoError(error);
+  if (data?.length) {
+    const { error: e2 } = await db().from("users").update({ has_access: true }).eq("id", userId).in("role", ["client", "user"]);
+    assertNoError(e2);
+  }
   linked.add(e);
 }

@@ -2,6 +2,7 @@ import { requireAdmin } from "@/libs/adminRequest";
 import { INVITE_DAILY_MAX, inviteBlock, publicClient } from "@/libs/clients/core.mjs";
 import { clientsReady, getClient, updateClient } from "@/libs/db/clients";
 import { sendEmail } from "@/libs/mailgun";
+import { aiLoginsFor, grantAiLogin } from "@/libs/clients/logins";
 
 const PORTAL_LOGIN = "https://sleepysquid.com/login";
 
@@ -31,5 +32,8 @@ export default async function handler(req, res) {
     console.error("Invite email failed:", error?.message);
     return res.status(502).json({ error: "Email failed", message: "Could not send the invite" });
   }
-  return res.status(200).json({ success: true, data: { client: publicClient(await getClient(c.id)) } });
+  // AI clients: make sure the invited email can also open their AI report.
+  try { await grantAiLogin(c); } catch (x) { console.error("AI login grant failed:", x?.message); }
+  const row = await getClient(c.id);
+  return res.status(200).json({ success: true, data: { client: publicClient(row, { aiLogins: await aiLoginsFor(row.portal_client_id).catch(() => []) }) } });
 }

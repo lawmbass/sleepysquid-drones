@@ -11,7 +11,7 @@ import AiAutomationContent, { AiSummaryCard } from '@/components/aiPortal/AiAuto
 import Settings from '@/components/dashboard/Settings';
 import AiSettings from '@/components/aiPortal/AiSettings';
 
-const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users', 'invoices'];
+const ADMIN_SECTIONS = ['bookings', 'listings', 'bot-rules', 'airspace', 'promos', 'analytics', 'users', 'team', 'clients', 'invoices'];
 
 export default function Dashboard() {
   const { data: session, status, update } = useSession();
@@ -42,8 +42,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!router.isReady || status !== 'authenticated') return;
-    // Old "Manage AI clients" links: AI clients are managed in User Management now.
-    if (requestedSection === 'ai-admin') { router.replace(isDashboardAdmin ? '/dashboard?section=users' : '/dashboard'); return; }
+    // Old "Manage AI clients" links: AI clients are managed on the Clients page now.
+    if (requestedSection === 'ai-admin') { router.replace(isDashboardAdmin ? '/dashboard?section=clients' : '/dashboard'); return; }
+    // Old "Users" links: staff are on the Team page now (clients are on Clients).
+    if (requestedSection === 'users') { router.replace(isDashboardAdmin ? '/dashboard?section=team' : '/dashboard'); return; }
     // Old "AI settings" links: AI settings are a section of Settings now.
     if (requestedSection === 'ai-settings') { router.replace('/dashboard?section=settings#ai-automation'); return; }
     if (isDashboardAdmin) return;

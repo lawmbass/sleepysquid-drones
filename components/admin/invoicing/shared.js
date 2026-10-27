@@ -34,7 +34,7 @@ export const CHIP_CLASS = {
 };
 
 /** Simple modal confirm. */
-export function ConfirmDialog({ title, children, confirmLabel, danger, busy, onConfirm, onCancel, testid }) {
+export function ConfirmDialog({ title, children, confirmLabel, danger, busy, onConfirm, onCancel, testid, confirmDisabled = false }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-3" role="dialog" aria-modal="true" data-testid={testid}>
       <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-4 shadow-xl">
@@ -42,7 +42,7 @@ export function ConfirmDialog({ title, children, confirmLabel, danger, busy, onC
         <div className="mt-2 text-sm text-gray-700 dark:text-gray-200">{children}</div>
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" className={`${btn} border border-gray-300 dark:border-gray-600`} disabled={busy} onClick={onCancel}>Cancel</button>
-          <button type="button" className={`${btn} text-white ${danger ? 'bg-red-600' : 'bg-blue-600'}`} disabled={busy} onClick={onConfirm} data-testid={testid ? `${testid}-yes` : undefined}>{confirmLabel}</button>
+          <button type="button" className={`${btn} text-white ${danger ? 'bg-red-600' : 'bg-blue-600'}`} disabled={busy || confirmDisabled} onClick={onConfirm} data-testid={testid ? `${testid}-yes` : undefined}>{confirmLabel}</button>
         </div>
       </div>
     </div>

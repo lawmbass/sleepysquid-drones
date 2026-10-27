@@ -1,5 +1,6 @@
 import { countUsers, createUser, findUserByEmail, listUserAdminFields, listUsers, userAccessAndRoleStats } from "@/libs/db/users";
 import { offerUserDelete } from "@/libs/userDeletion";
+import { TEAM_ROLES, teamStats } from "@/libs/team.mjs";
 import { countPendingInvitations, listPendingInvitations, pendingInvitationRoleCounts } from "@/libs/db/invitations";
 import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
@@ -92,6 +93,7 @@ async function handleGetUsers(req, res, session) {
       search,
       role,
       hasAccess,
+      team,
       limit = 50, 
       page = 1,
       sort = '-createdAt'
@@ -136,6 +138,9 @@ async function handleGetUsers(req, res, session) {
     if (role) {
       allItems = allItems.filter(item => item.role === role);
     }
+    // Team page: staff only (admins and pilots). Clients are managed on the Clients page.
+    const teamOnly = team === '1' || team === 'true';
+    if (teamOnly) allItems = allItems.filter((item) => TEAM_ROLES.includes(item.role));
 
     // Sort combined results
     allItems.sort((a, b) => {
@@ -162,7 +167,8 @@ async function handleGetUsers(req, res, session) {
     const totalCount = await countUsers({ search, hasAccess });
     const totalInvitations = await countPendingInvitations({ search });
     const combinedCount = totalCount + totalInvitations;
-    const totalPages = Math.ceil(combinedCount / limitNum);
+    const shownCount = teamOnly ? allItems.length : combinedCount;
+    const totalPages = Math.ceil(shownCount / limitNum);
 
     const { access, roles: roleStats } = await userAccessAndRoleStats();
     const invitationRoleStats = await pendingInvitationRoleCounts();
@@ -171,7 +177,7 @@ async function handleGetUsers(req, res, session) {
       { _id: false, count: access.withoutAccess },
     ];
 
-    const formattedStats = {
+    const formattedStats = teamOnly ? teamStats(allItems) : {
       total: combinedCount,
       users: totalCount,
       pendingInvitations: totalInvitations,
@@ -193,7 +199,7 @@ async function handleGetUsers(req, res, session) {
         pagination: {
           currentPage: pageNum,
           totalPages: totalPages,
-          totalCount: combinedCount,
+          totalCount: shownCount,
           limit: limitNum,
           hasNextPage: pageNum < totalPages,
           hasPrevPage: pageNum > 1

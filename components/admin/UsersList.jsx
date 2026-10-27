@@ -1,11 +1,10 @@
-import { aiRecipientRef, canInvoiceAiRow, canInvoiceUserRow } from '@/libs/invoicing/ui.mjs';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
+import { FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone } from 'react-icons/fi';
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
 import OptimizedImage from '../common/OptimizedImage';
-import { AiClientControls } from './AiClientControls';
+import RowMenu, { RowPrimary, tidy } from '../common/RowMenu';
 
 export default function UsersList({ 
   users, 
@@ -15,9 +14,6 @@ export default function UsersList({
   onEditUser,
   onResendInvitation,
   onPageChange,
-  aiByEmail = {},
-  aiOnly = [],
-  onAiChanged = () => {},
   loading,
   error 
 }) {
@@ -26,20 +22,19 @@ export default function UsersList({
   const [updatingUser, setUpdatingUser] = useState(null);
   const [resendingInvitation, setResendingInvitation] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, user: null });
-  const [expandedCard, setExpandedCard] = useState(null);
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
-  const aiFor = (user) => (isCurrentUserAdmin && !user.isPendingInvitation ? aiByEmail[(user.email || '').toLowerCase()] || [] : []);
-  const AiOnlyBody = ({ c }) => (
-    <div className="min-w-0">
-      <div className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</div>
-      <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center"><FiMail className="h-3 w-3 mr-1" />{c.emails.join(', ') || 'no login email'}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No client portal account (AI report only)</div>
-      <AiClientControls c={c} onChanged={onAiChanged} />
-    </div>
-  );
+  const teamMenuItems = (user) => tidy(user.isPendingInvitation ? [
+    { label: resendingInvitation === user._id ? 'Sending…' : 'Resend invitation', disabled: resendingInvitation === user._id, onSelect: () => handleResendInvitation(user), testid: 'team-resend' },
+    { divider: true },
+    { label: 'Cancel invitation', danger: true, disabled: deletingUser === user._id, onSelect: () => handleDeleteUser(user), testid: 'team-cancel-invite' },
+  ] : [
+    { label: 'Edit', onSelect: () => onEditUser(user), testid: 'team-edit' },
+    { divider: true },
+    user.canDelete && { label: 'Delete user', danger: true, disabled: deletingUser === user._id, onSelect: () => handleDeleteUser(user), testid: 'team-delete' },
+  ]);
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
@@ -73,9 +68,6 @@ export default function UsersList({
     }
   };
 
-  const toggleCardExpansion = (userId) => {
-    setExpandedCard(expandedCard === userId ? null : userId);
-  };
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -107,7 +99,6 @@ export default function UsersList({
   const UserCard = ({ user }) => {
     const RoleIcon = getRoleIcon(user.role);
     const isPendingInvitation = user.isPendingInvitation;
-    const isExpanded = expandedCard === user._id;
     
     return (
       <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isPendingInvitation ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
@@ -138,86 +129,10 @@ export default function UsersList({
                 )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-              {aiFor(user).map((c) => <AiClientControls key={c.id + (c.deleted_at || '')} c={c} onChanged={onAiChanged} />)}
             </div>
           </div>
-          <div className="relative flex-shrink-0">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={isExpanded}
-              aria-label="User actions"
-              onClick={() => toggleCardExpansion(user._id)}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <FiMoreVertical className="h-5 w-5" />
-            </button>
-            {isExpanded && isCurrentUserAdmin && (
-              <div
-                role="menu"
-                className="absolute right-0 z-20 mt-1 w-48 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 py-1 shadow-lg"
-              >
-                {isPendingInvitation ? (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleResendInvitation(user)}
-                      disabled={resendingInvitation === user._id}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Resend invitation
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deletingUser === user._id}
-                      className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Cancel invitation
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setExpandedCard(null);
-                        onEditUser(user);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      Edit user
-                    </button>
-                    {canInvoiceUserRow(user) && (
-                      <a
-                        role="menuitem"
-                        href={`/dashboard?section=invoices&client=${user.id || user._id}`}
-                        className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        New invoice
-                      </a>
-                    )}
-                    {user.canDelete && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setExpandedCard(null);
-                          handleDeleteUser(user);
-                        }}
-                        disabled={deletingUser === user._id}
-                        className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                      >
-                        Delete user
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+          <div className="flex-shrink-0">
+            {isCurrentUserAdmin && <RowMenu items={teamMenuItems(user)} label={`Actions for ${user.name || user.email}`} />}
           </div>
         </div>
 
@@ -285,9 +200,9 @@ export default function UsersList({
         </div>
 
         {/* Expanded Details */}
-        {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="space-y-3">
+        {(
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="space-y-1">
               {user.company && (
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <HiOfficeBuilding className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
@@ -321,7 +236,7 @@ export default function UsersList({
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Team members</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="animate-pulse">
@@ -346,7 +261,7 @@ export default function UsersList({
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Team members</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="text-center py-8">
@@ -357,18 +272,18 @@ export default function UsersList({
     );
   }
 
-  if ((!users || users.length === 0) && aiOnly.length === 0) {
+  if (!users || users.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Users</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Team members</h3>
         </div>
         <div className="p-4 sm:p-6">
           <div className="text-center py-8">
             <FiUser className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No users found</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No team members found</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              No users match your current filters.
+              No admins or pilots match your current filters.
             </p>
           </div>
         </div>
@@ -381,10 +296,10 @@ export default function UsersList({
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 sm:mb-0">
-            Users ({pagination.totalCount || 0})
+            Team members ({pagination.totalCount || 0})
           </h3>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} users
+            Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount}
           </div>
         </div>
       </div>
@@ -395,17 +310,6 @@ export default function UsersList({
           {users.map((user) => (
             <div key={user._id} className="p-4">
               <UserCard user={user} />
-            </div>
-          ))}
-          {aiOnly.map((c) => (
-            <div key={`ai-${c.id}${c.deleted_at || ''}`} className="p-4" data-testid="ai-only-row">
-              <div className="flex items-start space-x-3">
-                <div className="h-12 w-12 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center"><FiUser className="h-6 w-6 text-emerald-700" /></div>
-                <AiOnlyBody c={c} />
-              </div>
-              {canInvoiceAiRow(c) && (
-                <a href={`/dashboard?section=invoices&client=${encodeURIComponent(aiRecipientRef(c.id))}`} className="mt-2 inline-block text-sm text-blue-600 hover:text-blue-900" data-testid="ai-new-invoice">New invoice</a>
-              )}
             </div>
           ))}
         </div>
@@ -482,7 +386,6 @@ export default function UsersList({
                               {user.phone}
                             </div>
                           )}
-                          {aiFor(user).map((c) => <AiClientControls key={c.id + (c.deleted_at || '')} c={c} onChanged={onAiChanged} />)}
                           {isPendingInvitation && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               Invited by {user.invitedBy} • Expires {new Date(user.expiresAt).toLocaleDateString()}
@@ -556,92 +459,22 @@ export default function UsersList({
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-nowrap items-center justify-end gap-2">
                         {isCurrentUserAdmin ? (
                           <>
-                            {isPendingInvitation ? (
-                              <>
-                                <button
-                                  onClick={() => handleResendInvitation(user)}
-                                  disabled={resendingInvitation === user._id}
-                                  className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                                  title="Resend invitation email"
-                                >
-                                  {resendingInvitation === user._id ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                  ) : (
-                                    <FiMail className="h-4 w-4" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(user)}
-                                  disabled={deletingUser === user._id}
-                                  className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                                  title="Cancel invitation"
-                                >
-                                  <FiX className="h-4 w-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => onEditUser(user)}
-                                  className="text-blue-600 hover:text-blue-900"
-                                  title="Edit user"
-                                >
-                                  <FiEdit2 className="h-4 w-4" />
-                                </button>
-                                {canInvoiceUserRow(user) && (
-                                  <a
-                                    href={`/dashboard?section=invoices&client=${user.id || user._id}`}
-                                    className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm"
-                                    title="New invoice"
-                                  >
-                                    New invoice
-                                  </a>
-                                )}
-                                {user.canDelete && (
-                                  <button
-                                    onClick={() => handleDeleteUser(user)}
-                                    disabled={deletingUser === user._id}
-                                    className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50"
-                                    title="Delete user"
-                                  >
-                                    <FiTrash2 className="h-4 w-4 mr-1" />
-                                    Delete user
-                                  </button>
-                                )}
-                              </>
-                            )}
+                            {isPendingInvitation
+                              ? <RowPrimary variant="secondary" disabled={resendingInvitation === user._id} onClick={() => handleResendInvitation(user)} testid="team-resend-primary">{resendingInvitation === user._id ? 'Sending…' : 'Resend'}</RowPrimary>
+                              : <RowPrimary variant="secondary" onClick={() => onEditUser(user)} testid="team-edit-primary">Edit</RowPrimary>}
+                            <RowMenu keepSpace items={teamMenuItems(user).filter((i) => !['team-edit', 'team-resend'].includes(i.testid))} label={`More actions for ${user.name || user.email}`} />
                           </>
                         ) : (
-                          <span className="text-gray-400 dark:text-gray-500 text-sm">
-                            Admin Only
-                          </span>
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">Admin only</span>
                         )}
                       </div>
                     </td>
                   </tr>
                 );
               })}
-              {aiOnly.map((c) => (
-                <tr key={`ai-${c.id}${c.deleted_at || ''}`} className="hover:bg-gray-50 dark:hover:bg-gray-700" data-testid="ai-only-row">
-                  <td className="px-6 py-4">
-                    <div className="flex items-start">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center"><FiUser className="h-5 w-5 text-emerald-700" /></div>
-                      <div className="ml-4"><AiOnlyBody c={c} /></div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">No account</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.deleted_at ? 'Deleted' : 'AI report access'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{c.created_at ? formatDate(c.created_at) : '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">
-                    {canInvoiceAiRow(c) ? (
-                      <a href={`/dashboard?section=invoices&client=${encodeURIComponent(aiRecipientRef(c.id))}`} className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm" title="New invoice" data-testid="ai-new-invoice">New invoice</a>
-                    ) : '—'}
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>

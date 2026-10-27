@@ -1,14 +1,13 @@
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { FiUsers, FiPlus, FiRefreshCw } from 'react-icons/fi';
 import UsersList from './UsersList';
 import UserModal from './UserModal';
 import UserFilters from './UserFilters';
 import UserStats from './UserStats';
-import { useAiClients } from './AiClientControls';
 
-export default function UserManagement() {
+export default function TeamManagement() {
   const { data: session } = useSession();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
@@ -27,39 +26,16 @@ export default function UserManagement() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [showDeletedAi, setShowDeletedAi] = useState(false);
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
-
-  const [ai, reloadAi] = useAiClients(isCurrentUserAdmin, showDeletedAi);
-  // Once the clients merge is applied, clients (incl. AI-only ones) live on the Clients page.
-  const [clientsMigrated, setClientsMigrated] = useState(false);
-  useEffect(() => {
-    if (!isCurrentUserAdmin) return;
-    fetch('/api/admin/clients').then((r) => (r.ok ? r.json() : null)).then((b) => setClientsMigrated(Boolean(b?.data?.migrated))).catch(() => {});
-  }, [isCurrentUserAdmin]);
-  // One row per person: an AI client whose login email matches a user account is shown on that
-  // user's row; AI clients with no account get their own row. Matching is by email, case-insensitive.
-  const aiClients = [...ai.clients, ...ai.deleted];
-  const aiByEmail = {};
-  for (const c of aiClients) for (const e of c.emails) (aiByEmail[e.toLowerCase()] ||= []).push(c);
-  const shownEmails = new Set(users.map((u) => (u.email || '').toLowerCase()));
-  const term = filters.search.trim().toLowerCase();
-  // Shown on every page (they're not part of the paged user list). Role filter: they count as clients.
-  // Access filter: active AI clients have access, deleted ones don't.
-  const roleOk = !filters.role || filters.role === 'client';
-  const accessOk = (c) => filters.hasAccess === '' || String(!c.deleted_at) === String(filters.hasAccess);
-  const aiOnly = (!roleOk || clientsMigrated) ? [] : aiClients.filter((c) => !c.account && accessOk(c)
-    && !c.emails.some((e) => shownEmails.has(e.toLowerCase()))
-    && (!term || [c.name, ...c.emails].some((v) => v.toLowerCase().includes(term))));
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     
     try {
-      const queryParams = new URLSearchParams();
+      const queryParams = new URLSearchParams({ team: '1' });
       Object.entries(filters).forEach(([key, value]) => {
         if (value) queryParams.append(key, value);
       });
@@ -117,14 +93,13 @@ export default function UserManagement() {
     setShowModal(false);
     setSelectedUser(null);
     fetchUsers();
-    reloadAi();
   };
 
 
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchUsers(), reloadAi()]);
+    await fetchUsers();
     setRefreshing(false);
   };
 
@@ -214,10 +189,10 @@ export default function UserManagement() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
             <FiUsers className="mr-3 text-blue-600 dark:text-blue-400" />
-            User Management
+            Team
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
-            Manage user accounts, roles, and permissions
+            Admins and pilots who run SleepySquid
           </p>
         </div>
         <div className="flex flex-row gap-2 sm:flex-shrink-0">
@@ -235,7 +210,7 @@ export default function UserManagement() {
               className="inline-flex flex-1 sm:flex-none items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <FiPlus className="mr-2 h-4 w-4" />
-              Add user
+              Add team member
             </button>
           )}
         </div>
@@ -287,7 +262,7 @@ export default function UserManagement() {
                 Limited Access Mode
               </h3>
               <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                You have read-only access to the user management system. Only SleepySquid administrators can create, edit, or delete users and manage roles.
+                You have read-only access to the team. Only SleepySquid administrators can add, edit, or remove team members.
               </p>
             </div>
           </div>
@@ -298,27 +273,14 @@ export default function UserManagement() {
       <UserStats stats={stats} />
 
       {/* Filters */}
-      <UserFilters 
+      <UserFilters
         filters={filters}
         onFilterChange={handleFilterChange}
       />
 
-      {isCurrentUserAdmin && clientsMigrated && (
-        <p className="text-sm text-gray-600 dark:text-gray-300" data-testid="clients-moved">
-          Clients (drones, AI and web) are managed on the <Link className="text-blue-600 dark:text-blue-400 hover:underline" href="/dashboard?section=clients">Clients page</Link>.
-        </p>
-      )}
-      {isCurrentUserAdmin && !clientsMigrated && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="ai-bar">
-          <span className="text-gray-600 dark:text-gray-300">
-            {ai.clients.length} AI client{ai.clients.length === 1 ? '' : 's'}. Rows tagged &quot;AI client&quot; can sign in at sleepysquid.com/login to see their AI report.
-          </span>
-          <button type="button" className="text-blue-600 dark:text-blue-400 hover:underline" onClick={() => setShowDeletedAi(!showDeletedAi)} data-testid="ai-show-deleted">
-            {showDeletedAi ? 'Hide deleted AI clients' : 'Show deleted AI clients'}
-          </button>
-        </div>
-      )}
-      {ai.error && <p className="text-sm text-red-700">{ai.error}</p>}
+      <p className="text-sm text-gray-600 dark:text-gray-300" data-testid="team-note">
+        Admins and pilots. Clients and their portal logins are on the <Link className="text-blue-600 dark:text-blue-400 hover:underline" href="/dashboard?section=clients">Clients page</Link>.
+      </p>
 
       {/* Users List */}
                 <UsersList
@@ -329,9 +291,6 @@ export default function UserManagement() {
             onEditUser={handleEditUser}
             onResendInvitation={resendInvitation}
             onPageChange={handlePageChange}
-            aiByEmail={aiByEmail}
-            aiOnly={aiOnly}
-            onAiChanged={reloadAi}
             loading={loading}
             error={error}
           />
@@ -342,8 +301,6 @@ export default function UserManagement() {
           user={selectedUser}
           onClose={handleCloseModal}
           onSaved={handleUserSaved}
-          aiClient={selectedUser ? (aiByEmail[(selectedUser.email || '').toLowerCase()] || [])[0] || null : null}
-          aiDefaultRate={ai.defaultRate}
         />
       )}
     </div>

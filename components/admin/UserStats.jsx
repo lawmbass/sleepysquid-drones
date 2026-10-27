@@ -17,7 +17,7 @@ export default function UserStats({ stats }) {
     { label: 'Pending', value: stats.pendingInvitations || 0 },
     { label: 'Inactive', value: stats.withoutAccess || 0 },
   ];
-  const roles = `Admins ${stats.roles?.admin || 0} · Clients ${stats.roles?.client || 0} · Pilots ${stats.roles?.pilot || 0}`;
+  const roles = `Admins ${stats.roles?.admin || 0} · Pilots ${stats.roles?.pilot || 0}`;
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow rounded-lg px-2 py-2">
