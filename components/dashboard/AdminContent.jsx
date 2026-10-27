@@ -6,6 +6,7 @@ import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
 import UserManagement from '@/components/admin/UserManagement';
 import InvoicesSection from '@/components/admin/InvoicesSection';
+import ClientsSection from '@/components/admin/ClientsSection';
 import PromoManagement from '@/components/admin/PromoManagement';
 import ListingsSection from '@/components/admin/ListingsSection';
 import BotRulesSection from '@/components/admin/BotRulesSection';
@@ -46,7 +47,7 @@ export default function AdminContent({ user, onUpdate }) {
 
   // Handle redirect for non-SleepySquid admins trying to access user management
   useEffect(() => {
-    if ((activeSection === 'users' || activeSection === 'invoices') && !isSleepySquidAdmin) {
+    if ((activeSection === 'users' || activeSection === 'invoices' || activeSection === 'clients') && !isSleepySquidAdmin) {
       const redirectTimer = setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
@@ -262,6 +263,10 @@ export default function AdminContent({ user, onUpdate }) {
       case 'settings':
         return <Settings user={user} onUpdate={onUpdate} />;
       
+      case 'clients':
+        if (!isSleepySquidAdmin) return <p className="text-sm text-gray-500">Clients are only available to SleepySquid admins. Redirecting…</p>;
+        return <ClientsSection />;
+
       case 'invoices':
         if (!isSleepySquidAdmin) return <p className="text-sm text-gray-500">Invoices are only available to SleepySquid admins. Redirecting…</p>;
         return <InvoicesSection />;

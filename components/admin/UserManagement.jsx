@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { FiUsers, FiPlus, FiRefreshCw } from 'react-icons/fi';
@@ -32,6 +33,12 @@ export default function UserManagement() {
   const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
 
   const [ai, reloadAi] = useAiClients(isCurrentUserAdmin, showDeletedAi);
+  // Once the clients merge is applied, clients (incl. AI-only ones) live on the Clients page.
+  const [clientsMigrated, setClientsMigrated] = useState(false);
+  useEffect(() => {
+    if (!isCurrentUserAdmin) return;
+    fetch('/api/admin/clients').then((r) => (r.ok ? r.json() : null)).then((b) => setClientsMigrated(Boolean(b?.data?.migrated))).catch(() => {});
+  }, [isCurrentUserAdmin]);
   // One row per person: an AI client whose login email matches a user account is shown on that
   // user's row; AI clients with no account get their own row. Matching is by email, case-insensitive.
   const aiClients = [...ai.clients, ...ai.deleted];
@@ -43,7 +50,7 @@ export default function UserManagement() {
   // Access filter: active AI clients have access, deleted ones don't.
   const roleOk = !filters.role || filters.role === 'client';
   const accessOk = (c) => filters.hasAccess === '' || String(!c.deleted_at) === String(filters.hasAccess);
-  const aiOnly = !roleOk ? [] : aiClients.filter((c) => !c.account && accessOk(c)
+  const aiOnly = (!roleOk || clientsMigrated) ? [] : aiClients.filter((c) => !c.account && accessOk(c)
     && !c.emails.some((e) => shownEmails.has(e.toLowerCase()))
     && (!term || [c.name, ...c.emails].some((v) => v.toLowerCase().includes(term))));
 
@@ -296,7 +303,12 @@ export default function UserManagement() {
         onFilterChange={handleFilterChange}
       />
 
-      {isCurrentUserAdmin && (
+      {isCurrentUserAdmin && clientsMigrated && (
+        <p className="text-sm text-gray-600 dark:text-gray-300" data-testid="clients-moved">
+          Clients (drones, AI and web) are managed on the <Link className="text-blue-600 dark:text-blue-400 hover:underline" href="/dashboard?section=clients">Clients page</Link>.
+        </p>
+      )}
+      {isCurrentUserAdmin && !clientsMigrated && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm" data-testid="ai-bar">
           <span className="text-gray-600 dark:text-gray-300">
             {ai.clients.length} AI client{ai.clients.length === 1 ? '' : 's'}. Rows tagged &quot;AI client&quot; can sign in at sleepysquid.com/login to see their AI report.
