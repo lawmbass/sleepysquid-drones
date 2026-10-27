@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { FiEdit2, FiTrash2, FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone, FiMoreVertical } from 'react-icons/fi';
+import { FiCheck, FiX, FiShield, FiUser, FiTruck, FiSettings, FiMail, FiPhone } from 'react-icons/fi';
 import { HiOfficeBuilding } from 'react-icons/hi';
 import ConfirmationDialog from './ConfirmationDialog';
 import OptimizedImage from '../common/OptimizedImage';
+import RowMenu, { RowPrimary, tidy } from '../common/RowMenu';
 
 export default function UsersList({ 
   users, 
@@ -21,10 +22,19 @@ export default function UsersList({
   const [updatingUser, setUpdatingUser] = useState(null);
   const [resendingInvitation, setResendingInvitation] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, user: null });
-  const [expandedCard, setExpandedCard] = useState(null);
   
   // Check if current user is SleepySquid admin
   const isCurrentUserAdmin = Boolean(session?.user?.isAdmin) || session?.user?.email?.toLowerCase()?.endsWith('@sleepysquid.com') || false;
+
+  const teamMenuItems = (user) => tidy(user.isPendingInvitation ? [
+    { label: resendingInvitation === user._id ? 'Sending…' : 'Resend invitation', disabled: resendingInvitation === user._id, onSelect: () => handleResendInvitation(user), testid: 'team-resend' },
+    { divider: true },
+    { label: 'Cancel invitation', danger: true, disabled: deletingUser === user._id, onSelect: () => handleDeleteUser(user), testid: 'team-cancel-invite' },
+  ] : [
+    { label: 'Edit', onSelect: () => onEditUser(user), testid: 'team-edit' },
+    { divider: true },
+    user.canDelete && { label: 'Delete user', danger: true, disabled: deletingUser === user._id, onSelect: () => handleDeleteUser(user), testid: 'team-delete' },
+  ]);
 
   const handleToggleAccess = async (user) => {
     setUpdatingUser(user._id);
@@ -58,9 +68,6 @@ export default function UsersList({
     }
   };
 
-  const toggleCardExpansion = (userId) => {
-    setExpandedCard(expandedCard === userId ? null : userId);
-  };
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -92,7 +99,6 @@ export default function UsersList({
   const UserCard = ({ user }) => {
     const RoleIcon = getRoleIcon(user.role);
     const isPendingInvitation = user.isPendingInvitation;
-    const isExpanded = expandedCard === user._id;
     
     return (
       <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isPendingInvitation ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
@@ -125,74 +131,8 @@ export default function UsersList({
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
-          <div className="relative flex-shrink-0">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={isExpanded}
-              aria-label="User actions"
-              onClick={() => toggleCardExpansion(user._id)}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <FiMoreVertical className="h-5 w-5" />
-            </button>
-            {isExpanded && isCurrentUserAdmin && (
-              <div
-                role="menu"
-                className="absolute right-0 z-20 mt-1 w-48 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 py-1 shadow-lg"
-              >
-                {isPendingInvitation ? (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleResendInvitation(user)}
-                      disabled={resendingInvitation === user._id}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Resend invitation
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deletingUser === user._id}
-                      className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      Cancel invitation
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setExpandedCard(null);
-                        onEditUser(user);
-                      }}
-                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      Edit user
-                    </button>
-                    {user.canDelete && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setExpandedCard(null);
-                          handleDeleteUser(user);
-                        }}
-                        disabled={deletingUser === user._id}
-                        className="block w-full px-4 py-2 text-left text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                      >
-                        Delete user
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+          <div className="flex-shrink-0">
+            {isCurrentUserAdmin && <RowMenu items={teamMenuItems(user)} label={`Actions for ${user.name || user.email}`} />}
           </div>
         </div>
 
@@ -260,9 +200,9 @@ export default function UsersList({
         </div>
 
         {/* Expanded Details */}
-        {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="space-y-3">
+        {(
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="space-y-1">
               {user.company && (
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <HiOfficeBuilding className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
@@ -519,59 +459,16 @@ export default function UsersList({
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-nowrap items-center justify-end gap-2">
                         {isCurrentUserAdmin ? (
                           <>
-                            {isPendingInvitation ? (
-                              <>
-                                <button
-                                  onClick={() => handleResendInvitation(user)}
-                                  disabled={resendingInvitation === user._id}
-                                  className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                                  title="Resend invitation email"
-                                >
-                                  {resendingInvitation === user._id ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                  ) : (
-                                    <FiMail className="h-4 w-4" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(user)}
-                                  disabled={deletingUser === user._id}
-                                  className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                                  title="Cancel invitation"
-                                >
-                                  <FiX className="h-4 w-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => onEditUser(user)}
-                                  className="text-blue-600 hover:text-blue-900"
-                                  title="Edit user"
-                                >
-                                  <FiEdit2 className="h-4 w-4" />
-                                </button>
-                                {user.canDelete && (
-                                  <button
-                                    onClick={() => handleDeleteUser(user)}
-                                    disabled={deletingUser === user._id}
-                                    className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50"
-                                    title="Delete user"
-                                  >
-                                    <FiTrash2 className="h-4 w-4 mr-1" />
-                                    Delete user
-                                  </button>
-                                )}
-                              </>
-                            )}
+                            {isPendingInvitation
+                              ? <RowPrimary variant="secondary" disabled={resendingInvitation === user._id} onClick={() => handleResendInvitation(user)} testid="team-resend-primary">{resendingInvitation === user._id ? 'Sending…' : 'Resend'}</RowPrimary>
+                              : <RowPrimary variant="secondary" onClick={() => onEditUser(user)} testid="team-edit-primary">Edit</RowPrimary>}
+                            <RowMenu keepSpace items={teamMenuItems(user).filter((i) => !['team-edit', 'team-resend'].includes(i.testid))} label={`More actions for ${user.name || user.email}`} />
                           </>
                         ) : (
-                          <span className="text-gray-400 dark:text-gray-500 text-sm">
-                            Admin Only
-                          </span>
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">Admin only</span>
                         )}
                       </div>
                     </td>

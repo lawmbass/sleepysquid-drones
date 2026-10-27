@@ -4,8 +4,29 @@ import { CHIP_LABEL, LIST_CHIPS, STATUS_CHIP_LABEL, daysOverdue, rowActions } fr
 import { api, btn, CHIP_CLASS, ConfirmDialog, fmtDate, input, ModeBadge, money } from './invoicing/shared';
 import InvoiceComposer, { RecipientTag } from './invoicing/InvoiceComposer';
 import InvoiceDrawer from './invoicing/InvoiceDrawer';
+import RowMenu, { RowPrimary, tidy } from '@/components/common/RowMenu';
 
 const ACTION_LABEL = { edit: 'Edit', send: 'Send', delete: 'Delete', copyLink: 'Copy pay link', resend: 'Resend', void: 'Void', receipt: 'View receipt' };
+
+const PRIMARY_ACTIONS = ['send', 'copyLink', 'receipt'];
+const DANGER_ACTIONS = ['void', 'delete'];
+function RowActions({ inv, onAction, copied }) {
+  const acts = rowActions(inv);
+  const primary = acts.find((a) => PRIMARY_ACTIONS.includes(a));
+  const label = (a) => (a === 'copyLink' && copied === inv.id ? 'Copied' : ACTION_LABEL[a]);
+  const items = tidy([
+    ...acts.filter((a) => a !== primary && !DANGER_ACTIONS.includes(a)).map((a) => ({ label: label(a), onSelect: () => onAction(a, inv), testid: `row-${a}` })),
+    { divider: true },
+    ...acts.filter((a) => DANGER_ACTIONS.includes(a)).map((a) => ({ label: ACTION_LABEL[a], danger: true, onSelect: () => onAction(a, inv), testid: `row-${a}` })),
+  ]);
+  if (!acts.length) return null;
+  return (
+    <div className="mt-2 flex flex-nowrap items-center justify-end gap-2">
+      {primary && <RowPrimary variant={primary === 'send' ? 'primary' : 'secondary'} onClick={() => onAction(primary, inv)} testid={`row-${primary}`}>{label(primary)}</RowPrimary>}
+      <RowMenu items={items} label={`More actions for invoice to ${inv.client?.name || inv.client?.email || 'client'}`} />
+    </div>
+  );
+}
 
 function InvoiceListRow({ inv, onOpen, onAction, copied }) {
   const late = daysOverdue(inv);
@@ -21,15 +42,7 @@ function InvoiceListRow({ inv, onOpen, onAction, copied }) {
         <span className="text-gray-500">Due {fmtDate(inv.dueDate)}</span>
         {late > 0 && <span className="text-red-600 font-medium" data-testid="days-overdue">{late} {late === 1 ? 'day' : 'days'} overdue</span>}
       </div>
-      <div className="mt-2 flex flex-wrap gap-2 sm:justify-end">
-        {rowActions(inv).map((a) => (
-          <button key={a} type="button" data-testid={`row-${a}`}
-            className={`${btn} py-1 ${a === 'void' || a === 'delete' ? 'border border-red-300 text-red-700 dark:text-red-300' : a === 'send' ? 'bg-blue-600 text-white' : 'border border-gray-300 dark:border-gray-600'}`}
-            onClick={(e) => { e.stopPropagation(); onAction(a, inv); }}>
-            {a === 'copyLink' && copied === inv.id ? 'Copied' : ACTION_LABEL[a]}
-          </button>
-        ))}
-      </div>
+      <RowActions inv={inv} onAction={onAction} copied={copied} />
     </li>
   );
 }

@@ -65,8 +65,23 @@ test("Clients API: remove-login keeps the row; only invited clients auto-link; n
   assert.match(logins, /CLIENT_ROLES\.includes/);
   assert.match(read("libs/db/clients.js"), /\.not\("invited_at", "is", null\)/);
   const ui = read("components/admin/ClientsSection.jsx");
-  assert.match(ui, /data-testid="row-remove-login"/);
+  assert.match(ui, /testid: 'row-remove-login'/);
   assert.match(ui, /data-testid="form-remove-login"/);
   assert.match(ui, /data-testid="unlinked-logins"/);
   for (const k of ["row-new-invoice", "row-report", "form-archive", "form-unarchive", "form-purge-ai", "row-invite"]) assert.ok(ui.includes(k) || ui.includes("row-${a}"), k);
+});
+
+test("Row actions: one primary button plus a ⋯ menu, destructive items last, no wrapping", () => {
+  const menu = read("components/common/RowMenu.jsx");
+  for (const k of ["Escape", "ArrowDown", "ArrowUp", "mousedown", "touchstart", 'aria-haspopup="menu"', "createPortal", 'role="separator"']) assert.ok(menu.includes(k), k);
+  const ui = read("components/admin/ClientsSection.jsx");
+  assert.doesNotMatch(ui, /flex-wrap gap-x-3 gap-y-1">\{actions/);
+  const order = ["row-edit", "row-invite", "row-resend", "row-report", "divider: true", "row-remove-login", "row-archive"].map((k) => ui.indexOf(k));
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
+  assert.match(ui, /login-link[\s\S]*login-remove[\s\S]*login-cancel-invite/);
+  const inv = read("components/admin/InvoicesSection.jsx");
+  assert.match(inv, /<RowMenu items=\{items\}/);
+  const team = read("components/admin/UsersList.jsx");
+  assert.match(team, /<RowMenu/);
+  assert.match(team, /<RowPrimary/);
 });

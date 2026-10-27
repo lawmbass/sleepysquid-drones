@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import RowMenu, { RowPrimary, tidy } from '@/components/common/RowMenu';
 import { CLIENT_FILTERS, CLIENT_FILTER_LABEL, SERVICES, SERVICE_LABEL, canInvite, canRemoveLogin, filterClients, hasLogin, inviteConfirmText, portalStatus, removeLoginText, rowActionsFor, validateClient } from '@/libs/clients/core.mjs';
 import { api, btn, ConfirmDialog, fmtDate, input, money } from './invoicing/shared';
 
@@ -219,16 +220,25 @@ export default function ClientsSection({ initialClients = null, initialLogins = 
   };
   const del = confirm && CONFIRM[confirm.kind];
 
-  const actions = (c) => rowActionsFor(c).map((a) => {
-    const cls = 'text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400 whitespace-nowrap';
-    const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
-    if (a === 'invoice') return <Link key={a} className={cls} href={`/dashboard?section=invoices&client=${encodeURIComponent(c.ref)}`} onClick={(e) => e.stopPropagation()} data-testid="row-new-invoice">New invoice</Link>;
-    if (a === 'invite' || a === 'resend') return <button key={a} className={cls} onClick={stop(() => setConfirm({ kind: 'invite', c }))} data-testid={`row-${a}`}>{a === 'invite' ? 'Invite' : 'Resend'}</button>;
-    if (a === 'report') return <Link key={a} className={cls} href={`/dashboard?section=ai&client=${encodeURIComponent(c.portalClientId)}`} onClick={(e) => e.stopPropagation()} data-testid="row-report">AI report</Link>;
-    if (a === 'remove-login') return <button key={a} className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap" onClick={stop(() => setConfirm({ kind: 'remove-login', c }))} data-testid="row-remove-login">Remove login</button>;
-    if (a === 'edit') return <button key={a} className={cls} onClick={stop(() => setEditing(c))}>Edit</button>;
-    return <button key={a} className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap" onClick={stop(() => setConfirm({ kind: 'archive', c }))}>Archive</button>;
-  });
+  const actions = (c) => {
+    const acts = rowActionsFor(c);
+    const has = (a) => acts.includes(a);
+    const items = tidy([
+      has('edit') && { label: 'Edit', onSelect: () => setEditing(c), testid: 'row-edit' },
+      has('invite') && { label: 'Invite', onSelect: () => setConfirm({ kind: 'invite', c }), testid: 'row-invite' },
+      has('resend') && { label: 'Resend invite', onSelect: () => setConfirm({ kind: 'invite', c }), testid: 'row-resend' },
+      has('report') && { label: 'AI report', href: `/dashboard?section=ai&client=${encodeURIComponent(c.portalClientId)}`, testid: 'row-report' },
+      { divider: true },
+      has('remove-login') && { label: 'Remove login', danger: true, onSelect: () => setConfirm({ kind: 'remove-login', c }), testid: 'row-remove-login' },
+      has('archive') && { label: 'Archive', danger: true, onSelect: () => setConfirm({ kind: 'archive', c }), testid: 'row-archive' },
+    ]);
+    return (
+      <div className="flex flex-nowrap items-center justify-end gap-2">
+        {has('invoice') && <RowPrimary href={`/dashboard?section=invoices&client=${encodeURIComponent(c.ref)}`} testid="row-new-invoice">New invoice</RowPrimary>}
+        <RowMenu keepSpace items={items} label={`More actions for ${c.businessName}`} />
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -258,7 +268,7 @@ export default function ClientsSection({ initialClients = null, initialLogins = 
           {/* Desktop table */}
           <table className="hidden md:table w-full text-sm" data-testid="clients-table">
             <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400 text-left">
-              <tr><th className="px-4 py-3">Business / contact</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Services</th><th className="px-4 py-3">Portal</th><th className="px-4 py-3 text-right">Owed</th><th className="px-4 py-3">Last invoice</th><th className="px-4 py-3">Actions</th></tr>
+              <tr><th className="px-4 py-3">Business / contact</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Services</th><th className="px-4 py-3">Portal</th><th className="px-4 py-3 text-right">Owed</th><th className="px-4 py-3">Last invoice</th><th className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {visible.map((c) => (
@@ -269,7 +279,7 @@ export default function ClientsSection({ initialClients = null, initialLogins = 
                   <td className="px-4 py-3"><PortalPill c={c} /></td>
                   <td className={`px-4 py-3 text-right tabular-nums ${c.owedCents > 0 ? 'text-amber-700 font-medium' : 'text-gray-500'}`}>{money(c.owedCents)}</td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{c.lastInvoiceAt ? fmtDate(c.lastInvoiceAt) : '—'}</td>
-                  <td className="px-4 py-3"><div className="flex flex-wrap gap-x-3 gap-y-1">{actions(c)}</div></td>
+                  <td className="px-4 py-3 w-px whitespace-nowrap">{actions(c)}</td>
                 </tr>
               ))}
             </tbody>
@@ -283,7 +293,7 @@ export default function ClientsSection({ initialClients = null, initialLogins = 
                   <PortalPill c={c} />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><Services c={c} /><span className="text-sm text-gray-600">{c.owedCents > 0 ? `Owes ${money(c.owedCents)}` : c.lastInvoiceAt ? `Last invoice ${fmtDate(c.lastInvoiceAt)}` : ''}</span></div>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{actions(c)}</div>
+                <div className="mt-3 flex justify-end">{actions(c)}</div>
               </li>
             ))}
           </ul>
@@ -301,16 +311,20 @@ export default function ClientsSection({ initialClients = null, initialLogins = 
             {logins.map((l) => {
               const match = l.matchClientId && clients.find((c) => c.id === l.matchClientId);
               return (
-                <li key={`${l.kind}-${l.id}`} className="px-4 py-3 flex flex-wrap items-center justify-between gap-2" data-testid="unlinked-login">
+                <li key={`${l.kind}-${l.id}`} className="px-4 py-3 flex items-center justify-between gap-3" data-testid="unlinked-login">
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 dark:text-white break-all">{l.name || l.email}</div>
                     <div className="text-xs text-gray-500 break-all">{[l.name && l.email, l.company, l.kind === 'invitation' ? 'Invite pending' : l.hasAccess ? 'Has access' : 'No access'].filter(Boolean).join(' · ')}</div>
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {l.kind === 'user' && match && <button className="text-sm text-blue-600 hover:text-blue-900 whitespace-nowrap" disabled={busy} onClick={() => linkLogin(l)}>Link to {match.businessName}</button>}
-                    {l.kind === 'user' && !match && <button className="text-sm text-blue-600 hover:text-blue-900 whitespace-nowrap" onClick={() => setEditing({ fromLogin: l })}>Create client</button>}
-                    {l.kind === 'user' && l.hasAccess && <button className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap" onClick={() => setConfirm({ kind: 'remove-user', c: l })}>Remove login</button>}
-                    {l.kind === 'invitation' && <button className="text-sm text-red-600 hover:text-red-800 whitespace-nowrap" onClick={() => setConfirm({ kind: 'cancel-invite', c: l })}>Cancel invite</button>}
+                  <div className="flex flex-nowrap items-center gap-2 ml-auto">
+                    {l.kind === 'user' && match && <RowPrimary disabled={busy} onClick={() => linkLogin(l)} testid="login-link">Link to {match.businessName}</RowPrimary>}
+                    {l.kind === 'user' && !match && <RowPrimary onClick={() => setEditing({ fromLogin: l })} testid="login-create">Create client</RowPrimary>}
+                    <RowMenu label={`More actions for ${l.email}`} items={tidy([
+                      l.kind === 'user' && match && { label: 'Create a new client instead', onSelect: () => setEditing({ fromLogin: l }) },
+                      { divider: true },
+                      l.kind === 'user' && l.hasAccess && { label: 'Remove login', danger: true, onSelect: () => setConfirm({ kind: 'remove-user', c: l }), testid: 'login-remove' },
+                      l.kind === 'invitation' && { label: 'Cancel invite', danger: true, onSelect: () => setConfirm({ kind: 'cancel-invite', c: l }), testid: 'login-cancel-invite' },
+                    ])} />
                   </div>
                 </li>
               );

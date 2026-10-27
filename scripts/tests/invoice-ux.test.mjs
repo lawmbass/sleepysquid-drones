@@ -124,7 +124,7 @@ test("canInvoice helpers; Team list has no New invoice (it moved to Clients)", (
   assert.equal(canInvoiceAiRow({ id: "alpha", emails: ["a@b.co"], deleted_at: "2026-01-01" }), false);
   const ul = read("components/admin/UsersList.jsx");
   assert.doesNotMatch(ul, /New invoice|section=invoices/);
-  assert.match(read("components/admin/ClientsSection.jsx"), /data-testid="row-new-invoice"/);
+  assert.match(read("components/admin/ClientsSection.jsx"), /testid="row-new-invoice"/);
 });
 
 test("one-time email offer: valid email that matches no result", () => {
