@@ -81,3 +81,9 @@ export async function writeAudit({ invoiceId, stripeInvoiceId, action, actorEmai
   });
   assertNoError(error);
 }
+
+export async function deleteInvoiceRow(id) {
+  if (!isUuid(id)) return;
+  const { error } = await db().from("invoices").delete().eq("id", id);
+  assertNoError(error);
+}
