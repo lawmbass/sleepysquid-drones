@@ -4,7 +4,7 @@ import BookingsList from '@/components/admin/BookingsList';
 import BookingFilters from '@/components/admin/BookingFilters';
 import Analytics from '@/components/admin/Analytics';
 import Settings from './Settings';
-import UserManagement from '@/components/admin/UserManagement';
+import TeamManagement from '@/components/admin/TeamManagement';
 import InvoicesSection from '@/components/admin/InvoicesSection';
 import ClientsSection from '@/components/admin/ClientsSection';
 import PromoManagement from '@/components/admin/PromoManagement';
@@ -47,7 +47,7 @@ export default function AdminContent({ user, onUpdate }) {
 
   // Handle redirect for non-SleepySquid admins trying to access user management
   useEffect(() => {
-    if ((activeSection === 'users' || activeSection === 'invoices' || activeSection === 'clients') && !isSleepySquidAdmin) {
+    if ((activeSection === 'users' || activeSection === 'team' || activeSection === 'invoices' || activeSection === 'clients') && !isSleepySquidAdmin) {
       const redirectTimer = setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
@@ -272,12 +272,13 @@ export default function AdminContent({ user, onUpdate }) {
         return <InvoicesSection />;
 
       case 'users':
+      case 'team':
         if (!isSleepySquidAdmin) {
           return (
             <div className="space-y-6">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Access Denied</h1>
-                <p className="text-gray-600 dark:text-gray-300">You don&apos;t have permission to access user management.</p>
+                <p className="text-gray-600 dark:text-gray-300">You don&apos;t have permission to access the team page.</p>
               </div>
               
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-6">
@@ -292,7 +293,7 @@ export default function AdminContent({ user, onUpdate }) {
                       Access Restricted
                     </h3>
                     <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-                      User management is restricted to SleepySquid administrators only. You will be redirected to the dashboard shortly.
+                      The team page is restricted to SleepySquid administrators only. You will be redirected to the dashboard shortly.
                     </p>
                   </div>
                 </div>
@@ -300,7 +301,7 @@ export default function AdminContent({ user, onUpdate }) {
             </div>
           );
         }
-        return <UserManagement />;
+        return <TeamManagement />;
       
       case 'promos':
         return (

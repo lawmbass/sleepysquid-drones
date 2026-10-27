@@ -113,7 +113,7 @@ test("admins refused as user recipients; AI clients and typed admin emails allow
   assert.match(recipientRefusal(null), /not found/);
 });
 
-test("Users list: New invoice only on client rows and live AI clients with an email", () => {
+test("canInvoice helpers; Team list has no New invoice (it moved to Clients)", () => {
   assert.equal(canInvoiceUserRow({ id: "u", role: "client", email: "c@x.com" }), true);
   assert.equal(canInvoiceUserRow({ id: "u", role: "user", email: "c@x.com" }), true);
   assert.equal(canInvoiceUserRow({ id: "u", role: "admin", email: "a@x.com" }), false);
@@ -123,8 +123,8 @@ test("Users list: New invoice only on client rows and live AI clients with an em
   assert.equal(canInvoiceAiRow({ id: "alpha", emails: [] }), false);
   assert.equal(canInvoiceAiRow({ id: "alpha", emails: ["a@b.co"], deleted_at: "2026-01-01" }), false);
   const ul = read("components/admin/UsersList.jsx");
-  assert.equal((ul.match(/canInvoiceUserRow\(user\)/g) || []).length, 2);
-  assert.equal((ul.match(/data-testid="ai-new-invoice"/g) || []).length, 2);
+  assert.doesNotMatch(ul, /New invoice|section=invoices/);
+  assert.match(read("components/admin/ClientsSection.jsx"), /data-testid="row-new-invoice"/);
 });
 
 test("one-time email offer: valid email that matches no result", () => {

@@ -3,9 +3,11 @@ import { useSession } from 'next-auth/react';
 import { createPortal } from 'react-dom';
 import AccessHistory from './AccessHistory';
 import ConfirmationDialog from './ConfirmationDialog';
-import { AiClientFields, aiCall } from './AiClientControls';
 
-export default function UserModal({ user, onClose, onSaved, aiClient = null, aiDefaultRate = 19 }) {
+// Add / edit a team member (admin or pilot). Clients are managed on the Clients page.
+const TEAM_ROLES = ['admin', 'pilot'];
+
+export default function UserModal({ user, onClose, onSaved }) {
   const { data: session } = useSession();
   const [formData, setFormData] = useState({
     name: '',
@@ -16,10 +18,8 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
     location: '',
     website: '',
     hasAccess: false,
-    role: 'client'
+    role: 'pilot'
   });
-  const [ai, setAi] = useState({ on: false, name: '', rate: String(aiDefaultRate), invite: false });
-  const canAddAi = !aiClient;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -47,7 +47,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
         location: user.location || '',
         website: user.website || '',
         hasAccess: user.hasAccess || false,
-        role: user.role || 'client'
+        role: TEAM_ROLES.includes(user.role) ? user.role : 'pilot'
       });
     }
   }, [user]);
@@ -64,7 +64,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
     setLoading(true);
     setError('');
 
-    const sendInvite = !user && (!ai.on || ai.invite);
+    const sendInvite = !user;
     try {
       if (user) {
         // Update existing user
@@ -95,14 +95,6 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to send invitation');
-        }
-      }
-
-      if (ai.on) {
-        try {
-          await aiCall({ action: 'create', name: ai.name.trim() || formData.company || formData.name, email: formData.email, hourly_rate: ai.rate });
-        } catch (x) {
-          throw new Error(`${user ? 'User saved' : sendInvite ? 'Invitation sent' : 'Nothing saved'}, but the AI client wasn't created: ${x.message}`);
         }
       }
 
@@ -151,7 +143,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {user ? 'Edit User' : 'Add user'}
+            {user ? 'Edit team member' : 'Add team member'}
           </h3>
           <button
             onClick={onClose}
@@ -322,12 +314,11 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
                     value={formData.role}
                     onChange={(e) => handleInputChange('role', e.target.value)}
                   >
-                    <option value="client">Client</option>
                     <option value="pilot">Pilot</option>
                     <option value="admin">Admin (SleepySquid only)</option>
                   </select>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Select the user&apos;s role to determine their permissions. Only SleepySquid emails can be admins.
+                    Team members are admins or pilots. Only SleepySquid emails can be admins.
                   </p>
                 </div>
               )}
@@ -348,18 +339,6 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
                     </div>
                   </div>
                 </div>
-              )}
-
-              {isCurrentUserAdmin && canAddAi && (
-                <>
-                  <AiClientFields value={ai} onChange={setAi} defaultRate={aiDefaultRate} />
-                  {ai.on && !user && (
-                    <label ref={(el) => { if (el && !el.dataset.seen) { el.dataset.seen = '1'; el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }} className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <input type="checkbox" checked={ai.invite} onChange={(e) => setAi({ ...ai, invite: e.target.checked })} data-testid="ai-invite" />
-                      Also email them an invite to the client portal
-                    </label>
-                  )}
-                </>
               )}
 
               {/* Access History - only show for existing users */}
@@ -398,7 +377,7 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
               disabled={loading}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800 disabled:opacity-50"
             >
-              {loading ? 'Processing...' : (user ? 'Update User' : (ai.on && !ai.invite) ? 'Add AI client' : 'Send Invitation')}
+              {loading ? 'Processing...' : (user ? 'Update team member' : 'Send invitation')}
             </button>
           </div>
         </div>
