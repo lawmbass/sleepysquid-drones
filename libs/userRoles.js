@@ -289,6 +289,7 @@ export const userRoles = {
         // Only show Users link for SleepySquid admins
         if (isSleepySquidAdmin) {
           adminNav.splice(3, 0, { name: 'Users', href: '/dashboard?section=users', icon: 'FiUsers' });
+          adminNav.splice(4, 0, { name: 'Invoices', href: '/dashboard?section=invoices', icon: 'FiFileText' });
         }
         
         return adminNav;

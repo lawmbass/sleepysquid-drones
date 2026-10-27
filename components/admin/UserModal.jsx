@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import AccessHistory from './AccessHistory';
 import ConfirmationDialog from './ConfirmationDialog';
 import { AiClientFields, aiCall } from './AiClientControls';
-import ClientInvoices from './ClientInvoices';
 
 export default function UserModal({ user, onClose, onSaved, aiClient = null, aiDefaultRate = 19 }) {
   const { data: session } = useSession();
@@ -371,7 +370,6 @@ export default function UserModal({ user, onClose, onSaved, aiClient = null, aiD
               )}
               </div>
             </form>
-            {user?.id && <ClientInvoices userId={user.id} />}
           </div>
         </div>
 

@@ -35,6 +35,13 @@ export async function listInvoicesForUser(userId) {
   return data || [];
 }
 
+/** All hub invoices with their client, newest first (admin Invoices section). */
+export async function listAllInvoices(limit = 500) {
+  const { data, error } = await db().from("invoices").select("*, client:users!invoices_user_id_fkey(id,name,email,company)").neq("status", "deleted").order("created_at", { ascending: false }).limit(limit);
+  assertNoError(error);
+  return data || [];
+}
+
 export async function findInvoiceByStripeId(stripeInvoiceId) {
   const { data, error } = await db().from("invoices").select(COLS).eq("stripe_invoice_id", stripeInvoiceId).maybeSingle();
   assertNoError(error);

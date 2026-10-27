@@ -219,3 +219,13 @@ export async function invoicingSchemaReady(probes) {
   }
   return true;
 }
+
+export const STATUS_FILTERS = ["all", "draft", "open", "paid", "overdue", "void", "uncollectible"];
+
+/** Filters public invoices by display status and business line (metadata.service value). */
+export function filterInvoices(invoices, { status = "all", line = "all" } = {}) {
+  return (invoices || []).filter((inv) =>
+    inv.status !== "deleted"
+    && (status === "all" || inv.status === status)
+    && (line === "all" || (inv.businessLines || []).includes(line)));
+}
