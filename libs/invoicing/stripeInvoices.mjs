@@ -106,11 +106,45 @@ export async function createDraftInvoice(client, { customerId, user, draft, requ
       ? { price: l.priceId }
       : { price_data: { product: l.productId, currency: draft.currency, unit_amount: l.amountCents } };
     await client.call("POST", "/invoiceitems", {
-      customer: customerId, invoice: invoice.id, description: l.description, ...item,
+      customer: customerId, invoice: invoice.id, description: l.description, ...item, quantity: l.quantity || 1,
       metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId },
     }, { idempotency: idempotencyKey("item", requestId, i) });
   }
   return client.call("GET", `/invoices/${invoice.id}`);
+}
+
+/** Replace a draft's lines, due date and memo. Refuses non-drafts. */
+export async function updateDraftInvoice(client, id, { draft, requestId }) {
+  const inv = await getInvoice(client, id);
+  if (inv.status !== "draft") throw new InvoicingError(`Only drafts can be edited (this one is ${inv.status})`, { status: 409 });
+  const lines = await client.listAll(`/invoices/${encodeURIComponent(id)}/lines`);
+  for (const line of lines) {
+    const itemId = typeof line.invoice_item === "string" ? line.invoice_item : line.invoice_item?.id;
+    if (itemId) await client.call("DELETE", `/invoiceitems/${encodeURIComponent(itemId)}`, undefined, { idempotency: idempotencyKey("edit-del", requestId, itemId) });
+  }
+  const businessLines = [...new Set(draft.lines.map((l) => l.businessLine))].join(",");
+  await client.call("POST", `/invoices/${encodeURIComponent(id)}`, {
+    due_date: draft.dueTimestamp, description: draft.memo || "",
+    metadata: { business_lines: businessLines },
+  }, { idempotency: idempotencyKey("edit-inv", requestId) });
+  const customerId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+  for (let i = 0; i < draft.lines.length; i++) {
+    const l = draft.lines[i];
+    const item = l.amountCents === l.listAmountCents ? { price: l.priceId } : { price_data: { product: l.productId, currency: draft.currency, unit_amount: l.amountCents } };
+    await client.call("POST", "/invoiceitems", {
+      customer: customerId, invoice: id, description: l.description, ...item, quantity: l.quantity || 1,
+      metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId },
+    }, { idempotency: idempotencyKey("edit-item", requestId, i) });
+  }
+  return getInvoice(client, id);
+}
+
+/** Re-send an open invoice email. */
+export async function resendInvoice(client, id, nonce) {
+  const inv = await getInvoice(client, id);
+  if (inv.status !== "open") throw new InvoicingError(`Only unpaid invoices can be resent (this one is ${inv.status})`, { status: 409 });
+  await client.call("POST", `/invoices/${encodeURIComponent(id)}/send`, {}, { idempotency: idempotencyKey("resend", id, nonce) });
+  return getInvoice(client, id);
 }
 
 export const getInvoice = (client, id) => client.call("GET", `/invoices/${encodeURIComponent(id)}`);

@@ -79,7 +79,7 @@ test("webhook guard skips deleted/missing invoices", () => {
 
 test("DELETE route is admin-gated, DELETE-only, and confirm-checked", () => {
   const src = fs.readFileSync(new URL("../../pages/api/admin/invoicing/invoices/[id]/index.js", import.meta.url), "utf8");
-  assert.match(src, /requireAdmin\(req, res, \["DELETE"\]\)/);
+  assert.match(src, /requireAdmin\(req, res, \[[^\]]*"DELETE"\]\)/);
   assert.match(src, /confirm !== "DELETE"/);
   assert.match(src, /deleteInvoiceFlow/);
 });

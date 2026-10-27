@@ -10,7 +10,9 @@ export const BUSINESS_LINES = ["drones", "ai", "web"];
 export const INVOICE_SOURCE = "sleepysquid-hub";
 export const DEFAULT_DUE_DAYS = 14;
 export const MAX_LINES = 25;
-export const MAX_LINE_CENTS = 5_000_000; // $50,000 per line guardrail
+export const MAX_LINE_CENTS = 5_000_000; // $50,000 per unit guardrail
+export const MAX_QTY = 999;
+export const MAX_INVOICE_CENTS = 25_000_000; // $250,000 per invoice guardrail
 export const HANDLED_EVENTS = [
   "invoice.finalized",
   "invoice.paid",
@@ -86,10 +88,12 @@ export function validateDraftInput(body, catalog, now = new Date()) {
     if (!hit) { errors[`lines.${i}`] = "Pick a Drones, AI or Website product"; return; }
     const cents = Math.round(Number(l?.amountCents ?? hit.unitAmount));
     if (!Number.isInteger(cents) || cents < 1 || cents > MAX_LINE_CENTS) { errors[`lines.${i}`] = "Amount must be between $0.01 and $50,000"; return; }
+    const quantity = l?.quantity == null ? 1 : Number(l.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QTY) { errors[`lines.${i}`] = `Quantity must be 1 to ${MAX_QTY}`; return; }
     if (currency && currency !== hit.currency) { errors[`lines.${i}`] = "All lines must use one currency"; return; }
     currency = hit.currency;
     const description = String(l?.description || "").trim().slice(0, 200) || hit.product.name;
-    lines.push({ priceId: hit.priceId, productId: hit.product.productId, businessLine: hit.product.businessLine, amountCents: cents, listAmountCents: hit.unitAmount, description });
+    lines.push({ priceId: hit.priceId, productId: hit.product.productId, businessLine: hit.product.businessLine, amountCents: cents, quantity, lineCents: cents * quantity, listAmountCents: hit.unitAmount, description });
   });
   const memo = String(body?.memo || "").trim().slice(0, 500);
   const due = String(body?.dueDate || defaultDueDate(now));
@@ -97,13 +101,14 @@ export function validateDraftInput(body, catalog, now = new Date()) {
   const today = new Date(now.toISOString().slice(0, 10) + "T00:00:00Z");
   if (!dueDate || Number.isNaN(dueDate.getTime()) || dueDate < today) errors.dueDate = "Due date must be today or later";
   else if (dueDate.getTime() - now.getTime() > 366 * 86400000) errors.dueDate = "Due date must be within a year";
+  if (!errors.lines && lines.length && lines.reduce((s, l) => s + l.lineCents, 0) > MAX_INVOICE_CENTS) errors.lines = "Invoice total is over the limit";
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, value: { lines, memo, dueDate: due, dueTimestamp: Math.floor(dueDate.getTime() / 1000), currency, totalCents: lines.reduce((s, l) => s + l.amountCents, 0) } };
+  return { ok: true, value: { lines, memo, dueDate: due, dueTimestamp: Math.floor(dueDate.getTime() / 1000), currency, totalCents: lines.reduce((s, l) => s + l.lineCents, 0) } };
 }
 
 /** Signature of what the admin reviewed: per-line amounts + total + currency + due date. */
 export function approvalSignature({ lines, totalCents, currency, dueTimestamp }) {
-  const canon = JSON.stringify({ l: (lines || []).map((l) => [l.amountCents, l.description || ""]), t: totalCents, c: currency, d: dueTimestamp || null });
+  const canon = JSON.stringify({ l: (lines || []).map((l) => [l.lineCents ?? l.amountCents, l.description || ""]), t: totalCents, c: currency, d: dueTimestamp || null });
   return crypto.createHash("sha256").update(canon).digest("hex");
 }
 
@@ -220,15 +225,8 @@ export async function invoicingSchemaReady(probes) {
   return true;
 }
 
-export const STATUS_FILTERS = ["all", "draft", "open", "paid", "overdue", "void", "uncollectible"];
+export { STATUS_FILTERS, filterInvoices, LIST_CHIPS, CHIP_LABEL, STATUS_CHIP_LABEL, daysOverdue, matchesClientSearch, chipCounts, rowActions, dueDateForChip, composerProblems } from "./ui.mjs";
 
-/** Filters public invoices by display status and business line (metadata.service value). */
-export function filterInvoices(invoices, { status = "all", line = "all" } = {}) {
-  return (invoices || []).filter((inv) =>
-    inv.status !== "deleted"
-    && (status === "all" || inv.status === status)
-    && (line === "all" || (inv.businessLines || []).includes(line)));
-}
 
 /* ---------- Deleting invoices from the hub list ---------- */
 export const DELETABLE_STATUSES = ["void", "draft"];
@@ -264,3 +262,4 @@ export async function deleteInvoiceFlow(row, { getStripeInvoice, deleteStripeDra
  * so later Stripe events for them are skipped and never re-inserted.
  */
 export function shouldApplyWebhook(existing) { return Boolean(existing) && existing.status !== "deleted"; }
+
