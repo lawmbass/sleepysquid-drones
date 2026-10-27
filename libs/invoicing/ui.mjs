@@ -60,6 +60,7 @@ export function composerProblems({ lines = [], clientEmail } = {}) {
   if (!clientEmail) problems.push("Pick a client");
   if (!lines.length) problems.push("Add a product");
   lines.forEach((l, i) => {
+    if (l.custom && !String(l.description || "").trim()) problems.push(`Line ${i + 1}: describe the custom item`);
     if (!(Number(l.amountCents) > 0)) problems.push(`Line ${i + 1}: amount must be more than $0`);
     if (!(Number.isInteger(Number(l.quantity)) && Number(l.quantity) >= 1)) problems.push(`Line ${i + 1}: quantity must be at least 1`);
   });

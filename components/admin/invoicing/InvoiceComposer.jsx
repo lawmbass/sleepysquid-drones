@@ -38,7 +38,7 @@ function ClientTypeahead({ onPick }) {
   );
 }
 
-function ProductSearch({ prices, onAdd }) {
+function ProductSearch({ prices, onAdd, onAddCustom }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const hits = prices.filter((p) => `${p.product.name} ${LINE_LABEL[p.product.businessLine] || ''}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 12);
@@ -55,9 +55,15 @@ function ProductSearch({ prices, onAdd }) {
               </button>
             </li>
           ))}
-          {hits.length === 0 && <li className="px-3 py-2 text-sm text-gray-500">No products match.</li>}
+          {hits.length === 0 && <li className="px-3 py-2 text-sm text-gray-500" data-testid="product-search-empty">No products match. Add it as a custom item instead:</li>}
+          <li className="border-t border-gray-100 dark:border-gray-700">
+            <button type="button" data-testid="product-search-custom" className="w-full text-left px-3 py-2 text-sm text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 break-words" onMouseDown={(e) => e.preventDefault()} onClick={() => { onAddCustom(q.trim()); setQ(''); setOpen(false); }}>
+              + Add custom item{q.trim() ? <>: <span className="font-medium">&lsquo;{q.trim()}&rsquo;</span></> : ''}
+            </button>
+          </li>
         </ul>
       )}
+      <button type="button" data-testid="add-custom-link" className="mt-1 text-sm text-blue-700 dark:text-blue-300 underline" onClick={() => { onAddCustom(q.trim()); setQ(''); }}>Add custom item</button>
     </div>
   );
 }
@@ -72,7 +78,7 @@ export default function InvoiceComposer({ lockedClient = null, draft = null, onC
   const [catalog, setCatalog] = useState(null);
   const [catalogError, setCatalogError] = useState('');
   const [client, setClient] = useState(lockedClient || draft?.client || null);
-  const [lines, setLines] = useState(() => (draft?.lines || []).map((l) => ({ key: newId(), priceId: l.priceId, description: l.description, amount: ((l.unitAmountCents || 0) / 100).toFixed(2), quantity: String(l.quantity || 1), currency: draft.invoice.currency })));
+  const [lines, setLines] = useState(() => (draft?.lines || []).map((l) => ({ key: newId(), custom: Boolean(l.custom || !l.priceId), priceId: l.custom ? null : l.priceId, description: l.description, amount: ((l.unitAmountCents || 0) / 100).toFixed(2), quantity: String(l.quantity || 1), currency: draft.invoice.currency })));
   const [dueChip, setDueChip] = useState(null);
   const [dueDate, setDueDate] = useState(draft?.invoice?.dueDate ? draft.invoice.dueDate.slice(0, 10) : '');
   const [memo, setMemo] = useState(draft?.invoice?.memo || '');
@@ -110,8 +116,9 @@ export default function InvoiceComposer({ lockedClient = null, draft = null, onC
     try { window.localStorage.setItem(DUE_KEY, chip); } catch { /* ignore */ }
   };
   const addLine = (p) => setLines((ls) => [...ls, { key: newId(), priceId: p.priceId, description: p.product.name, amount: (p.unitAmount / 100).toFixed(2), quantity: '1', currency: p.currency }]);
+  const addCustomLine = (text) => setLines((ls) => [...ls, { key: newId(), custom: true, priceId: null, description: text || '', amount: '', quantity: '1', currency: 'usd', focus: true }]);
   const patchLine = (key, patch) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
-  const payload = () => ({ requestId: requestId.current, memo, dueDate, lines: centsLines.map((l) => ({ priceId: l.priceId, description: l.description, amountCents: l.amountCents, quantity: l.quantity })) });
+  const payload = () => ({ requestId: requestId.current, memo, dueDate, lines: centsLines.map((l) => ({ custom: Boolean(l.custom), priceId: l.custom ? null : l.priceId, description: l.description, amountCents: l.amountCents, quantity: l.quantity })) });
 
   /** Create or update the Stripe draft. Returns the saved invoice, or null on error (input kept). */
   const save = async () => {
@@ -175,21 +182,22 @@ export default function InvoiceComposer({ lockedClient = null, draft = null, onC
           {catalogError && <p className="text-sm text-red-600">{catalogError}</p>}
           {!catalog && !catalogError && <p className="text-sm text-gray-500">Loading products…</p>}
           {catalog && !catalog.writesAllowed && <p className="text-sm text-amber-700">Invoice writes are turned off for this Stripe key.</p>}
-          {catalog && <ProductSearch prices={prices} onAdd={addLine} />}
+          {catalog && <ProductSearch prices={prices} onAdd={addLine} onAddCustom={addCustomLine} />}
 
           {lines.length > 0 && (
             <ul className="space-y-2" data-testid="composer-lines">
               {lines.map((l) => (
                 <li key={l.key} className="rounded border border-gray-200 dark:border-gray-700 p-2">
                   <div className="flex gap-2 items-center">
-                    <input className={`${input} flex-1`} value={l.description} maxLength={200} onChange={(e) => patchLine(l.key, { description: e.target.value })} aria-label="Description" />
+                    {l.custom && <span className="px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800" data-testid="custom-badge">Custom</span>}
+                    <input className={`${input} flex-1`} value={l.description} maxLength={200} autoFocus={Boolean(l.custom && l.focus && !l.description)} placeholder={l.custom ? 'Describe the work' : undefined} onChange={(e) => patchLine(l.key, { description: e.target.value })} aria-label="Description" />
                     <button type="button" className="p-2 text-gray-500 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} aria-label="Remove line" title="Remove line">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
                     </button>
                   </div>
                   <div className="mt-2 grid grid-cols-[1fr_5rem_auto] gap-2 items-center">
                     <label className="text-xs text-gray-500">Amount
-                      <input className={input} inputMode="decimal" value={l.amount} onChange={(e) => patchLine(l.key, { amount: e.target.value })} aria-label="Amount" />
+                      <input className={input} inputMode="decimal" value={l.amount} autoFocus={Boolean(l.custom && l.focus && l.description)} placeholder="0.00" onChange={(e) => patchLine(l.key, { amount: e.target.value })} aria-label="Amount" />
                     </label>
                     <label className="text-xs text-gray-500">Qty
                       <input className={input} inputMode="numeric" value={l.quantity} onChange={(e) => patchLine(l.key, { quantity: e.target.value.replace(/[^0-9]/g, '') })} aria-label="Quantity" />

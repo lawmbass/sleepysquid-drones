@@ -109,7 +109,7 @@ function fakeStripe() {
     }
     if (path === "/invoiceitems") {
       const inv = invoices[p.invoice];
-      const amount = p.price ? prices.find((x) => x.id === p.price).unit_amount : Number(p["price_data[unit_amount]"]);
+      const amount = p.price ? prices.find((x) => x.id === p.price).unit_amount : Number(p["price_data[unit_amount]"] ?? p.unit_amount);
       const qty = Number(p.quantity || 1);
       items.push(p); inv.lines.data.push({ amount: amount * qty, quantity: qty, description: p.description, invoice_item: `ii_${items.length}` }); inv.total += amount * qty;
       return json({ id: `ii_${items.length}` });
@@ -295,4 +295,34 @@ test("updateDraftInvoice replaces lines/due/memo; refuses non-drafts; resend onl
   assert.equal(fake.calls.filter((c) => c.path.endsWith("/send")).length, before + 1);
   const sendCall = fake.calls.filter((c) => c.path.endsWith("/send")).pop();
   assert.ok(sendCall.headers["Idempotency-Key"], "resend is idempotent per minute");
+});
+
+test("custom line items: validated like other lines, never create Products/Prices, persist through draft edits", async () => {
+  const fake = fakeStripe();
+  const client = createStripeClient({ env: { STRIPE_INVOICING_SECRET_KEY: "sk_test_fake" }, fetchImpl: fake.fetchImpl });
+  const cat = await loadCatalog(client);
+  // validation
+  assert.equal(validateDraftInput({ lines: [{ custom: true, description: "Web dev", amountCents: 0 }] }, cat, NOW).ok, false);
+  assert.equal(validateDraftInput({ lines: [{ custom: true, description: "Web dev", amountCents: -500 }] }, cat, NOW).ok, false);
+  assert.equal(validateDraftInput({ lines: [{ custom: true, description: "  ", amountCents: 500 }] }, cat, NOW).ok, false);
+  assert.equal(validateDraftInput({ lines: [{ custom: true, description: "Web dev", amountCents: 500, quantity: 0 }] }, cat, NOW).ok, false);
+  const v = validateDraftInput({ lines: [{ custom: true, description: "Web dev", amountCents: 12500, quantity: 4 }, { priceId: "price_d" }] }, cat, NOW).value;
+  assert.equal(v.totalCents, 50000 + 25000);
+  assert.equal(v.lines[0].custom, true);
+  assert.equal(v.currency, "usd");
+  // create: custom item uses unit_amount + currency + description, no price/price_data
+  const inv = await createDraftInvoice(client, { customerId: "cus_1", user: { id: "u" }, draft: v, requestId: "req-custom-00000000001" });
+  const item = fake.calls.find((c) => c.path === "/v1/invoiceitems" && c.params.description === "Web dev").params;
+  assert.equal(item.unit_amount, "12500"); assert.equal(item.currency, "usd"); assert.equal(item.quantity, "4");
+  assert.equal(item.price, undefined); assert.equal(item["price_data[product]"], undefined); assert.equal(item["price_data[unit_amount]"], undefined);
+  assert.equal(item["metadata[custom]"], "1");
+  assert.equal(inv.total, v.totalCents);
+  assert.equal(signatureFromStripeInvoice(inv), approvalSignature(v));
+  assert.ok(!fake.calls.some((c) => c.method === "POST" && /^\/v1\/(products|prices)/.test(c.path)), "never creates Products or Prices");
+  // edit draft keeps custom lines
+  const v2 = validateDraftInput({ lines: [{ custom: true, description: "Web dev (revised)", amountCents: 20000 }] }, cat, NOW).value;
+  const edited = await updateDraftInvoice(client, inv.id, { draft: v2, requestId: "req-custom-00000000002" });
+  assert.equal(edited.total, 20000);
+  assert.deepEqual(edited.lines.data.map((l) => l.description), ["Web dev (revised)"]);
+  assert.ok(!fake.calls.some((c) => c.method === "POST" && /^\/v1\/(products|prices)/.test(c.path)));
 });

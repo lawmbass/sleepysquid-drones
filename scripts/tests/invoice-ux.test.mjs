@@ -77,3 +77,16 @@ test("detail/edit/resend routes are admin-gated", () => {
   assert.match(read("pages/api/admin/invoicing/invoices/[id]/resend.js"), /requireAdmin\(req, res, \["POST"\]\)/);
   assert.match(read("supabase/migrations/20261027020000_invoice_ux_audit.sql"), /'edit_draft','resend'/);
 });
+
+test("custom items: composer problems + UI offers custom option everywhere", () => {
+  assert.deepEqual(composerProblems({ lines: [{ custom: true, description: "Web dev", amountCents: 100, quantity: 1 }], clientEmail: "a@b.c" }), []);
+  assert.ok(composerProblems({ lines: [{ custom: true, description: "", amountCents: 100, quantity: 1 }], clientEmail: "a@b.c" }).length);
+  assert.ok(composerProblems({ lines: [{ custom: true, description: "x", amountCents: 0, quantity: 1 }], clientEmail: "a@b.c" }).length);
+  const src = read("components/admin/invoicing/InvoiceComposer.jsx");
+  assert.match(src, /\+ Add custom item/);
+  assert.match(src, /data-testid="add-custom-link"/);
+  assert.match(src, /No products match\. Add it as a custom item/);
+  assert.match(src, /custom: Boolean\(l\.custom\)/);
+  assert.match(read("components/admin/invoicing/InvoiceDrawer.jsx"), /l\.custom/);
+  assert.match(read("pages/api/admin/invoicing/invoices/[id]/index.js"), /metadata\?\.custom === "1"/);
+});

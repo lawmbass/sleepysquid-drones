@@ -45,7 +45,7 @@ async function detail(id, res) {
     let lines = null; let linesError = null;
     try {
       const inv = await getInvoice(createStripeClient(), row.stripe_invoice_id);
-      lines = (inv.lines?.data || []).map((l) => ({ description: l.description, quantity: l.quantity || 1, amountCents: l.amount, unitAmountCents: l.price?.unit_amount ?? (l.quantity ? Math.round(l.amount / l.quantity) : l.amount), priceId: l.metadata?.list_price || l.price?.id || null, productId: typeof l.price?.product === "string" ? l.price.product : null }));
+      lines = (inv.lines?.data || []).map((l) => ({ description: l.description, quantity: l.quantity || 1, amountCents: l.amount, unitAmountCents: l.price?.unit_amount ?? (l.quantity ? Math.round(l.amount / l.quantity) : l.amount), custom: l.metadata?.custom === "1", priceId: l.metadata?.custom === "1" ? null : (l.metadata?.list_price || l.price?.id || null), productId: typeof l.price?.product === "string" ? l.price.product : null }));
     } catch (e) { linesError = "Could not load lines from Stripe"; }
     const timeline = [
       { at: row.created_at, label: "Created" },
