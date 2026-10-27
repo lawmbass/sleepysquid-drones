@@ -87,3 +87,9 @@ export async function deleteInvoiceRow(id) {
   const { error } = await db().from("invoices").delete().eq("id", id);
   assertNoError(error);
 }
+
+export async function listAuditForInvoice(stripeInvoiceId) {
+  const { data, error } = await db().from("invoice_audit_log").select("action,actor_email,amount_cents,currency,created_at").eq("stripe_invoice_id", stripeInvoiceId).order("created_at", { ascending: true }).limit(100);
+  assertNoError(error);
+  return data || [];
+}

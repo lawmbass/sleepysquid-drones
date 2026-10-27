@@ -5,7 +5,7 @@ import {
   buildCatalog, validateDraftInput, approvalSignature, signatureFromStripeInvoice, displayStatus,
   mirrorFromStripe, verifyStripeSignature, writesAllowed, keyMode, defaultDueDate, INVOICE_SOURCE,
 } from "../../libs/invoicing/core.mjs";
-import { createStripeClient, loadCatalog, ensureCustomer, createDraftInvoice, finalizeAndSend, voidOrDiscard, encodeForm } from "../../libs/invoicing/stripeInvoices.mjs";
+import { createStripeClient, loadCatalog, ensureCustomer, createDraftInvoice, finalizeAndSend, voidOrDiscard, encodeForm, updateDraftInvoice, resendInvoice } from "../../libs/invoicing/stripeInvoices.mjs";
 
 const NOW = new Date("2026-10-26T21:00:00Z");
 const products = [
@@ -98,6 +98,7 @@ function fakeStripe() {
     calls.push({ method, path: u.pathname, params: p, headers });
     const json = (o, s = 200) => ({ ok: s < 400, status: s, json: async () => o });
     const path = u.pathname.replace("/v1", "");
+    let m0;
     if (path === "/products") return json({ data: products, has_more: false });
     if (path === "/prices") return json({ data: prices, has_more: false });
     if (path === "/customers" && method === "POST") return json({ id: "cus_new" });
@@ -109,8 +110,21 @@ function fakeStripe() {
     if (path === "/invoiceitems") {
       const inv = invoices[p.invoice];
       const amount = p.price ? prices.find((x) => x.id === p.price).unit_amount : Number(p["price_data[unit_amount]"]);
-      items.push(p); inv.lines.data.push({ amount, description: p.description }); inv.total += amount;
+      const qty = Number(p.quantity || 1);
+      items.push(p); inv.lines.data.push({ amount: amount * qty, quantity: qty, description: p.description, invoice_item: `ii_${items.length}` }); inv.total += amount * qty;
       return json({ id: `ii_${items.length}` });
+    }
+    if ((m0 = path.match(/^\/invoiceitems\/(ii_\d+)$/)) && method === "DELETE") {
+      for (const inv of Object.values(invoices)) {
+        const hit = inv.lines.data.find((l) => l.invoice_item === m0[1]);
+        if (hit) { inv.total -= hit.amount; inv.lines.data = inv.lines.data.filter((l) => l !== hit); }
+      }
+      return json({ deleted: true });
+    }
+    if ((m0 = path.match(/^\/invoices\/(in_\d+)\/lines$/))) return json({ data: invoices[m0[1]].lines.data, has_more: false });
+    if ((m0 = path.match(/^\/invoices\/(in_\d+)$/)) && method === "POST") {
+      const inv = invoices[m0[1]]; inv.due_date = Number(p.due_date); inv.description = p.description;
+      return json(inv);
     }
     let m;
     if ((m = path.match(/^\/invoices\/(in_\d+)$/))) {
@@ -245,4 +259,40 @@ test("Invoices section is wired for SleepySquid admins only and the modal panel 
   assert.match(read("components/admin/UsersList.jsx"), /section=invoices&client=/);
   const api = read("pages/api/admin/invoicing/invoices/index.js");
   assert.match(api, /requireAdmin\(req, res, \["GET"\]\)/);
+});
+
+test("quantity: validated, multiplies line totals, sent to Stripe, signature matches Stripe", async () => {
+  const fake = fakeStripe();
+  const client = createStripeClient({ env: { STRIPE_INVOICING_SECRET_KEY: "sk_test_fake" }, fetchImpl: fake.fetchImpl });
+  const cat = await loadCatalog(client);
+  assert.equal(validateDraftInput({ lines: [{ priceId: "price_d", quantity: 0 }] }, cat, NOW).ok, false);
+  assert.equal(validateDraftInput({ lines: [{ priceId: "price_d", quantity: 1.5 }] }, cat, NOW).ok, false);
+  const v = validateDraftInput({ lines: [{ priceId: "price_d", quantity: 3 }, { priceId: "price_a", amountCents: 1000, quantity: 2 }] }, cat, NOW).value;
+  assert.equal(v.totalCents, 25000 * 3 + 2000);
+  const inv = await createDraftInvoice(client, { customerId: "cus_1", user: { id: "u" }, draft: v, requestId: "req-qty-0000000000001" });
+  assert.equal(inv.total, v.totalCents);
+  assert.equal(fake.calls.filter((c) => c.path === "/v1/invoiceitems").map((c) => c.params.quantity).join(","), "3,2");
+  assert.equal(signatureFromStripeInvoice(inv), approvalSignature(v));
+});
+
+test("updateDraftInvoice replaces lines/due/memo; refuses non-drafts; resend only for open", async () => {
+  const fake = fakeStripe();
+  const client = createStripeClient({ env: { STRIPE_INVOICING_SECRET_KEY: "sk_test_fake" }, fetchImpl: fake.fetchImpl });
+  const cat = await loadCatalog(client);
+  const v1 = validateDraftInput({ lines: [{ priceId: "price_d" }, { priceId: "price_a" }] }, cat, NOW).value;
+  const inv = await createDraftInvoice(client, { customerId: "cus_1", user: { id: "u" }, draft: v1, requestId: "req-edit-000000000001" });
+  const v2 = validateDraftInput({ lines: [{ priceId: "price_w", quantity: 2 }], memo: "new memo", dueDate: "2026-11-30" }, cat, NOW).value;
+  const edited = await updateDraftInvoice(client, inv.id, { draft: v2, requestId: "req-edit-000000000002" });
+  assert.equal(edited.total, 300000);
+  assert.equal(edited.lines.data.length, 1);
+  assert.equal(edited.description, "new memo");
+  assert.equal(signatureFromStripeInvoice(edited), approvalSignature(v2));
+  await assert.rejects(() => resendInvoice(client, inv.id, 1), /Only unpaid/);
+  await finalizeAndSend(client, inv.id);
+  await assert.rejects(() => updateDraftInvoice(client, inv.id, { draft: v2, requestId: "req-edit-000000000003" }), /Only drafts/);
+  const before = fake.calls.filter((c) => c.path.endsWith("/send")).length;
+  await resendInvoice(client, inv.id, 7);
+  assert.equal(fake.calls.filter((c) => c.path.endsWith("/send")).length, before + 1);
+  const sendCall = fake.calls.filter((c) => c.path.endsWith("/send")).pop();
+  assert.ok(sendCall.headers["Idempotency-Key"], "resend is idempotent per minute");
 });
