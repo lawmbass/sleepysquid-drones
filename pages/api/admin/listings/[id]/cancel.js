@@ -2,10 +2,11 @@ import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
-import { findListingById, updateListingCancel } from "@/libs/db/listings";
+import { findListingById, queueListingCancelEmail, updateListingCancel } from "@/libs/db/listings";
 import { findBookingById, updateBooking } from "@/libs/db/bookings";
 import { isUuid } from "@/libs/db/shared";
-import { cancelGigVisibility } from "@/libs/cancelGig";
+import { buildCancelDraft, cancelGigVisibility, scheduleForListing } from "@/libs/cancelGig";
+import { cancelEmailBlock, queueCancelEmailFields } from "@/libs/cancelEmail";
 
 const rateLimitMiddleware = (req, res) => {
   return new Promise((resolve, reject) => {
@@ -53,7 +54,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid listing ID", message: "The provided listing ID is not valid" });
   }
 
-  // This route only records the pilot's request. It does not send email.
+  // "send" queues the cancel email; the drone-gigs bot sends it from
+  // lawmbass1@gmail.com to pilots@dronebase.com. This route never sends mail.
   try {
     const existing = await findListingById(id);
     if (!existing) {
@@ -70,7 +72,7 @@ export default async function handler(req, res) {
       booking: linkedBooking,
       bookingStatus: linkedBooking?.status,
     });
-    if ((action === "request" || action === "confirm") && !visibility.showCancel) {
+    if ((action === "send" || action === "request" || action === "confirm") && !visibility.showCancel) {
       return res.status(400).json({
         error: "Gig completed",
         message: visibility.botAccepted
@@ -85,20 +87,59 @@ export default async function handler(req, res) {
       });
     }
 
+    if (action === "send") {
+      if (req.body?.confirm !== true) {
+        return res.status(400).json({ error: "Confirmation required", message: "Confirm before sending the cancellation" });
+      }
+      const reason = cleanReason(req.body?.reason);
+      if (!reason) {
+        return res.status(400).json({ error: "Reason required", message: "Enter a reason for cancelling" });
+      }
+      if (existing.cancelStatus === "cancelled") {
+        return res.status(409).json({ error: "Already cancelled", message: "Zeitview already confirmed this cancellation" });
+      }
+      const blocked = cancelEmailBlock(existing);
+      if (blocked) {
+        return res.status(409).json({ error: "Already sent", message: blocked, data: { listing: existing } });
+      }
+      // Built here from stored fields, so the browser cannot change the recipient.
+      const draft = buildCancelDraft({
+        missionId: existing.externalMissionId,
+        address: existing.address,
+        schedule: scheduleForListing(existing),
+        reason,
+      });
+      const queued = await queueListingCancelEmail(id, queueCancelEmailFields({ listingId: id, draft, reason }));
+      if (!queued) {
+        const latest = await findListingById(id);
+        return res.status(409).json({
+          error: "Already sent",
+          message: cancelEmailBlock(latest) || "The listing changed. Reload and try again.",
+          data: { listing: latest },
+        });
+      }
+      const listing = await findListingById(id);
+      return res.status(202).json({
+        success: true,
+        message: "Cancellation email queued. The bot sends it within a minute.",
+        data: { listing },
+      });
+    }
+
     const now = new Date().toISOString();
     let fields;
 
     if (action === "request") {
-      const intent = req.body?.intent === "reschedule" ? "reschedule" : req.body?.intent === "cancel" ? "cancel" : null;
+      // Manual mark after sending the email yourself (the fallback path).
       const reason = cleanReason(req.body?.reason);
-      if (!intent || !reason) {
+      if (!reason) {
         return res.status(400).json({
           error: "Reason required",
-          message: "Choose cancel or reschedule and enter a reason",
+          message: "Enter a reason for cancelling",
         });
       }
       fields = {
-        cancelStatus: intent === "reschedule" ? "reschedule_requested" : "cancel_requested",
+        cancelStatus: "cancel_requested",
         cancelReason: reason,
         cancelRequestedAt: now,
         cancelledAt: null,
@@ -125,7 +166,7 @@ export default async function handler(req, res) {
         cancelledAt: null,
       };
     } else {
-      return res.status(400).json({ error: "Invalid action", message: "Action must be request, confirm, or undo" });
+      return res.status(400).json({ error: "Invalid action", message: "Action must be send, request, confirm, or undo" });
     }
 
     const listing = await updateListingCancel(id, fields);

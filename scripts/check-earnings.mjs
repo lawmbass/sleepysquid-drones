@@ -306,6 +306,7 @@ assert.ok(gmail.includes(`body=${encodeURIComponent(draft.body)}`));
 const mail = mailtoUrl(draft);
 assert.ok(mail.startsWith("mailto:pilots@dronebase.com?"));
 assert.ok(mail.includes(encodeURIComponent(draft.subject)));
+// Reschedule was removed; an old intent value still builds a cancel email.
 const reschedule = buildCancelDraft({
   intent: "reschedule",
   missionId: "DBM1",
@@ -313,7 +314,7 @@ const reschedule = buildCancelDraft({
   schedule: pageSchedule,
   reason: "Conflict",
 });
-assert.equal(reschedule.subject, "Reschedule mission DBM1 – Deale");
+assert.equal(reschedule.subject, "Cancel mission DBM1 – Deale");
 
 const kept = { id: "kept", status: "accepted", bookingId: null, payout: 50, source: "zeitview" };
 const asked = {
