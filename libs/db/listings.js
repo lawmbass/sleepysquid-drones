@@ -250,23 +250,6 @@ export async function updateListingCancel(id, { cancelStatus, cancelReason, canc
   return mapListing(data);
 }
 
-/**
- * Queues the cancel email for the bot. The update only matches when no send is
- * open for this listing, so two clicks or two tabs cannot queue two sends.
- * Returns null when another request got there first.
- */
-export async function queueListingCancelEmail(id, fields) {
-  const { data, error } = await db()
-    .from("mission_listings")
-    .update(fields)
-    .eq("id", id)
-    .or("cancel_email_status.is.null,cancel_email_status.eq.failed,and(cancel_email_status.eq.sent,cancel_status.is.null)")
-    .select("*")
-    .maybeSingle();
-  assertNoError(error);
-  return mapListing(data);
-}
-
 export async function updateListingNotes(id, { adminNotes, tags }) {
   const row = {};
   if (adminNotes !== undefined) row.admin_notes = adminNotes;
@@ -337,4 +320,21 @@ export async function listingAggregates(filters = {}) {
       count: payoutCount,
     },
   };
+}
+
+/**
+ * Queues the cancel email for the bot. The update only matches when no send is
+ * open for this listing, so two clicks or two tabs cannot queue two sends.
+ * Returns null when another request got there first.
+ */
+export async function queueListingCancelEmail(id, fields) {
+  const { data, error } = await db()
+    .from("mission_listings")
+    .update(fields)
+    .eq("id", id)
+    .or("cancel_email_status.is.null,cancel_email_status.eq.failed,and(cancel_email_status.eq.sent,cancel_status.is.null)")
+    .select("*")
+    .maybeSingle();
+  assertNoError(error);
+  return mapListing(data);
 }
