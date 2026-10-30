@@ -8,6 +8,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { CancelGigButton, CancelStatusBadge } from "./CancelGigModal";
+import { DeleteListingButton, ListingManageSection } from "./ListingDeleteControls";
 import { dedupeEquipment, formatItems } from "@/libs/listingSpecs";
 import {
   SOURCE_FILTERS,
@@ -53,6 +54,7 @@ const STATUS_OPTIONS = [
   { value: "declined_by_filter", label: "Declined by filter" },
   { value: "expired", label: "Expired" },
   { value: "unavailable", label: "Unavailable" },
+  { value: "deleted", label: "Deleted" },
 ];
 
 const STATUS_STYLES = {
@@ -62,7 +64,13 @@ const STATUS_STYLES = {
   declined_by_filter: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
   expired: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
   unavailable: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+  completed: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
 };
+
+// Badge status: "completed" for a finished accepted gig, else the stored status.
+function shownStatus(listing) {
+  return listing?.lifecycleStatus || listing?.status;
+}
 
 const SHOT_LABELS = {
   photo: "Photo",
@@ -73,6 +81,7 @@ const SHOT_LABELS = {
 };
 
 function statusLabel(status) {
+  if (status === "completed") return "Completed";
   return STATUS_OPTIONS.find((option) => option.value === status)?.label || status || "Unknown";
 }
 
@@ -482,8 +491,8 @@ export default function ListingsSection() {
               <li key={listing.id} className="p-4 active:bg-gray-50 dark:active:bg-gray-700/40" onClick={() => openDetail(listing.id)}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <SourceBadge source={listing.source} />
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
-                    {statusLabel(listing.status)}
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[shownStatus(listing)] || STATUS_STYLES.seen}`}>
+                    {statusLabel(shownStatus(listing))}
                   </span>
                   <CancelStatusBadge status={listing.cancelStatus} />
                   <span className="ml-auto text-sm font-semibold text-gray-900 dark:text-white">{listing.payout != null ? money(listing.payout) : ""}</span>
@@ -497,7 +506,7 @@ export default function ListingsSection() {
                     ? <span>Due {formatWhen(listing.deadline || listing.dueWindowStart)}</span>
                     : <span>Received {formatWhen(listing.receivedAt || listing.firstSeenAt)}</span>}
                 </div>
-                <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+                <div className="mt-2 flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
                   <CancelGigButton
                     listingId={listing.id}
                     listing={listing}
@@ -506,6 +515,7 @@ export default function ListingsSection() {
                     workComplete={listing.workComplete}
                     onUpdated={() => fetchListings()}
                   />
+                  <DeleteListingButton compact listing={listing} onDeleted={() => fetchListings()} />
                 </div>
               </li>
             ))}
@@ -535,8 +545,8 @@ export default function ListingsSection() {
                     <td className="px-4 py-3"><SourceBadge source={listing.source} /></td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[listing.status] || STATUS_STYLES.seen}`}>
-                          {statusLabel(listing.status)}
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[shownStatus(listing)] || STATUS_STYLES.seen}`}>
+                          {statusLabel(shownStatus(listing))}
                         </span>
                         <CancelStatusBadge status={listing.cancelStatus} />
                         <RuleCheckBadge check={listing.ruleCheck} />
@@ -556,6 +566,7 @@ export default function ListingsSection() {
                           workComplete={listing.workComplete}
                           onUpdated={() => fetchListings()}
                         />
+                        <DeleteListingButton compact listing={listing} onDeleted={() => fetchListings()} />
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200"><MissionTypeText listing={listing} /></td>
@@ -638,10 +649,13 @@ export default function ListingsSection() {
             ) : (
               <div className="p-5 space-y-6">
                 <div className="flex flex-wrap gap-2">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[detail.status] || STATUS_STYLES.seen}`}>
-                    {statusLabel(detail.status)}
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[shownStatus(detail)] || STATUS_STYLES.seen}`}>
+                    {statusLabel(shownStatus(detail))}
                   </span>
                   <CancelStatusBadge status={detail.cancelStatus} />
+                  {detail.deletedAt && (
+                    <span className="inline-flex rounded-full bg-gray-200 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-200">Deleted</span>
+                  )}
                   <CancelGigButton
                     listingId={detail.id}
                     listing={detail}
@@ -758,6 +772,22 @@ export default function ListingsSection() {
                 </section>
 
                 </>)}
+
+                <ListingManageSection
+                  listing={detail}
+                  onChanged={(listing) => {
+                    if (listing) {
+                      setDetail(listing);
+                      setTags(Array.isArray(listing.tags) ? listing.tags : []);
+                    }
+                    fetchListings();
+                  }}
+                  onDeleted={() => {
+                    setSelectedId(null);
+                    setDetail(null);
+                    fetchListings();
+                  }}
+                />
 
                 <section>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center"><FiTag className="mr-2" /> Notes and tags</h3>

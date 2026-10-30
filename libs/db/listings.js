@@ -6,6 +6,9 @@ import { NEEDS_REVIEW, displayStatus } from "@/libs/listingStatus";
 import { deriveMissionType, resolveListingMissionType } from "@/libs/missionType";
 import { messagePreview, receivedAt } from "@/libs/listingSources";
 import { listingRuleCheck } from "@/libs/listingRuleCheck";
+import { importedMissionCompleted, lifecycleStatus, listingDeleteState } from "@/libs/listingLifecycle";
+
+export const DELETED_FILTER = "deleted";
 
 export function mapListing(row) {
   if (!row) return null;
@@ -47,6 +50,8 @@ export function mapListing(row) {
     cancelReason: row.cancel_reason || "",
     cancelRequestedAt: row.cancel_requested_at || null,
     cancelledAt: row.cancelled_at || null,
+    deletedAt: row.deleted_at || null,
+    deletedBy: row.deleted_by || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -92,16 +97,29 @@ const LIST_COLUMNS = [
   "cancel_reason",
   "cancel_requested_at",
   "cancelled_at",
+  "deleted_at",
+  "deleted_by",
   "created_at",
   "updated_at",
 ].join(", ");
 
+// Soft-deleted rows stay in the table so the bot still dedupes on them.
+// They only show under the Deleted filter.
+// An accepted gig that is not cancelled is always shown, even if deleted_at is
+// set (the bot can accept a mission after it was deleted while only seen).
+export const VISIBLE_OR_ACTIVE = "deleted_at.is.null,and(status.eq.accepted,or(cancel_status.is.null,cancel_status.neq.cancelled))";
+
 function applyListingFilters(query, filters = {}) {
+  if (filters.status === DELETED_FILTER) {
+    query = query.not("deleted_at", "is", null).or("status.neq.accepted,cancel_status.eq.cancelled");
+  } else {
+    query = query.or(VISIBLE_OR_ACTIVE);
+  }
   if (filters.status === NEEDS_REVIEW) {
     query = query.eq("status", "seen").like("decline_reason", "needs_review%");
   } else if (filters.status === "seen") {
     query = query.eq("status", "seen").or("decline_reason.is.null,decline_reason.not.like.needs_review*");
-  } else if (filters.status) {
+  } else if (filters.status && filters.status !== DELETED_FILTER) {
     query = query.eq("status", filters.status);
   }
   if (filters.missionType) query = query.ilike("mission_type", `%${escapeIlike(filters.missionType)}%`);
@@ -143,16 +161,21 @@ async function attachBookingStatus(listings) {
   });
 }
 
-function withWorkComplete(listing, { keepDetail = false } = {}) {
+export function withWorkComplete(listing, { keepDetail = false, now = new Date() } = {}) {
   const bookingStatus = listing.bookingStatus ?? null;
   const workComplete = listingWorkComplete(listing)
-    || scheduledFlightLongPast(listing)
-    || bookingWorkComplete(bookingStatus);
-  if (keepDetail) return { ...listing, ruleCheck: listingRuleCheck(listing), bookingStatus, workComplete };
+    || scheduledFlightLongPast(listing, now)
+    || bookingWorkComplete(bookingStatus)
+    || importedMissionCompleted(listing, now);
+  const lifecycle = (value) => {
+    const shown = lifecycleStatus(value);
+    return { ...value, lifecycleStatus: shown, deleteState: listingDeleteState(value) };
+  };
+  if (keepDetail) return lifecycle({ ...listing, ruleCheck: listingRuleCheck(listing), bookingStatus, workComplete });
   const { rawDetail, rawEmailText, rawEmailHtml, ...rest } = listing;
   const preview = messagePreview(listing, 280);
   const ruleCheck = listingRuleCheck(listing);
-  return { ...rest, messagePreview: preview || null, ruleCheck, bookingStatus, workComplete };
+  return lifecycle({ ...rest, messagePreview: preview || null, ruleCheck, bookingStatus, workComplete });
 }
 
 export async function listListings(filters = {}, { sort = "-lastSeenAt", limit = 25, offset = 0 } = {}) {
@@ -199,6 +222,7 @@ export async function listUnlinkedAcceptedListings() {
       .select("id, source, status, payout, travel_distance, travel_time, deadline, due_window_start, due_window_end, last_seen_at, first_seen_at, booking_id, bot_accepted_at, mission_type, client_name, address, title, external_mission_id, estimated_on_site_minutes, admin_notes, created_at, updated_at, raw_detail, raw_email_text, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .is("booking_id", null)
+      .or(VISIBLE_OR_ACTIVE)
   );
   const listings = rows.map(mapListing);
   await persistKnownFlightWindows(listings);
@@ -222,6 +246,7 @@ export async function listLinkedAcceptedListings() {
       .select("id, booking_id, status, bot_accepted_at, raw_detail, cancel_status, cancel_reason, cancel_requested_at, cancelled_at")
       .eq("status", "accepted")
       .not("booking_id", "is", null)
+      .or(VISIBLE_OR_ACTIVE)
   );
   return rows.map(mapListing);
 }
@@ -240,6 +265,35 @@ export async function updateListingCancel(id, { cancelStatus, cancelReason, canc
     .maybeSingle();
   assertNoError(error);
   return mapListing(data);
+}
+
+/**
+ * Soft delete. The filters repeat the server rule in the database write so a
+ * listing accepted between the check and the write is not deleted.
+ */
+export async function softDeleteListing(id, { deletedBy, now = new Date() } = {}) {
+  const { data, error } = await db()
+    .from("mission_listings")
+    .update({ deleted_at: new Date(now).toISOString(), deleted_by: deletedBy || null })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .or("status.neq.accepted,cancel_status.eq.cancelled")
+    .select("id, deleted_at")
+    .maybeSingle();
+  assertNoError(error);
+  return data;
+}
+
+export async function restoreListing(id) {
+  const { data, error } = await db()
+    .from("mission_listings")
+    .update({ deleted_at: null, deleted_by: null })
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .select("id")
+    .maybeSingle();
+  assertNoError(error);
+  return data;
 }
 
 export async function updateListingNotes(id, { adminNotes, tags }) {
