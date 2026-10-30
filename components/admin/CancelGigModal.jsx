@@ -285,7 +285,7 @@ export default function CancelGigModal({ listingId, onClose, onUpdated, now: now
             </h2>
             {(!listing || actions.showCancel) && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Zeitview has no cancel button. Send cancellation emails {PILOT_EMAIL} for you from {GMAIL_ACCOUNT}.
+                Zeitview has no cancel button. The bot emails the cancellation from {GMAIL_ACCOUNT} as a reply to Zeitview&apos;s latest reminder or confirmation email for this address, or to {PILOT_EMAIL} if it finds none.
               </p>
             )}
           </div>
@@ -332,7 +332,8 @@ export default function CancelGigModal({ listingId, onClose, onUpdated, now: now
 
               {emailView.state === "sent" && (
                 <div role="status" className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-100">
-                  <p className="font-medium">Cancellation sent to {PILOT_EMAIL}{listing.cancelEmailSentAt ? ` at ${formatSentEt(listing.cancelEmailSentAt)}` : ""}.</p>
+                  <p className="font-medium">Cancellation sent{listing.cancelEmailSentAt ? ` at ${formatSentEt(listing.cancelEmailSentAt)}` : ""}.</p>
+                  <p className="mt-1 text-xs">It went as a reply in Zeitview&apos;s email thread for this address, or to {PILOT_EMAIL} if there was none. Check Gmail Sent to see which.</p>
                   {emailView.gmailId && <p className="mt-1 text-xs">Gmail message id: <span className="font-mono">{emailView.gmailId}</span></p>}
                   <p className="mt-1 text-xs">Mark it cancelled once Zeitview confirms.</p>
                 </div>
@@ -386,7 +387,7 @@ export default function CancelGigModal({ listingId, onClose, onUpdated, now: now
               {canSend && confirming && (
                 <div className="rounded-md border border-red-300 dark:border-red-700 p-3 space-y-3">
                   <p className="text-sm text-gray-900 dark:text-white">
-                    Send this email to {PILOT_EMAIL} from {GMAIL_ACCOUNT} now? It can&apos;t be unsent.
+                    Send this from {GMAIL_ACCOUNT} now, as a reply to Zeitview&apos;s latest email for this address (or to {PILOT_EMAIL} if there is none)? It can&apos;t be unsent.
                   </p>
                   <div className="flex gap-2">
                     <button
