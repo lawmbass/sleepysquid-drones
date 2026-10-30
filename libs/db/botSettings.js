@@ -112,6 +112,7 @@ export async function loadPreviewListings(settings, now = new Date()) {
       .from("mission_listings")
       .select(previewColumns(settings.minNoticeHours != null))
       .gte("first_seen_at", since)
+      .is("deleted_at", null)
       .order("first_seen_at", { ascending: true })
   );
 

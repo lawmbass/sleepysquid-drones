@@ -2,7 +2,8 @@ import { adminRateLimit } from "@/libs/rateLimit";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
-import { findListingById, updateListingNotes } from "@/libs/db/listings";
+import { findListingById, softDeleteListing, updateListingNotes } from "@/libs/db/listings";
+import { canMarkCompleted, canUnmarkCompleted, listingDeleteState, withCompletedTag } from "@/libs/listingLifecycle";
 import { isUuid } from "@/libs/db/shared";
 
 const rateLimitMiddleware = (req, res) => {
@@ -40,8 +41,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== "GET" && req.method !== "PATCH") {
-    return res.status(405).json({ error: "Method not allowed", message: "Only GET and PATCH requests are allowed" });
+  if (req.method !== "GET" && req.method !== "PATCH" && req.method !== "DELETE") {
+    return res.status(405).json({ error: "Method not allowed", message: "Only GET, PATCH and DELETE requests are allowed" });
   }
 
   const session = await getServerSession(req, res, authOptions);
@@ -67,6 +68,27 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data: { listing: existing } });
     }
 
+    if (req.method === "DELETE") {
+      // Soft delete. Accepted or completed gigs must be cancelled first.
+      const state = listingDeleteState(existing);
+      if (!state.canDelete) {
+        return res.status(409).json({ error: "Cannot delete listing", reason: state.reason, message: state.message });
+      }
+      const deleted = await softDeleteListing(id, { deletedBy: session.user.email });
+      if (!deleted) {
+        return res.status(409).json({
+          error: "Cannot delete listing",
+          reason: "changed",
+          message: "This listing changed while you were deleting it. Reload and try again.",
+        });
+      }
+      return res.status(200).json({ success: true, message: "Listing deleted", data: { id, deletedAt: deleted.deleted_at } });
+    }
+
+    if (existing.deletedAt) {
+      return res.status(409).json({ error: "Listing deleted", message: "Restore this listing before editing it" });
+    }
+
     const updates = {};
     if (req.body?.adminNotes !== undefined) {
       if (typeof req.body.adminNotes !== "string" || req.body.adminNotes.length > 2000) {
@@ -84,11 +106,24 @@ export default async function handler(req, res) {
       }
       updates.tags = tags;
     }
+    if (req.body?.completed !== undefined) {
+      if (typeof req.body.completed !== "boolean") {
+        return res.status(400).json({ error: "Invalid completed flag", message: "completed must be true or false" });
+      }
+      if (req.body.completed && !canMarkCompleted(existing)) {
+        return res.status(400).json({ error: "Cannot mark completed", message: "Only an accepted gig that is not cancelled or already completed can be marked completed" });
+      }
+      if (!req.body.completed && !canUnmarkCompleted(existing)) {
+        return res.status(400).json({ error: "Cannot unmark completed", message: "This listing was not marked completed by hand" });
+      }
+      updates.tags = withCompletedTag(updates.tags ?? existing.tags, req.body.completed);
+    }
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: "No updates provided", message: "Provide admin notes or tags" });
+      return res.status(400).json({ error: "No updates provided", message: "Provide admin notes, tags, or completed" });
     }
 
-    const listing = await updateListingNotes(id, updates);
+    await updateListingNotes(id, updates);
+    const listing = await findListingById(id);
     return res.status(200).json({
       success: true,
       message: "Listing updated",
