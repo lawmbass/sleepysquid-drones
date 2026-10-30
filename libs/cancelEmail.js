@@ -1,7 +1,8 @@
 /**
  * State for the Zeitview cancel email that the drone-gigs bot sends.
  * The dashboard only queues the email. The bot sends it from lawmbass1@gmail.com
- * to pilots@dronebase.com and writes back sent or failed with the Gmail id.
+ * as a reply in the newest Zeitview reminder/confirmation thread for the address
+ * (else a new email to pilots@dronebase.com) and writes back sent or failed with the Gmail id.
  */
 
 export const CANCEL_EMAIL_STUCK_MS = 10 * 60 * 1000;

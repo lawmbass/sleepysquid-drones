@@ -55,7 +55,8 @@ export default async function handler(req, res) {
   }
 
   // "send" queues the cancel email; the drone-gigs bot sends it from
-  // lawmbass1@gmail.com to pilots@dronebase.com. This route never sends mail.
+  // lawmbass1@gmail.com, replying in the Zeitview thread for the address (else to
+  // pilots@dronebase.com). This route never sends mail.
   try {
     const existing = await findListingById(id);
     if (!existing) {
