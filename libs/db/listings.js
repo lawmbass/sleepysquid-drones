@@ -54,6 +54,14 @@ export function mapListing(row) {
     deletedBy: row.deleted_by || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    cancelEmailStatus: row.cancel_email_status || null,
+    cancelEmailSubject: row.cancel_email_subject || "",
+    cancelEmailBody: row.cancel_email_body || "",
+    cancelEmailRequestedAt: row.cancel_email_requested_at || null,
+    cancelEmailAttemptedAt: row.cancel_email_attempted_at || null,
+    cancelEmailSentAt: row.cancel_email_sent_at || null,
+    cancelEmailGmailId: row.cancel_email_gmail_id || null,
+    cancelEmailError: row.cancel_email_error || null,
   };
   // mission_type is rarely stored by the bot; fall back to a type derived from the text.
   const resolved = resolveListingMissionType({ ...listing, raw_detail: row.raw_detail });
@@ -366,4 +374,21 @@ export async function listingAggregates(filters = {}) {
       count: payoutCount,
     },
   };
+}
+
+/**
+ * Queues the cancel email for the bot. The update only matches when no send is
+ * open for this listing, so two clicks or two tabs cannot queue two sends.
+ * Returns null when another request got there first.
+ */
+export async function queueListingCancelEmail(id, fields) {
+  const { data, error } = await db()
+    .from("mission_listings")
+    .update(fields)
+    .eq("id", id)
+    .or("cancel_email_status.is.null,cancel_email_status.eq.failed,and(cancel_email_status.eq.sent,cancel_status.is.null)")
+    .select("*")
+    .maybeSingle();
+  assertNoError(error);
+  return mapListing(data);
 }

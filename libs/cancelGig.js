@@ -1,6 +1,6 @@
 /**
- * Builds the DroneBase pilot email for a cancel or reschedule request.
- * The browser opens the draft. This module does not send mail.
+ * Builds the DroneBase pilot email for a cancel request.
+ * The drone-gigs bot sends it (see cancelEmail.js); the draft links are the fallback.
  */
 
 import { gigCardState, listingSchedule } from "./jobs.js";
@@ -54,14 +54,11 @@ export function flightWarningMessage(level) {
   return "";
 }
 
-export function buildCancelDraft({ intent, missionId, address, schedule, reason }) {
-  const verb = intent === "reschedule" ? "Reschedule" : "Cancel";
+export function buildCancelDraft({ missionId, address, schedule, reason }) {
   const id = String(missionId || "").trim() || "unknown mission";
   const place = String(address || "").trim() || "address not listed";
-  const subject = `${verb} mission ${id} – ${place}`;
-  const ask = intent === "reschedule"
-    ? "Could you reschedule this mission?"
-    : "Could you cancel this mission?";
+  const subject = `Cancel mission ${id} – ${place}`;
+  const ask = "Could you cancel this mission?";
   const body = [
     "Hi,",
     "",

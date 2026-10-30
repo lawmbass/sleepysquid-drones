@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildCancelDraft,
   cancelGigVisibility,
@@ -6,8 +6,11 @@ import {
   flightWarningMessage,
   gmailComposeUrl,
   mailtoUrl,
+  GMAIL_ACCOUNT,
+  PILOT_EMAIL,
   scheduleForListing,
 } from "@/libs/cancelGig";
+import { cancelEmailView } from "@/libs/cancelEmail";
 import { gigCardState } from "@/libs/jobs";
 
 const BADGE_STYLES = {
@@ -96,50 +99,90 @@ export function CancelGigButton({
   );
 }
 
-export default function CancelGigModal({ listingId, onClose, onUpdated }) {
+export function formatSentEt(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)} ET`;
+}
+
+const POLL_MS = 5000;
+
+export default function CancelGigModal({ listingId, onClose, onUpdated, now: nowOverride }) {
   const [listing, setListing] = useState(null);
   const [loadError, setLoadError] = useState("");
-  const [intent, setIntent] = useState("cancel");
   const [reason, setReason] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const [draftOpened, setDraftOpened] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const loadListing = useCallback(async () => {
+    const response = await fetch(`/api/admin/listings/${listingId}`, { credentials: "include" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message || "Could not load this gig.");
+    return payload.data?.listing;
+  }, [listingId]);
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch(`/api/admin/listings/${listingId}`, { credentials: "include" });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message || "Could not load this gig.");
-        if (!cancelled) {
-          const next = payload.data?.listing;
-          setListing(next);
-          if (next?.cancelReason) setReason(next.cancelReason);
-          if (next?.cancelStatus === "reschedule_requested") setIntent("reschedule");
-        }
-      } catch (error) {
+    loadListing()
+      .then((next) => {
+        if (cancelled) return;
+        setListing(next);
+        if (next?.cancelReason) setReason(next.cancelReason);
+      })
+      .catch((error) => {
         if (!cancelled) setLoadError(error.message);
-      }
-    }
-    load();
+      });
     return () => {
       cancelled = true;
     };
-  }, [listingId]);
+  }, [loadListing]);
+
+  const now = nowOverride || new Date();
+  const emailView = cancelEmailView(listing, now);
+
+  // While the bot is sending, re-read the listing until it reports sent or failed.
+  useEffect(() => {
+    if (!emailView.poll) return undefined;
+    const timer = setTimeout(async () => {
+      try {
+        const next = await loadListing();
+        if (next) {
+          setListing(next);
+          if (next.cancelEmailStatus === "sent" && onUpdated) onUpdated(next);
+        }
+      } catch (error) {
+        // Keep the last known state; the next tick tries again.
+      }
+      setTick((value) => value + 1);
+    }, POLL_MS);
+    return () => clearTimeout(timer);
+  }, [emailView.poll, emailView.state, tick, loadListing, onUpdated]);
 
   const schedule = useMemo(() => (listing ? scheduleForListing(listing) : null), [listing]);
   const warning = schedule ? flightWarning(schedule) : { level: "unknown", hoursUntil: null };
   const warningText = flightWarningMessage(warning.level);
+  const emailOpen = emailView.state === "sending" || emailView.state === "stuck" || emailView.state === "sent";
+  const shownSubject = emailOpen && listing?.cancelEmailSubject;
   const draft = listing
-    ? buildCancelDraft({
-      intent,
-      missionId: listing.externalMissionId,
-      address: listing.address,
-      schedule,
-      reason,
-    })
+    ? (shownSubject
+      ? { to: PILOT_EMAIL, subject: listing.cancelEmailSubject, body: listing.cancelEmailBody, fromAccount: GMAIL_ACCOUNT }
+      : buildCancelDraft({
+        missionId: listing.externalMissionId,
+        address: listing.address,
+        schedule,
+        reason,
+      }))
     : null;
   const reasonReady = reason.trim().length > 0;
   const actions = listing
@@ -151,28 +194,51 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
       bookingStatus: listing.bookingStatus,
     })
     : { showCancel: false, showUndo: false, workComplete: false };
+  const canSend = actions.showCancel && !emailOpen && listing?.cancelStatus !== "cancelled";
 
   useEffect(() => {
     setDraftOpened(false);
     setCopied(false);
-  }, [intent, reason]);
+    setConfirming(false);
+  }, [reason]);
+
+  const post = async (body) => {
+    const response = await fetch(`/api/admin/listings/${listingId}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    if (payload?.data?.listing) setListing(payload.data.listing);
+    if (!response.ok) throw new Error(payload.message || "Could not save the cancellation status.");
+    return payload.data.listing;
+  };
 
   const mark = async (action) => {
     setSaving(true);
     setMessage("");
     try {
-      const response = await fetch(`/api/admin/listings/${listingId}/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action, intent, reason }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.message || "Could not save the cancellation status.");
-      setListing(payload.data.listing);
-      setMessage(action === "undo" ? "Cancellation mark removed." : "Saved. No email was sent from the site.");
-      if (onUpdated) onUpdated(payload.data.listing);
+      const next = await post({ action, reason });
+      setMessage(action === "undo" ? "Cancellation mark removed." : "Saved on the listing.");
+      if (onUpdated) onUpdated(next);
     } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendCancellation = async () => {
+    if (!reasonReady || saving) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      const next = await post({ action: "send", confirm: true, reason });
+      setConfirming(false);
+      if (onUpdated) onUpdated(next);
+    } catch (error) {
+      setConfirming(false);
       setMessage(error.message);
     } finally {
       setSaving(false);
@@ -219,7 +285,7 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
             </h2>
             {(!listing || actions.showCancel) && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Zeitview has no cancel button. This opens a draft to {listing ? "pilots@dronebase.com" : "DroneBase"} from lawmbass1@gmail.com. The site does not send it.
+                Zeitview has no cancel button. Send cancellation emails {PILOT_EMAIL} for you from {GMAIL_ACCOUNT}.
               </p>
             )}
           </div>
@@ -240,7 +306,7 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
             <div className="space-y-3">
               <CancelStatusBadge status={listing.cancelStatus} />
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                The cancellation mark is still on this gig. Undo removes it. The site does not send email.
+                The cancellation mark is still on this gig. Undo removes it. Undo does not email Zeitview.
               </p>
               <button
                 type="button"
@@ -258,23 +324,32 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
               <div className="flex flex-wrap gap-2">
                 <CancelStatusBadge status={listing.cancelStatus} />
               </div>
-              {warningText && (
+              {warningText && !emailOpen && (
                 <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
                   {warningText}
                 </p>
               )}
 
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-gray-900 dark:text-white">What should the email ask for?</legend>
-                <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-100">
-                  <input type="radio" name="cancel-intent" checked={intent === "cancel"} onChange={() => setIntent("cancel")} />
-                  Cancel the mission
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-100">
-                  <input type="radio" name="cancel-intent" checked={intent === "reschedule"} onChange={() => setIntent("reschedule")} />
-                  Ask to reschedule
-                </label>
-              </fieldset>
+              {emailView.state === "sent" && (
+                <div role="status" className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-100">
+                  <p className="font-medium">Cancellation sent to {PILOT_EMAIL}{listing.cancelEmailSentAt ? ` at ${formatSentEt(listing.cancelEmailSentAt)}` : ""}.</p>
+                  {emailView.gmailId && <p className="mt-1 text-xs">Gmail message id: <span className="font-mono">{emailView.gmailId}</span></p>}
+                  <p className="mt-1 text-xs">Mark it cancelled once Zeitview confirms.</p>
+                </div>
+              )}
+              {emailView.state === "sending" && (
+                <div role="status" className="rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-100">
+                  <p className="font-medium">Sending… the bot sends it within a minute.</p>
+                  <p className="mt-1 text-xs">You can close this window. The status updates here when Gmail confirms.</p>
+                </div>
+              )}
+              {(emailView.state === "failed" || emailView.state === "stuck") && (
+                <div role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/30 dark:text-red-100">
+                  <p className="font-medium">{emailView.state === "failed" ? "The cancellation email was not sent." : "Still waiting on the bot."}</p>
+                  <p className="mt-1 text-xs">{emailView.error}</p>
+                  <p className="mt-1 text-xs">Send it yourself with the buttons below{emailView.state === "failed" ? ", or try Send cancellation again" : ""}.</p>
+                </div>
+              )}
 
               <label className="block text-sm font-medium text-gray-900 dark:text-white">
                 Reason
@@ -282,44 +357,85 @@ export default function CancelGigModal({ listingId, onClose, onUpdated }) {
                   rows={3}
                   required
                   value={reason}
+                  disabled={emailOpen}
                   onChange={(event) => setReason(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white disabled:opacity-60"
                   placeholder="Weather, schedule conflict, site access…"
                 />
               </label>
 
               {draft && (
                 <div className="rounded-md bg-gray-50 dark:bg-gray-900 p-3 text-sm text-gray-800 dark:text-gray-100">
-                  <p><span className="text-gray-500 dark:text-gray-400">To:</span> {draft.to}</p>
+                  <p><span className="text-gray-500 dark:text-gray-400">From:</span> {GMAIL_ACCOUNT}</p>
+                  <p className="mt-1"><span className="text-gray-500 dark:text-gray-400">To:</span> {draft.to}</p>
                   <p className="mt-1"><span className="text-gray-500 dark:text-gray-400">Subject:</span> {draft.subject}</p>
                   <pre className="mt-2 whitespace-pre-wrap font-sans">{draft.body}</pre>
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={!reasonReady} onClick={openGmail} className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-50">
-                  Open in Gmail
-                </button>
-                <button type="button" disabled={!reasonReady} onClick={openMailto} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50">
-                  Mail app
-                </button>
-                <button type="button" disabled={!reasonReady} onClick={copyEmail} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50">
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+              {canSend && !confirming && (
                 <button
                   type="button"
-                  disabled={!draftOpened || !reasonReady || saving}
-                  onClick={() => mark("request")}
-                  className="w-full px-3 py-2 rounded-md bg-amber-600 text-white text-sm font-medium disabled:opacity-50"
+                  disabled={!reasonReady || saving}
+                  onClick={() => setConfirming(true)}
+                  className="w-full px-3 py-2 rounded-md bg-red-600 text-white text-sm font-medium disabled:opacity-50"
                 >
-                  {intent === "reschedule" ? "Mark reschedule requested" : "Mark cancel requested"}
+                  Send cancellation
                 </button>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Use this after the draft is open. It only saves a note on the listing.
-                </p>
+              )}
+              {canSend && confirming && (
+                <div className="rounded-md border border-red-300 dark:border-red-700 p-3 space-y-3">
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    Send this email to {PILOT_EMAIL} from {GMAIL_ACCOUNT} now? It can&apos;t be unsent.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!reasonReady || saving}
+                      onClick={sendCancellation}
+                      className="flex-1 px-3 py-2 rounded-md bg-red-600 text-white text-sm font-medium disabled:opacity-50"
+                    >
+                      {saving ? "Sending…" : "Send cancellation"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => setConfirming(false)}
+                      className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {emailView.showDrafts && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" disabled={!reasonReady} onClick={openGmail} className="px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-medium disabled:opacity-50">
+                      Open in Gmail
+                    </button>
+                    <button type="button" disabled={!reasonReady} onClick={openMailto} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50">
+                      Mail app
+                    </button>
+                    <button type="button" disabled={!reasonReady} onClick={copyEmail} className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-100 disabled:opacity-50">
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  {emailView.state === "failed" && !listing.cancelStatus && (
+                    <button
+                      type="button"
+                      disabled={!draftOpened || !reasonReady || saving}
+                      onClick={() => mark("request")}
+                      className="w-full px-3 py-2 rounded-md bg-amber-600 text-white text-sm font-medium disabled:opacity-50"
+                    >
+                      Mark cancel requested
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
                 <button
                   type="button"
                   disabled={!reasonReady || saving || listing.cancelStatus === "cancelled"}
