@@ -47,6 +47,8 @@ export function mapListing(row) {
     cancelReason: row.cancel_reason || "",
     cancelRequestedAt: row.cancel_requested_at || null,
     cancelledAt: row.cancelled_at || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
     cancelEmailStatus: row.cancel_email_status || null,
     cancelEmailSubject: row.cancel_email_subject || "",
     cancelEmailBody: row.cancel_email_body || "",
@@ -55,8 +57,6 @@ export function mapListing(row) {
     cancelEmailSentAt: row.cancel_email_sent_at || null,
     cancelEmailGmailId: row.cancel_email_gmail_id || null,
     cancelEmailError: row.cancel_email_error || null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
   };
   // mission_type is rarely stored by the bot; fall back to a type derived from the text.
   const resolved = resolveListingMissionType({ ...listing, raw_detail: row.raw_detail });
