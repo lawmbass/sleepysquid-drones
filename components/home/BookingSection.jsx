@@ -5,7 +5,9 @@ import { FiCalendar, FiMapPin, FiInfo, FiUser, FiMail, FiPhone, FiPackage, FiX }
 import ReCAPTCHA from 'react-google-recaptcha';
 import Link from 'next/link';
 import AddressAutocomplete from '@/components/booking/AddressAutocomplete';
+import ReferralPrice from '@/components/home/ReferralPrice';
 import { BOOKING_PACKAGES, packageLabel, packageMenuLabel } from '@/libs/manualBooking';
+import { REFERRAL_DISPLAY_PERCENT, REFERRAL_INVOICE_NOTE, referralDiscountedAmount } from '@/libs/referralPrice.mjs';
 
 const services = [
   { id: 'aerial-media', name: 'Aerial Photography & Videography' },
@@ -18,7 +20,7 @@ const services = [
 
 
 
-const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect }) => {
+const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect, referralDiscount = null }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     service: '',
@@ -90,6 +92,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     return Math.round(originalPrice - discount);
   };
 
+  // Same rule as the pricing cards: an active promo keeps its own strikethrough.
+  const showReferral = !activePromo && referralDiscount?.percent === REFERRAL_DISPLAY_PERCENT;
+
 
 
   // Handle pre-selected service and package
@@ -143,10 +148,16 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
 
   const getAvailablePackages = () => {
     return BOOKING_PACKAGES.map((pkg) => {
-      const discounted = activePromo ? calculateDiscountedPrice(pkg.basePrice) : null;
+      const discounted = activePromo
+        ? calculateDiscountedPrice(pkg.basePrice)
+        : showReferral
+          ? referralDiscountedAmount(pkg.basePrice, referralDiscount.percent)
+          : null;
       return {
         ...pkg,
+        title: pkg.name,
         name: packageMenuLabel(pkg, discounted),
+        referralAmount: showReferral ? discounted : null,
       };
     });
   };
@@ -499,6 +510,8 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
     setRecaptchaToken('');
   };
 
+  const selectedBookingPackage = BOOKING_PACKAGES.find((pkg) => pkg.id === formData.package);
+
   return (
     <section id="booking" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-6">
@@ -621,6 +634,19 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       {getAvailablePackages().find(pkg => pkg.id === formData.package)?.details?.join(' · ')}
                     </p>
+                  )}
+                  {showReferral && selectedBookingPackage && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                      <ReferralPrice
+                        price={selectedBookingPackage.basePrice}
+                        quote={selectedBookingPackage.quote}
+                        percent={referralDiscount.percent}
+                        size="inline"
+                      />
+                    </p>
+                  )}
+                  {showReferral && (
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">{REFERRAL_INVOICE_NOTE}</p>
                   )}
                 </div>
 
@@ -995,9 +1021,14 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 {getAvailablePackages().map((pkg) => (
                   <div key={pkg.id} className="border rounded-lg p-4 lg:p-5 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2 lg:mb-3 text-lg">
-                      {pkg.name}
+                      {pkg.referralAmount != null ? pkg.title : pkg.name}
                       {pkg.badge ? <span className="ml-2 text-sm font-medium text-blue-600 dark:text-blue-300">{pkg.badge}</span> : null}
                     </h4>
+                    {pkg.referralAmount != null && (
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                        <ReferralPrice price={pkg.basePrice} quote={pkg.quote} percent={referralDiscount.percent} size="inline" />
+                      </p>
+                    )}
                     <ul className="text-sm lg:text-base text-gray-700 dark:text-gray-300 space-y-1 lg:space-y-2">
                       {pkg.details.map((detail) => (
                         <li key={detail}>• {detail}</li>
@@ -1014,6 +1045,9 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                   Travel fees may apply. Weather delays may affect delivery times.
                 </p>
+                {showReferral && (
+                  <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">{REFERRAL_INVOICE_NOTE}</p>
+                )}
               </div>
             </div>
           </div>

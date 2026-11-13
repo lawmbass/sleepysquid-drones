@@ -9,8 +9,10 @@ import PricingSection from '@/components/home/PricingSection';
 import BookingSection from '@/components/home/BookingSection';
 import ContactSection from '@/components/home/ContactSection';
 import { renderSchemaTags } from '@/libs/seo';
+import { resolvePublicReferralDiscount } from '@/libs/referrals.mjs';
+import { getActivePromo } from '@/libs/db/promos';
 
-export default function Home() {
+export default function Home({ referralDiscount = null }) {
   const [selectedService, setSelectedService] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('');
 
@@ -52,15 +54,25 @@ export default function Home() {
         <HeroSection />
         <ServicesSection onServiceSelect={handleServiceSelect} />
         <PortfolioSection />
-        <PricingSection onPackageSelect={handlePackageSelect} />
+        <PricingSection onPackageSelect={handlePackageSelect} referralDiscount={referralDiscount} />
         <BookingSection 
           selectedService={selectedService} 
           selectedPackage={selectedPackage}
           onServiceSelect={setSelectedService} 
           onPackageSelect={setSelectedPackage}
+          referralDiscount={referralDiscount}
         />
         <ContactSection />
       </Layout>
     </>
   );
+}
+
+export async function getServerSideProps({ req, query }) {
+  const referralDiscount = await resolvePublicReferralDiscount({
+    req,
+    query,
+    getPromo: () => getActivePromo(),
+  });
+  return { props: { referralDiscount } };
 } 

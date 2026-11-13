@@ -6,6 +6,8 @@
  * This module is imported by Edge middleware, so it stays free of Node builtins.
  */
 
+import { REFERRAL_DISPLAY_PERCENT } from "./referralPrice.mjs";
+
 export const REFERRAL_COOKIE = "ss_ref";
 export const REFERRAL_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -160,4 +162,79 @@ export async function applyReferralToCheckoutCustomer(stripe, { user, referrerCo
     metadata: { referrer_code: code },
   });
   return { customerId: created.id, created: true };
+}
+
+/**
+ * Active portal.referrers row (PostgREST: /rest/v1/referrers with Accept-Profile: portal).
+ * Unknown, inactive, archived, or deleted codes return null. Any lookup error returns null.
+ */
+export async function activeReferrerByCode(code, { env = process.env, fetchImpl = globalThis.fetch } = {}) {
+  const clean = referralCodeOrNull(code);
+  if (!clean) return null;
+  const url = env?.NEXT_PUBLIC_SUPABASE_URL || env?.SUPABASE_URL;
+  const key = env?.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || typeof fetchImpl !== "function") return null;
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    Accept: "application/json",
+    "Accept-Profile": "portal",
+  };
+  const base = `${String(url).replace(/\/$/, "")}/rest/v1/referrers?code=eq.${encodeURIComponent(clean)}&active=eq.true&archived_at=is.null`;
+  let response;
+  try {
+    response = await fetchImpl(`${base}&deleted_at=is.null&select=code,active,archived_at,deleted_at`, {
+      headers,
+      cache: "no-store",
+    });
+    // portal_017 adds deleted_at. A database that does not have the column yet answers 400.
+    if (response?.status === 400) {
+      response = await fetchImpl(`${base}&select=code,active,archived_at`, { headers, cache: "no-store" });
+    }
+  } catch {
+    return null;
+  }
+  if (!response?.ok) return null;
+  let rows;
+  try {
+    rows = await response.json();
+  } catch {
+    return null;
+  }
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || row.active !== true || row.archived_at || row.deleted_at) return null;
+  if (referralCodeOrNull(row.code) !== clean) return null;
+  return { code: clean };
+}
+
+/** Display offer for one active code. The client receives the percent only, never the referrer row. */
+export async function publicReferralOffer(code, options) {
+  const row = await activeReferrerByCode(code, options);
+  if (!row) return null;
+  return { percent: REFERRAL_DISPLAY_PERCENT };
+}
+
+/**
+ * Homepage discount. Cookie wins over ?ref=, matching the code invoicing will use.
+ * A promo that is already active suppresses the referral display so the two strikethroughs do not stack.
+ * A promo lookup failure leaves the referral visible; the promo banner still replaces it if that request succeeds.
+ */
+export async function resolvePublicReferralDiscount({ req, query, env, fetchImpl, getPromo } = {}) {
+  const code = referralCodeFromRequest({
+    headers: req?.headers,
+    cookies: req?.cookies,
+    query: query || req?.query,
+    body: req?.body,
+  });
+  if (!code) return null;
+  const offer = await publicReferralOffer(code, { env, fetchImpl });
+  if (!offer) return null;
+  let promo = null;
+  try {
+    promo = typeof getPromo === "function" ? await getPromo() : null;
+  } catch {
+    promo = null;
+  }
+  if (promo) return null;
+  return { percent: offer.percent };
 }

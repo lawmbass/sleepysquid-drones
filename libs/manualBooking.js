@@ -5,6 +5,7 @@
  */
 
 import { DEFAULT_SERVICE_LINE, isServiceLine } from "./serviceLines.js";
+import { formatReferralDollars } from "./referralPrice.mjs";
 
 export const MANUAL_SOURCE = "manual";
 /** Location stored for non-drone bookings. */
@@ -109,10 +110,11 @@ export function availablePackages() {
 
 export function packageMenuLabel(pkg, discounted) {
   const from = pkg.quote ? "from " : "";
+  const list = formatReferralDollars(pkg.basePrice);
   if (discounted != null && discounted < pkg.basePrice) {
-    return `${pkg.name} - ${from}$${discounted} (was $${pkg.basePrice})`;
+    return `${pkg.name} - ${from}$${formatReferralDollars(discounted)} (was $${list})`;
   }
-  return `${pkg.name} - ${from}$${pkg.basePrice}`;
+  return `${pkg.name} - ${from}$${list}`;
 }
 
 /** Fixed project price, or the from-price minimum for a quote package. */
