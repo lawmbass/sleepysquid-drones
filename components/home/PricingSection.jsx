@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCheck, FiGift } from 'react-icons/fi';
+import ReferralPrice from '@/components/home/ReferralPrice';
+import { REFERRAL_DISPLAY_PERCENT, REFERRAL_INVOICE_NOTE } from '@/libs/referralPrice.mjs';
 
 const pricingPlans = [
   {
@@ -57,7 +59,7 @@ const pricingPlans = [
 
 const addOns = ['Raw files', 'Next-day delivery', 'Longer video edits'];
 
-const PricingSection = ({ onPackageSelect }) => {
+const PricingSection = ({ onPackageSelect, referralDiscount = null }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -88,6 +90,9 @@ const PricingSection = ({ onPackageSelect }) => {
     const discount = (originalPrice * activePromo.discountPercentage) / 100;
     return Math.round(originalPrice - discount);
   };
+
+  // Referral prices only when no admin promo is active, so the two strikethroughs never stack.
+  const showReferral = !activePromo && referralDiscount?.percent === REFERRAL_DISPLAY_PERCENT;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -153,9 +158,14 @@ const PricingSection = ({ onPackageSelect }) => {
               onPackageSelect={onPackageSelect}
               activePromo={activePromo}
               calculateDiscountedPrice={calculateDiscountedPrice}
+              showReferral={showReferral}
             />
           ))}
         </motion.div>
+
+        {showReferral && (
+          <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-8">{REFERRAL_INVOICE_NOTE}</p>
+        )}
 
         <div className="max-w-3xl mx-auto mt-12 text-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Add-ons on request</h3>
@@ -185,7 +195,7 @@ const PricingSection = ({ onPackageSelect }) => {
   );
 };
 
-const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDiscountedPrice }) => {
+const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDiscountedPrice, showReferral }) => {
   const handleBookPackage = (e) => {
     e.preventDefault();
     if (onPackageSelect) {
@@ -225,6 +235,8 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
               </div>
               {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400 text-sm">/ project</span>}
             </div>
+          ) : showReferral ? (
+            <ReferralPrice price={plan.price} quote={plan.quote} percent={REFERRAL_DISPLAY_PERCENT} />
           ) : (
             <>
               {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
