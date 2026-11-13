@@ -5,6 +5,7 @@ import { db as portalDb, portalConfigured } from "@/libs/aiPortal/db";
 import { adminConfig } from "@/libs/adminConfig";
 import { clientsReady, findClientBy, getClient, searchClients } from "@/libs/db/clients";
 import { aiRecipientRef, emailRecipientRef, parseRecipientRef, recipientRefusal } from "./ui.mjs";
+import { referralCodeOrNull } from "../referrals.mjs";
 
 const enc = encodeURIComponent;
 const isAdminEmail = (e) => adminConfig.isAdmin(e);
@@ -36,9 +37,9 @@ export async function getRecipient(ref) {
     if (p.kind === "ai") return null;
   }
   if (p.kind === "user") {
-    const { data, error } = await db().from("users").select("id,name,email,company,role,stripe_customer_id").eq("id", p.id).maybeSingle();
+    const { data, error } = await db().from("users").select("id,name,email,company,role,stripe_customer_id,preferences").eq("id", p.id).maybeSingle();
     assertNoError(error);
-    return data ? { id: data.id, ref: data.id, kind: "user", userId: data.id, aiClientId: null, name: data.name, email: data.email, company: data.company, role: data.role, stripeCustomerId: data.stripe_customer_id || null } : null;
+    return data ? { id: data.id, ref: data.id, kind: "user", userId: data.id, aiClientId: null, name: data.name, email: data.email, company: data.company, role: data.role, stripeCustomerId: data.stripe_customer_id || null, referrerCode: referralCodeOrNull(data.preferences?.referrerCode) } : null;
   }
   if (p.kind === "email") return { id: emailRecipientRef(p.id), ref: emailRecipientRef(p.id), kind: "email", userId: null, aiClientId: null, name: null, email: p.id, company: null, role: null, stripeCustomerId: null };
   if (!portalConfigured()) return null;

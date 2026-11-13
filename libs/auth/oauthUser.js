@@ -2,12 +2,13 @@ import { createUser, findUserByEmail, patchUser } from "@/libs/db/users";
 import { upsertOAuthAccount } from "@/libs/db/accounts";
 import { findPendingInvitationByEmail, updateInvitation } from "@/libs/db/invitations";
 import { ADMIN_ROLE_REASON, ensureAdminRole, roleForNewUser } from "@/libs/auth/adminRole";
+import { preferencesWithReferral, referralCodeOrNull } from "@/libs/referrals.mjs";
 
 /**
  * Persist a Google sign-in. NextAuth uses JWT sessions, so this replaces
  * the old MongoDB adapter's user and account records.
  */
-export async function upsertGoogleUser({ email, name, image, providerAccountId }) {
+export async function upsertGoogleUser({ email, name, image, providerAccountId, referrerCode }) {
   const normalized = email.toLowerCase();
   let user = await findUserByEmail(normalized, { includeSecrets: true });
   let created = false;
@@ -21,6 +22,7 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
       email: normalized,
       name: name || null,
       image: image || null,
+      preferences: preferencesWithReferral(undefined, referrerCode),
       role,
       roleHistory: role === "admin"
         ? [{
@@ -52,6 +54,12 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
     });
   } else if (image && image !== user.image) {
     user = await patchUser(user.id, { image });
+  }
+
+  if (!created && referrerCode && !referralCodeOrNull(user.preferences?.referrerCode)) {
+    user = await patchUser(user.id, {
+      preferences: preferencesWithReferral(user.preferences, referrerCode),
+    });
   }
 
   if (providerAccountId) {
@@ -86,5 +94,22 @@ export async function upsertGoogleUser({ email, name, image, providerAccountId }
   }
 
   const latest = await findUserByEmail(normalized);
+  if (referralCodeOrNull(referrerCode)) {
+    try {
+      const { stampReferralCustomer } = await import("@/libs/invoicing/stripeInvoices.mjs");
+      const { saveStripeCustomerId } = await import("@/libs/db/invoices");
+      const stamped = await stampReferralCustomer({
+        email: normalized,
+        name: latest?.name || name,
+        referrerCode,
+        stripeCustomerId: latest?.stripeCustomerId || null,
+      });
+      if (stamped.applied && stamped.customerId && latest && !latest.stripeCustomerId) {
+        await saveStripeCustomerId(latest.id, stamped.customerId);
+      }
+    } catch (referralError) {
+      console.error("Referral customer stamp failed:", referralError?.message);
+    }
+  }
   return ensureAdminRole(latest);
 }

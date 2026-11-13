@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import { findOrCreateSettingsUser, patchUser } from "@/libs/db/users";
+import { preferencesForClient, referralCodeOrNull } from "@/libs/referrals.mjs";
 
 export default async function handler(req, res) {
   if (req.method !== 'PUT') {
@@ -39,20 +40,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Invalid currency' });
     }
 
+    const storedCode = referralCodeOrNull(user.preferences?.referrerCode);
     const updatedUser = await patchUser(user.id, {
       preferences: {
         theme: theme || user.preferences?.theme || 'light',
         language: language || user.preferences?.language || 'en',
         timezone: timezone || user.preferences?.timezone || 'UTC',
         dateFormat: dateFormat || user.preferences?.dateFormat || 'MM/DD/YYYY',
-        currency: currency || user.preferences?.currency || 'USD'
+        currency: currency || user.preferences?.currency || 'USD',
+        ...(storedCode ? { referrerCode: storedCode } : {}),
       }
     });
 
-    // Return success response
+    // Return success response. The referral code stays on the user and off this form.
     res.status(200).json({
       message: 'Preferences updated successfully',
-      preferences: updatedUser.preferences
+      preferences: preferencesForClient(updatedUser.preferences)
     });
 
   } catch (error) {

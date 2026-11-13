@@ -1,5 +1,8 @@
 import { createUser, findUserByEmail } from "@/libs/db/users";
+import { saveStripeCustomerId } from "@/libs/db/invoices";
 import { isUniqueViolation } from "@/libs/db/shared";
+import { preferencesWithReferral, referralCodeFromRequest } from "@/libs/referrals.mjs";
+import { stampReferralFromRequest } from "@/libs/invoicing/stripeInvoices.mjs";
 import { 
   hashPassword, 
   validatePassword, 
@@ -23,6 +26,7 @@ export default async function handler(req, res) {
     
     // Extract and sanitize input data
     const { name, email, password } = req.body;
+    const referrerCode = referralCodeFromRequest(req);
     
     const sanitizedName = sanitizeInput(name);
     const sanitizedEmail = sanitizeInput(email)?.toLowerCase();
@@ -78,10 +82,11 @@ export default async function handler(req, res) {
     const emailVerification = generateEmailVerificationToken();
 
     const role = roleForNewUser(sanitizedEmail);
-    await createUser({
+    const created = await createUser({
       name: sanitizedName || null,
       email: sanitizedEmail,
       password: hashedPassword,
+      preferences: preferencesWithReferral(undefined, referrerCode),
       emailVerification: {
         verified: false,
         token: emailVerification.token,
@@ -105,6 +110,15 @@ export default async function handler(req, res) {
         action: 'created'
       }]
     });
+
+    if (referrerCode) {
+      try {
+        const stamped = await stampReferralFromRequest(req, { email: sanitizedEmail, name: sanitizedName });
+        if (stamped.applied && stamped.customerId) await saveStripeCustomerId(created.id, stamped.customerId);
+      } catch (referralError) {
+        console.error("Referral customer stamp failed:", referralError?.message);
+      }
+    }
 
     // Send verification email
     try {

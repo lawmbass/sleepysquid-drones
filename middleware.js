@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { adminConfig } from '@/libs/adminConfig';
+import { hostForReferralCookie, referralSetCookieHeader } from '@/libs/referrals.mjs';
+
+function withReferralCookie(request, response) {
+  const header = referralSetCookieHeader({
+    ref: request.nextUrl.searchParams.get('ref'),
+    cookieHeader: request.headers.get('cookie'),
+    host: hostForReferralCookie(
+      request.headers.get('x-forwarded-host'),
+      request.headers.get('host'),
+      request.nextUrl.hostname,
+    ),
+  });
+  if (header) response.headers.append('Set-Cookie', header);
+  return response;
+}
 
 function matchesRoute(pathname, route) {
   if (route === '/') {
@@ -35,7 +50,7 @@ export async function middleware(request) {
       const res = NextResponse.redirect(url, 307);
       for (const n of dups) res.headers.append('Set-Cookie', `${n}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax`);
       res.headers.set('Cache-Control', 'no-store');
-      return res;
+      return withReferralCookie(request, res);
     }
   }
   const response = NextResponse.next();
@@ -62,7 +77,7 @@ export async function middleware(request) {
 
   // Old link: the bot rules page lives in a dashboard section.
   if (pathname === '/admin/bot-rules' || pathname === '/admin/bot-rules/') {
-    return NextResponse.redirect(new URL('/dashboard?section=bot-rules', request.url));
+    return withReferralCookie(request, NextResponse.redirect(new URL('/dashboard?section=bot-rules', request.url)));
   }
 
   // API routes enforce their own 401 responses. Do not redirect them to the login page.
@@ -78,7 +93,7 @@ export async function middleware(request) {
       if (!token) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('callbackUrl', `${request.nextUrl.origin}${pathname}${request.nextUrl.search}`);
-        return NextResponse.redirect(loginUrl);
+        return withReferralCookie(request, NextResponse.redirect(loginUrl));
       }
 
       // Fail closed: anything other than a clear "hasAccess: true" denies access, unless the user is an admin.
@@ -104,18 +119,18 @@ export async function middleware(request) {
         if (!hasAccess) {
           const accessDeniedUrl = new URL('/access-denied', request.url);
           accessDeniedUrl.searchParams.set('reason', 'inactive');
-          return NextResponse.redirect(accessDeniedUrl);
+          return withReferralCookie(request, NextResponse.redirect(accessDeniedUrl));
         }
       }
     } catch (error) {
       console.error('Error in middleware access check:', error);
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', `${request.nextUrl.origin}${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(loginUrl);
+      return withReferralCookie(request, NextResponse.redirect(loginUrl));
     }
   }
 
-  return response;
+  return withReferralCookie(request, response);
 }
 
 export const config = {
