@@ -1,6 +1,6 @@
 // Admin actions for the referrals dashboard. Mail is injected so tests never hit Resend.
 import {
-  approvePayout, approveRequest, archiveRequest, createReferrer, declineRequest, listAdmin, setReferrerActive,
+  approvePayout, approveRequest, archiveRequest, createReferrer, declineRequest, deleteReferrer, listAdmin, setReferrerActive,
 } from "./referralHub.mjs";
 import { referrerLinks, sendReferrerLinkEmail } from "./referralEmail.mjs";
 
@@ -56,7 +56,7 @@ export async function runReferralAdmin(db, opts) {
   if (action === "resend-link") {
     const rows = await db(`portal_referrers?id=eq.${encodeURIComponent(body.id || "")}&select=*`);
     const referrer = rows?.[0];
-    if (!referrer) {
+    if (!referrer || referrer.deleted_at) {
       const err = new Error("Referrer not found");
       err.status = 404;
       throw err;
@@ -66,6 +66,10 @@ export async function runReferralAdmin(db, opts) {
   }
   if (action === "decline-request") return { status: 200, body: { request: await declineRequest(db, body.id) } };
   if (action === "archive-request") return { status: 200, body: { request: await archiveRequest(db, body.id) } };
+  if (action === "delete-referrer") {
+    const deleted = await deleteReferrer(db, body.id, typeof now === "function" ? now() : new Date());
+    return { status: 200, body: deleted };
+  }
   if (action === "deactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, false) } };
   if (action === "reactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, true) } };
   if (action === "approve-payout") {

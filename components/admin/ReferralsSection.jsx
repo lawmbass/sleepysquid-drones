@@ -118,6 +118,7 @@ const EMPTY = { referrers: [], requests: [], referrals: [], payouts: [] };
 const field = "mt-1 w-full min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900";
 const ghost = "rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-800 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100";
 const primary = "rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50";
+const danger = "rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50";
 
 export default function ReferralsSection({ preview = false, state = "ready", confirmOpen = false }) {
   const [data, setData] = useState(preview ? (state === "empty" ? EMPTY : PREVIEW) : null);
@@ -126,6 +127,7 @@ export default function ReferralsSection({ preview = false, state = "ready", con
   const [busy, setBusy] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [confirmPayout, setConfirmPayout] = useState(preview && confirmOpen ? { id: "p1", name: "Mike Example", amount: 20000 } : null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   async function load() {
     if (preview) return;
@@ -160,9 +162,11 @@ export default function ReferralsSection({ preview = false, state = "ready", con
   }
 
   const requests = (data?.requests || []).filter((row) => !row.archived_at && row.status === "pending");
-  const referrers = (data?.referrers || []).filter((row) => !row.archived_at);
-  const customers = (data?.referrals || []).filter((row) => row.payment_status !== "void");
-  const payouts = data?.payouts || [];
+  const deletedIds = new Set((data?.referrers || []).filter((row) => row.deleted_at).map((row) => row.id));
+  const referrers = (data?.referrers || []).filter((row) => !row.archived_at && !row.deleted_at);
+  const customers = (data?.referrals || []).filter((row) => row.payment_status !== "void" && !deletedIds.has(row.referrer_id));
+  const hiddenReferralIds = new Set((data?.referrals || []).filter((row) => deletedIds.has(row.referrer_id)).map((row) => row.id));
+  const payouts = (data?.payouts || []).filter((row) => !hiddenReferralIds.has(row.referral_id));
   const pendingCents = payouts.filter((row) => row.status === "pending" || row.status === "approved_awaiting_onboarding").reduce((sum, row) => sum + Number(row.amount_cents || 0), 0);
   const paidCents = payouts.filter((row) => row.status === "paid").reduce((sum, row) => sum + Number(row.amount_cents || 0), 0);
   const activeCount = referrers.filter((row) => row.active !== false).length;
@@ -206,6 +210,30 @@ export default function ReferralsSection({ preview = false, state = "ready", con
         <LinkCopies links={fresh.links} />
       </div>}
     </section>
+    {confirmDelete && <div role="dialog" aria-modal="true" aria-labelledby="delete-referrer-title" data-testid="delete-referrer-dialog" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+        <h3 id="delete-referrer-title" className="text-lg font-semibold text-gray-900">Delete {confirmDelete.name}?</h3>
+        <p className="mt-2 text-sm text-gray-600">Their link stops working right away.</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" className={ghost} onClick={() => setConfirmDelete(null)}>Cancel</button>
+          <button type="button" className={danger} data-testid="confirm-delete-referrer" disabled={busy === `delete-referrer:${confirmDelete.id}`} onClick={async () => {
+            const target = confirmDelete;
+            if (preview) {
+              setData((current) => {
+                const nextReferrers = (current?.referrers || []).filter((row) => row.id !== target.id);
+                const nextReferrals = (current?.referrals || []).filter((row) => row.referrer_id !== target.id);
+                const kept = new Set(nextReferrals.map((row) => row.id));
+                return { ...current, referrers: nextReferrers, referrals: nextReferrals, payouts: (current?.payouts || []).filter((row) => kept.has(row.referral_id)) };
+              });
+              setConfirmDelete(null);
+              return;
+            }
+            const saved = await post("delete-referrer", { id: target.id });
+            if (saved) setConfirmDelete(null);
+          }}>Delete</button>
+        </div>
+      </div>
+    </div>}
     <section className="min-w-0 space-y-3">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Requests</h2>
       {!requests.length && <p className="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-800">No pending requests.</p>}
@@ -252,6 +280,7 @@ export default function ReferralsSection({ preview = false, state = "ready", con
             <div className="flex flex-wrap gap-2">
               <button type="button" className={ghost} data-testid="resend-link-email" disabled={!String(row.email || "").trim() || busy === `resend-link:${row.id}`} onClick={() => post("resend-link", { id: row.id })}>Resend link email</button>
               <button type="button" className={ghost} onClick={() => post(row.active === false ? "reactivate" : "deactivate", { id: row.id })}>{row.active === false ? "Reactivate" : "Deactivate"}</button>
+              <button type="button" className={danger} data-testid="delete-referrer" onClick={() => setConfirmDelete({ id: row.id, name: row.name })}>Delete</button>
             </div>
           </div>
           <LinkCopies links={row.links} />
