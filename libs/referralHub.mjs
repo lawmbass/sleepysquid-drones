@@ -106,7 +106,9 @@ async function getReferrerByCode(db, code) {
   const clean = normalizeCode(code);
   if (!clean) return null;
   const rows = await db(`portal_referrers?code=eq.${enc(clean)}&active=eq.true&archived_at=is.null&select=*`);
-  return rows?.[0] || null;
+  const row = rows?.[0] || null;
+  if (!row || row.deleted_at) return null;
+  return row;
 }
 
 export async function createReferrer(db, input) {
@@ -232,6 +234,13 @@ export async function archiveRequest(db, id) {
 }
 
 export async function setReferrerActive(db, id, active) {
+  const existing = await db(`portal_referrers?id=eq.${enc(id)}&select=*`);
+  const referrer = existing?.[0];
+  if (!referrer || referrer.deleted_at) {
+    const err = new Error("Referrer not found");
+    err.status = 404;
+    throw err;
+  }
   const rows = await db(`portal_referrers?id=eq.${enc(id)}`, {
     method: "PATCH",
     body: { active: !!active },
@@ -243,6 +252,97 @@ export async function setReferrerActive(db, id, active) {
     throw err;
   }
   return rows[0];
+}
+
+function payoutKeepsBook(payout) {
+  if (!payout) return false;
+  if (payout.status === "paid") return true;
+  return String(payout.stripe_transfer_id || "").trim() !== "";
+}
+
+function payoutCanVoid(payout) {
+  if (!payout || payoutKeepsBook(payout)) return false;
+  return payout.status === "pending" || payout.status === "approved_awaiting_onboarding";
+}
+
+async function payoutsForReferrals(db, referrals) {
+  const payouts = [];
+  for (const referral of referrals) {
+    const found = (await db(`portal_referral_payouts?referral_id=eq.${enc(referral.id)}&select=*`)) || [];
+    payouts.push(...found);
+  }
+  return payouts;
+}
+
+/**
+ * Remove a referrer.
+ * No paid payout and no stripe_transfer_id: delete the referrer, their referrals,
+ * and unpaid payouts. Requests keep their row and lose referrer_id so the foreign
+ * key can clear. referral_events are webhook idempotency keys with no referrer
+ * foreign key, so they stay.
+ * Any paid payout, or any stripe_transfer_id: keep the rows, mark the referrer
+ * inactive, set deleted_at, and void unpaid payouts that never got a transfer.
+ * Never calls Stripe and never sends mail.
+ */
+export async function deleteReferrer(db, id, now = new Date()) {
+  const clean = String(id || "").trim();
+  if (!clean) {
+    const err = new Error("Referrer not found");
+    err.status = 400;
+    throw err;
+  }
+  const rows = await db(`portal_referrers?id=eq.${enc(clean)}&select=*`);
+  const referrer = rows?.[0];
+  if (!referrer) return { deleted: true, mode: "absent", already: true };
+  if (referrer.deleted_at) return { deleted: true, mode: "soft", already: true, deletedAt: referrer.deleted_at };
+
+  const referrals = (await db(`portal_referrals?referrer_id=eq.${enc(clean)}&select=*`)) || [];
+  const payouts = await payoutsForReferrals(db, referrals);
+  const stamp = (now instanceof Date ? now : new Date(now)).toISOString();
+
+  if (payouts.some(payoutKeepsBook)) {
+    for (const payout of payouts) {
+      if (!payoutCanVoid(payout)) continue;
+      await db(`portal_referral_payouts?id=eq.${enc(payout.id)}&status=eq.${enc(payout.status)}&stripe_transfer_id=is.null`, {
+        method: "PATCH",
+        body: { status: "void" },
+        prefer: "return=minimal",
+      });
+    }
+    await db(`portal_referrers?id=eq.${enc(clean)}`, {
+      method: "PATCH",
+      body: { active: false, deleted_at: stamp },
+      prefer: "return=minimal",
+    });
+    return { deleted: true, mode: "soft", already: false, deletedAt: stamp };
+  }
+
+  for (const payout of payouts) {
+    await db(`portal_referral_payouts?id=eq.${enc(payout.id)}`, { method: "DELETE", prefer: "return=minimal" });
+  }
+  for (const referral of referrals) {
+    await db(`portal_referrals?id=eq.${enc(referral.id)}`, { method: "DELETE", prefer: "return=minimal" });
+  }
+  await db(`portal_referral_requests?referrer_id=eq.${enc(clean)}`, {
+    method: "PATCH",
+    body: { referrer_id: null },
+    prefer: "return=minimal",
+  });
+  await db(`portal_referrers?id=eq.${enc(clean)}`, { method: "DELETE", prefer: "return=minimal" });
+  return { deleted: true, mode: "hard", already: false };
+}
+
+export function adminReferralView({ referrers = [], requests = [], referrals = [], payouts = [] } = {}) {
+  const live = referrers.filter((row) => !row.deleted_at);
+  const ids = new Set(live.map((row) => row.id));
+  const liveReferrals = referrals.filter((row) => ids.has(row.referrer_id));
+  const referralIds = new Set(liveReferrals.map((row) => row.id));
+  return {
+    referrers: live,
+    requests,
+    referrals: liveReferrals,
+    payouts: payouts.filter((row) => referralIds.has(row.referral_id)),
+  };
 }
 
 async function ensureReferral(db, { referrer, customerId, email, name, businessLine }) {
@@ -296,6 +396,8 @@ export async function recordEligiblePayment(db, { customerId, email, invoiceId, 
   const referral = await findReferral(db, { customerId, email });
   if (!referral || referral.payment_status === "void") return { created: false };
   if (referral.payment_status !== "signed_up") return { created: false };
+  const owners = await db(`portal_referrers?id=eq.${enc(referral.referrer_id)}&select=*`);
+  if (owners?.[0]?.deleted_at) return { created: false };
   const payouts = await db(`portal_referral_payouts?referral_id=eq.${enc(referral.id)}&select=id`);
   if (payouts?.length) return { created: false };
   if (invoice && !(await invoiceQualifies(invoice, retrieveProduct))) return { created: false, ineligible: true };
@@ -328,7 +430,7 @@ export async function listAdmin(db) {
   const requests = (await db("portal_referral_requests?select=*")) || [];
   const referrals = (await db("portal_referrals?select=*")) || [];
   const payouts = (await db("portal_referral_payouts?select=*")) || [];
-  return { referrers, requests, referrals, payouts };
+  return adminReferralView({ referrers, requests, referrals, payouts });
 }
 
 export async function approvePayout(db, { payoutId, stripeTransfer, connectConfigured }) {
