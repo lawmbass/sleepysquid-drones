@@ -175,7 +175,7 @@ export function invoiceItemParams(l, { customerId, invoiceId, currency }) {
   return { ...base, ...item, metadata: { source: INVOICE_SOURCE, business_line: l.businessLine, list_price: l.priceId } };
 }
 
-export async function createDraftInvoice(client, { customerId, user, draft, requestId }) {
+export async function createDraftInvoice(client, { customerId, user, draft, requestId, discounts }) {
   const businessLines = [...new Set(draft.lines.map((l) => l.businessLine))].join(",");
   const invoice = await client.call("POST", "/invoices", {
     customer: customerId,
@@ -185,6 +185,7 @@ export async function createDraftInvoice(client, { customerId, user, draft, requ
     pending_invoice_items_behavior: "exclude",
     description: draft.memo || undefined,
     currency: draft.currency,
+    discounts: discounts?.length ? discounts : undefined,
     metadata: { source: INVOICE_SOURCE, business_lines: businessLines, ...(user.aiClientId ? { ai_client_id: user.aiClientId } : user.userId === null ? { one_time: "1" } : { hub_user_id: user.id }) },
   }, { idempotency: idempotencyKey("invoice", requestId) });
   for (let i = 0; i < draft.lines.length; i++) {

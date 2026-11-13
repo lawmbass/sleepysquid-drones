@@ -2,6 +2,7 @@ import { requireAdmin } from "@/libs/adminRequest";
 import { publicInvoice } from "@/libs/invoicing/publicInvoice.mjs";
 import { NOT_MIGRATED_MESSAGE, approvalSignature, invoicingSchemaReady, loadClientInvoices, mirrorFromStripe, validateDraftInput } from "@/libs/invoicing/core.mjs";
 import { createDraftInvoice, createStripeClient, ensureCustomer, ensureCustomerByEmail, invoicingMode, invoicingWritesAllowed, loadCatalog } from "@/libs/invoicing/stripeInvoices.mjs";
+import { invoiceDiscountsForReferral } from "@/libs/referralDiscount.mjs";
 import { getInvoiceableRecipient, getRecipient } from "@/libs/invoicing/recipients";
 import { listInvoicesForClient, updateClient } from "@/libs/db/clients";
 import { parseRecipientRef } from "@/libs/invoicing/ui.mjs";
@@ -65,7 +66,8 @@ export default async function handler(req, res) {
       customerId = await ensureCustomer(stripe, { ...client, referrerCode });
       if (customerId !== client.stripeCustomerId) await saveStripeCustomerId(client.userId, customerId);
     }
-    const inv = await createDraftInvoice(stripe, { customerId, user: client, draft: parsed.value, requestId });
+    const discounts = await invoiceDiscountsForReferral(stripe, { customerId, referrerCode, customerEmail: client.email }).catch(() => undefined);
+    const inv = await createDraftInvoice(stripe, { customerId, user: client, draft: parsed.value, requestId, discounts });
     const mirror = mirrorFromStripe(inv);
     const row = await insertInvoice({
       ...mirror, ...(client.kind === "client" ? { client_id: client.clientId } : { user_id: client.userId, ai_client_id: client.aiClientId }),
