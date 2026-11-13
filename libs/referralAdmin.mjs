@@ -1,6 +1,6 @@
 // Admin actions for the referrals dashboard. Mail is injected so tests never hit Resend.
 import {
-  approvePayout, approveRequest, archiveRequest, createReferrer, declineRequest, deleteReferrer, listAdmin, setReferrerActive,
+  approvePayout, approveRequest, archiveRequest, createReferrer, declineRequest, deleteReferrer, listAdmin, setReferrerActive, updateReferrer,
 } from "./referralHub.mjs";
 import { referrerLinks, sendReferrerLinkEmail } from "./referralEmail.mjs";
 
@@ -72,6 +72,10 @@ export async function runReferralAdmin(db, opts) {
   }
   if (action === "deactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, false) } };
   if (action === "reactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, true) } };
+  if (action === "update-referrer") {
+    const referrer = await updateReferrer(db, body);
+    return { status: 200, body: { referrer } };
+  }
   if (action === "approve-payout") {
     const result = await approvePayout(db, { payoutId: body.id, stripeTransfer, connectConfigured: !!connectConfigured });
     return { status: 200, body: result };

@@ -254,6 +254,61 @@ export async function setReferrerActive(db, id, active) {
   return rows[0];
 }
 
+/**
+ * Editable referrer profile. The public link at /r/<code> reads `name` on each
+ * request and builds the preview title from the first word ("Get 10% off with
+ * Lawrence's referral"). Code, Stripe account, payout rows, and mail stamps stay.
+ * Changing the email does not send mail.
+ */
+export async function updateReferrer(db, input = {}) {
+  const id = String(input.id || "").trim();
+  if (!id) {
+    const err = new Error("Referrer not found");
+    err.status = 404;
+    throw err;
+  }
+  const existing = await db(`portal_referrers?id=eq.${enc(id)}&select=*`);
+  const referrer = existing?.[0];
+  if (!referrer || referrer.deleted_at) {
+    const err = new Error("Referrer not found");
+    err.status = 404;
+    throw err;
+  }
+  const name = String(input.name ?? "").trim().slice(0, 120);
+  const email = normalizeEmail(input.email);
+  if (!name) {
+    const err = new Error("Name is required");
+    err.status = 400;
+    throw err;
+  }
+  if (!email) {
+    const err = new Error("Enter a valid email");
+    err.status = 400;
+    throw err;
+  }
+  if (email !== String(referrer.email || "").toLowerCase()) {
+    const taken = await db(`portal_referrers?email=eq.${enc(email)}&select=id`);
+    if ((taken || []).some((row) => row.id !== referrer.id)) {
+      const err = new Error("A referrer with that email already exists");
+      err.status = 409;
+      throw err;
+    }
+  }
+  const phone = cleanPhone(input.phone);
+  const notes = cleanNote(input.notes);
+  const rows = await db(`portal_referrers?id=eq.${enc(id)}&deleted_at=is.null`, {
+    method: "PATCH",
+    body: { name, email, phone, notes },
+    prefer: "return=representation",
+  });
+  if (!rows?.length) {
+    const err = new Error("Referrer not found");
+    err.status = 404;
+    throw err;
+  }
+  return rows[0];
+}
+
 function payoutKeepsBook(payout) {
   if (!payout) return false;
   if (payout.status === "paid") return true;
