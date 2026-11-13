@@ -85,11 +85,11 @@ const mikeLinks = {
 
 const PREVIEW = {
   referrers: [{
-    id: "r1", name: "Mike Example", email: "mike.example@example.test", phone: "202-555-0148", code: "mike4821", active: true, payouts_enabled: true,
+    id: "r1", name: "Mike Example", email: "mike.example@example.test", phone: "202-555-0148", notes: "Sends local businesses.", code: "mike4821", active: true, payouts_enabled: true,
     link_email_sent_at: "2026-11-13T15:04:00.000Z", link_email_error: null,
     links: mikeLinks,
   }, {
-    id: "r2", name: "Sam Example", email: "sam.example@example.test", phone: "", code: "sam1094", active: true, payouts_enabled: false,
+    id: "r2", name: "Sam Example", email: "sam.example@example.test", phone: "", notes: "", code: "sam1094", active: true, payouts_enabled: false,
     link_email_sent_at: null, link_email_error: "Could not send the referral email",
     links: {
       hub: "https://sleepysquid.com/r/sam1094",
@@ -120,7 +120,31 @@ const ghost = "rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm fo
 const primary = "rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50";
 const danger = "rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50";
 
-export default function ReferralsSection({ preview = false, state = "ready", confirmOpen = false }) {
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function editDraft(row) {
+  return {
+    id: row.id,
+    code: row.code || "",
+    name: row.name || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    notes: row.notes || "",
+  };
+}
+
+function checkedProfile(draft) {
+  const name = String(draft.name || "").trim().slice(0, 120);
+  const email = String(draft.email || "").trim().toLowerCase();
+  const phone = String(draft.phone || "").trim().slice(0, 40);
+  const notes = String(draft.notes || "").trim().slice(0, 500);
+  if (!name) return { error: "Name is required" };
+  if (!EMAIL.test(email)) return { error: "Enter a valid email" };
+  if (phone && !/^[0-9+().\-\s]{7,40}$/.test(phone)) return { error: "Enter a phone number or leave it blank" };
+  return { name, email, phone, notes };
+}
+
+export default function ReferralsSection({ preview = false, state = "ready", confirmOpen = false, editOpen = false }) {
   const [data, setData] = useState(preview ? (state === "empty" ? EMPTY : PREVIEW) : null);
   const [fresh, setFresh] = useState(null);
   const [error, setError] = useState("");
@@ -128,6 +152,8 @@ export default function ReferralsSection({ preview = false, state = "ready", con
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [confirmPayout, setConfirmPayout] = useState(preview && confirmOpen ? { id: "p1", name: "Mike Example", amount: 20000 } : null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editing, setEditing] = useState(preview && editOpen && state !== "empty" ? editDraft(PREVIEW.referrers[0]) : null);
+  const [editError, setEditError] = useState("");
 
   async function load() {
     if (preview) return;
@@ -151,7 +177,11 @@ export default function ReferralsSection({ preview = false, state = "ready", con
         body: JSON.stringify({ action, ...extra }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) { setError(body.error || "Could not save"); return null; }
+      if (!response.ok) {
+        const message = body.error || "Could not save";
+        setError(message);
+        return { failed: true, error: message };
+      }
       await load();
       if (body.email?.error) setError(body.email.error);
       else if (body.email?.sent && body.email.recorded === false) setError("Email sent. The sent date could not be saved.");
@@ -159,6 +189,29 @@ export default function ReferralsSection({ preview = false, state = "ready", con
     } finally {
       setBusy("");
     }
+  }
+
+  function openEdit(row) {
+    setEditError("");
+    setEditing(editDraft(row));
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault();
+    const profile = checkedProfile(editing || {});
+    if (profile.error) { setEditError(profile.error); return; }
+    setEditError("");
+    if (preview) {
+      setData((current) => ({
+        ...current,
+        referrers: (current?.referrers || []).map((row) => (row.id === editing.id ? { ...row, ...profile } : row)),
+      }));
+      setEditing(null);
+      return;
+    }
+    const saved = await post("update-referrer", { id: editing.id, ...profile });
+    if (saved?.failed) { setEditError(saved.error); return; }
+    if (saved) setEditing(null);
   }
 
   const requests = (data?.requests || []).filter((row) => !row.archived_at && row.status === "pending");
@@ -229,10 +282,35 @@ export default function ReferralsSection({ preview = false, state = "ready", con
               return;
             }
             const saved = await post("delete-referrer", { id: target.id });
-            if (saved) setConfirmDelete(null);
+            if (saved && !saved.failed) setConfirmDelete(null);
           }}>Delete</button>
         </div>
       </div>
+    </div>}
+    {editing && <div role="dialog" aria-modal="true" aria-labelledby="edit-referrer-title" data-testid="edit-referrer-dialog" className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <form className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-lg" onSubmit={saveEdit}>
+        <h3 id="edit-referrer-title" className="text-lg font-semibold text-gray-900">Edit {editing.name.trim() || "referrer"}</h3>
+        <p className="mt-1 text-sm text-gray-600">Code <span className="font-semibold text-gray-900" data-testid="referrer-code-readonly">{editing.code}</span> stays the same.</p>
+        {editError && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert" data-testid="edit-referrer-error">{editError}</p>}
+        <div className="mt-4 space-y-3">
+          <label className="block text-sm font-medium text-gray-700" htmlFor="edit-referrer-name">Name
+            <input id="edit-referrer-name" maxLength={120} autoComplete="off" className={field} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+          </label>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="edit-referrer-email">Email
+            <input id="edit-referrer-email" type="text" inputMode="email" maxLength={200} autoComplete="off" className={field} value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
+          </label>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="edit-referrer-phone">Phone (optional)
+            <input id="edit-referrer-phone" maxLength={40} autoComplete="off" className={field} value={editing.phone} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} />
+          </label>
+          <label className="block text-sm font-medium text-gray-700" htmlFor="edit-referrer-notes">Notes (optional)
+            <textarea id="edit-referrer-notes" maxLength={500} rows={3} className={field} value={editing.notes} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" className={ghost} data-testid="cancel-referrer-edit" onClick={() => { setEditing(null); setEditError(""); }}>Cancel</button>
+          <button type="submit" className={primary} data-testid="save-referrer" disabled={busy === `update-referrer:${editing.id}`}>Save</button>
+        </div>
+      </form>
     </div>}
     <section className="min-w-0 space-y-3">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Requests</h2>
@@ -267,8 +345,9 @@ export default function ReferralsSection({ preview = false, state = "ready", con
         return <article key={row.id} className="min-w-0 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white">{row.name} <span className="font-normal text-gray-500">· {row.code}</span></h3>
-              <p className="break-all text-sm text-gray-600 dark:text-gray-300">{row.email || "No email"} · {money(toPay)} to pay · {money(paid)} paid</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white" data-testid="referrer-name">{row.name} <span className="font-normal text-gray-500">· {row.code}</span></h3>
+              <p className="break-all text-sm text-gray-600 dark:text-gray-300" data-testid="referrer-contact">{row.email || "No email"}{row.phone ? ` · ${row.phone}` : ""} · {money(toPay)} to pay · {money(paid)} paid</p>
+              {row.notes ? <p className="mt-1 text-sm text-gray-600 dark:text-gray-300" data-testid="referrer-notes">{row.notes}</p> : null}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Badge tone={row.active === false ? "gray" : "green"}>{row.active === false ? "Inactive" : "Active"}</Badge>
                 {row.payouts_enabled ? <Badge tone="blue">Payouts set up</Badge> : <Badge tone="gray">Payouts not set up</Badge>}
@@ -278,6 +357,7 @@ export default function ReferralsSection({ preview = false, state = "ready", con
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className={ghost} data-testid="edit-referrer" onClick={() => openEdit(row)}>Edit</button>
               <button type="button" className={ghost} data-testid="resend-link-email" disabled={!String(row.email || "").trim() || busy === `resend-link:${row.id}`} onClick={() => post("resend-link", { id: row.id })}>Resend link email</button>
               <button type="button" className={ghost} onClick={() => post(row.active === false ? "reactivate" : "deactivate", { id: row.id })}>{row.active === false ? "Reactivate" : "Deactivate"}</button>
               <button type="button" className={danger} data-testid="delete-referrer" onClick={() => setConfirmDelete({ id: row.id, name: row.name })}>Delete</button>
