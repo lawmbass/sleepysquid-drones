@@ -2,25 +2,67 @@ import { useEffect, useState } from "react";
 
 const money = (cents) => `$${Math.round(Number(cents || 0) / 100)}`;
 
+function lineName(line) {
+  if (line === "webdev") return "Websites";
+  if (line === "drones") return "Drones";
+  if (line === "ai") return "AI";
+  return "";
+}
+
+function customerState(customer) {
+  if (customer.payment_status === "signed_up") return "Signed up";
+  if (customer.payment_status === "first_invoice_paid") return "First payment received";
+  if (customer.payment_status === "void") return "Voided";
+  return "Signed up";
+}
+
+function payoutState(payout) {
+  if (payout.status === "paid") return `${money(payout.amount_cents)} paid`;
+  if (payout.status === "approved_awaiting_onboarding") return "Approved, pay manually";
+  return `${money(payout.amount_cents)} pending`;
+}
+
+function emailedOn(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+const mikeLinks = {
+  hub: "https://sleepysquid.com/r/mike4821",
+  web: "https://sleepysquid.com/r/mike4821?to=web",
+  drones: "https://sleepysquid.com/r/mike4821?to=drones",
+  ai: "https://sleepysquid.com/r/mike4821?to=ai",
+  home: "https://sleepysquid.com/referrals/you/preview",
+};
+
 const PREVIEW = {
   testMode: true,
   referrers: [{
     id: "r1", name: "Mike Example", email: "mike.example@example.test", phone: "202-555-0148", code: "mike4821", active: true, payouts_enabled: false,
+    link_email_sent_at: "2026-11-13T15:04:00.000Z", link_email_error: null,
+    links: mikeLinks,
+  }, {
+    id: "r2", name: "Sam Example", email: "sam.example@example.test", phone: "", code: "sam1094", active: true, payouts_enabled: false,
+    link_email_sent_at: null, link_email_error: "Could not send the referral email",
     links: {
-      hub: "https://sleepysquid.com/r/mike4821",
-      web: "https://sleepysquid.com/r/mike4821?to=web",
-      drones: "https://sleepysquid.com/r/mike4821?to=drones",
-      ai: "https://sleepysquid.com/r/mike4821?to=ai",
-      home: "https://sleepysquid.com/referrals/you/preview",
+      hub: "https://sleepysquid.com/r/sam1094",
+      web: "https://sleepysquid.com/r/sam1094?to=web",
+      drones: "https://sleepysquid.com/r/sam1094?to=drones",
+      ai: "https://sleepysquid.com/r/sam1094?to=ai",
+      home: "https://sleepysquid.com/referrals/you/preview-sam",
     },
   }],
   requests: [{ id: "q1", name: "Avery Example", email: "avery.example@example.test", phone: "", note: "Neighbor. I send local businesses to SleepySquid.", status: "pending", archived_at: null }],
   referrals: [
     { id: "c1", referrer_id: "r1", customer_name: "Harbor Cafe", customer_email: "owner.example@example.test", business_line: "webdev", payment_status: "first_invoice_paid" },
     { id: "c2", referrer_id: "r1", customer_name: "Dana Client", customer_email: "dana.example@example.test", business_line: "drones", payment_status: "signed_up" },
+    { id: "c3", referrer_id: "r1", customer_name: "North Pier", customer_email: "pier.example@example.test", business_line: "ai", payment_status: "first_invoice_paid" },
   ],
   payouts: [
     { id: "p1", referral_id: "c1", amount_cents: 20000, status: "pending" },
+    { id: "p2", referral_id: "c3", amount_cents: 20000, status: "approved_awaiting_onboarding" },
   ],
 };
 
@@ -39,6 +81,7 @@ export default function ReferralsSection({ preview = false }) {
   const [data, setData] = useState(preview ? PREVIEW : null);
   const [fresh, setFresh] = useState(preview ? { referrer: PREVIEW.referrers[0], links: PREVIEW.referrers[0].links } : null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
 
   async function load() {
@@ -54,24 +97,30 @@ export default function ReferralsSection({ preview = false }) {
   async function post(action, extra) {
     if (preview) return { ok: true };
     setError("");
-    const response = await fetch("/api/admin/referrals", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, ...extra }),
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) { setError(body.error || "Could not save"); return null; }
-    await load();
-    return body;
+    setBusy(`${action}:${extra?.id || ""}`);
+    try {
+      const response = await fetch("/api/admin/referrals", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(body.error || "Could not save"); return null; }
+      await load();
+      if (body.email?.error) setError(body.email.error);
+      else if (body.email?.sent && body.email.recorded === false) setError("Email sent. The sent date could not be saved.");
+      return body;
+    } finally {
+      setBusy("");
+    }
   }
 
   const requests = (data?.requests || []).filter((row) => !row.archived_at && row.status === "pending");
   return <div className="space-y-8" data-testid="referrals-section">
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Referrals</h1>
-      <p className="text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A $200 fee is pending after the first eligible payment. Approving a payout sends money only with a Stripe test key.</p>
-      {data && !data.testMode && <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Transfers stay off until STRIPE_SECRET_KEY or STRIPE_HUB_SECRET_KEY is a test key.</p>}
+      <p className="text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A referrer earns $200 on a referred customer's first eligible payment. Payouts are manual. Approve here, then pay them yourself.</p>
     </div>
     {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
     <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -118,23 +167,34 @@ export default function ReferralsSection({ preview = false }) {
       {(data?.referrers || []).filter((row) => !row.archived_at).map((row) => {
         const customers = (data.referrals || []).filter((item) => item.referrer_id === row.id);
         const fees = (data.payouts || []).filter((item) => customers.some((customer) => customer.id === item.referral_id) && item.status !== "void");
-        const pending = fees.filter((item) => item.status === "pending" || item.status === "approved_awaiting_onboarding").reduce((sum, item) => sum + item.amount_cents, 0);
+        const toPay = fees.filter((item) => item.status === "pending" || item.status === "approved_awaiting_onboarding").reduce((sum, item) => sum + item.amount_cents, 0);
         const paid = fees.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.amount_cents, 0);
+        const emailed = emailedOn(row.link_email_sent_at);
         return <article key={row.id} className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">{row.name} · {row.code}</h3>
-              <p className="text-sm text-gray-600">{row.email} · {row.active === false ? "Inactive" : "Active"} · {money(pending)} pending · {money(paid)} paid</p>
+              <p className="text-sm text-gray-600">{row.email || "No email"} · {row.active === false ? "Inactive" : "Active"} · {money(toPay)} to pay · {money(paid)} paid</p>
+              <p className="text-sm" data-testid="referrer-email-state">
+                {emailed ? <span className="text-gray-600">Emailed {emailed}</span> : null}
+                {row.link_email_error ? <span className="text-red-700" role="alert">{emailed ? " · Email failed" : "Email failed"}</span> : null}
+                {!emailed && !row.link_email_error ? <span className="text-gray-500">Not emailed yet</span> : null}
+              </p>
             </div>
-            <button type="button" className="rounded-md border px-3 py-1 text-sm" onClick={() => post(row.active === false ? "reactivate" : "deactivate", { id: row.id })}>{row.active === false ? "Reactivate" : "Deactivate"}</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="rounded-md border px-3 py-1 text-sm disabled:opacity-50" data-testid="resend-link-email" disabled={!String(row.email || "").trim() || busy === `resend-link:${row.id}`} onClick={() => post("resend-link", { id: row.id })}>Resend link email</button>
+              <button type="button" className="rounded-md border px-3 py-1 text-sm" onClick={() => post(row.active === false ? "reactivate" : "deactivate", { id: row.id })}>{row.active === false ? "Reactivate" : "Deactivate"}</button>
+            </div>
           </div>
           <ul className="mt-3 space-y-1 text-sm">
             {customers.map((customer) => {
               const payout = fees.find((item) => item.referral_id === customer.id);
-              return <li key={customer.id} className="flex justify-between gap-3 border-t border-gray-100 py-2">
-                <span>{customer.customer_name || customer.customer_email} · {customer.business_line}</span>
-                <span>{payout ? `${money(payout.amount_cents)} ${payout.status === "paid" ? "paid" : "pending"}` : customer.payment_status}</span>
-                {payout?.status === "pending" && <button type="button" className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white" onClick={() => post("approve-payout", { id: payout.id })}>Approve payout</button>}
+              return <li key={customer.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 py-2">
+                <span>{customer.customer_name || customer.customer_email}{lineName(customer.business_line) ? ` · ${lineName(customer.business_line)}` : ""}</span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <span data-testid="payout-state">{payout ? payoutState(payout) : customerState(customer)}</span>
+                  {payout?.status === "pending" && <button type="button" className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white" onClick={() => post("approve-payout", { id: payout.id })}>Mark approved</button>}
+                </span>
               </li>;
             })}
             {!customers.length && <li className="text-gray-500">No referred customers yet.</li>}
