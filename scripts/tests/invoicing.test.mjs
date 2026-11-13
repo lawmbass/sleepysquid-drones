@@ -253,7 +253,7 @@ test("Invoices section is wired for SleepySquid admins only and the modal panel 
   const roles = read("libs/userRoles.js");
   const block = roles.slice(roles.indexOf("if (isSleepySquidAdmin) {"), roles.indexOf("return adminNav;"));
   assert.match(block, /name: 'Invoices', href: '\/dashboard\?section=invoices'/);
-  assert.match(read("pages/dashboard.js"), /'invoices'\]/);
+  assert.match(read("pages/dashboard.js"), /'invoices', 'referrals'\]/);
   const admin = read("components/dashboard/AdminContent.jsx");
   assert.match(admin, /case 'invoices':\s*\n\s*if \(!isSleepySquidAdmin\)/);
   assert.doesNotMatch(read("components/admin/UserModal.jsx"), /ClientInvoices/);

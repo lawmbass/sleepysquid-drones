@@ -2,7 +2,10 @@ import { verifyRecaptcha } from "@/libs/recaptcha";
 import { bookingAddressError, resolveUsBookingAddress } from "@/libs/bookingAddress";
 import { estimatedPriceForPackage } from "@/libs/manualBooking";
 import { findSameDayBooking, insertBooking } from "@/libs/db/bookings";
-import { findUserByEmail } from "@/libs/db/users";
+import { findUserByEmail, patchUser } from "@/libs/db/users";
+import { saveStripeCustomerId } from "@/libs/db/invoices";
+import { preferencesWithReferral, referralCodeFromRequest, referralCodeOrNull } from "@/libs/referrals.mjs";
+import { stampReferralCustomer } from "@/libs/invoicing/stripeInvoices.mjs";
 import { calculateDiscountedPrice, getActivePromo } from "@/libs/db/promos";
 import { isUniqueViolation } from "@/libs/db/shared";
 import { bookingRateLimit } from "@/libs/rateLimit";
@@ -220,6 +223,8 @@ export default async function handler(req, res) {
       });
     }
 
+    const referrerCode = referralCodeFromRequest(req);
+
     console.log('Saving booking to database for:', sanitizedData.email);
     const savedBooking = await insertBooking({
       source: 'customer',
@@ -242,6 +247,32 @@ export default async function handler(req, res) {
 
     const existingUser = await findUserByEmail(sanitizedData.email.toLowerCase());
     const hasAccount = !!existingUser;
+
+    if (referrerCode) {
+      let stamped = { applied: false };
+      try {
+        stamped = await stampReferralCustomer({
+          email: sanitizedData.email,
+          name: sanitizedData.name,
+          referrerCode,
+          stripeCustomerId: existingUser?.stripeCustomerId || null,
+        });
+      } catch (referralError) {
+        console.error("Referral customer stamp failed:", referralError?.message);
+      }
+      try {
+        if (existingUser && !referralCodeOrNull(existingUser.preferences?.referrerCode)) {
+          await patchUser(existingUser.id, {
+            preferences: preferencesWithReferral(existingUser.preferences, referrerCode),
+          });
+        }
+        if (stamped.applied && stamped.customerId && existingUser && !existingUser.stripeCustomerId) {
+          await saveStripeCustomerId(existingUser.id, stamped.customerId);
+        }
+      } catch (referralError) {
+        console.error("Referral save failed:", referralError?.message);
+      }
+    }
 
     // Send confirmation email based on user preferences
     let emailSent = false;

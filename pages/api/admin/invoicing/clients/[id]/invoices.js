@@ -6,6 +6,7 @@ import { getInvoiceableRecipient, getRecipient } from "@/libs/invoicing/recipien
 import { listInvoicesForClient, updateClient } from "@/libs/db/clients";
 import { parseRecipientRef } from "@/libs/invoicing/ui.mjs";
 import { getClientBasic, insertInvoice, schemaProbes, listInvoicesForUser, listInvoicesForAiClient, listInvoicesForEmail, saveStripeCustomerId, writeAudit } from "@/libs/db/invoices";
+import { referralCodeFromRequest, referralCodeOrNull } from "@/libs/referrals.mjs";
 
 export default async function handler(req, res) {
   const session = await requireAdmin(req, res, ["GET", "POST"]);
@@ -51,12 +52,17 @@ export default async function handler(req, res) {
     let customerId;
     const recipientName = client.kind === "email" ? String(req.body?.recipientName || "").trim().slice(0, 120) || null : null;
     if (client.kind === "email") client.name = recipientName;
+    const referrerCode = referralCodeOrNull(client.referrerCode) || referralCodeFromRequest(req);
     if (client.kind === "client") {
-      customerId = client.stripeCustomerId || await ensureCustomerByEmail(stripe, { email: client.email, name: client.company, clientId: client.clientId });
-      if (customerId !== client.stripeCustomerId) await updateClient(client.clientId, { stripe_customer_id: customerId });
-    } else if (client.kind !== "user") customerId = await ensureCustomerByEmail(stripe, { email: client.email, name: client.name, aiClientId: client.aiClientId });
+      if (client.stripeCustomerId && referrerCode) {
+        customerId = await ensureCustomer(stripe, { id: client.clientId, email: client.email, name: client.company || client.name, stripeCustomerId: client.stripeCustomerId, referrerCode });
+      } else {
+        customerId = client.stripeCustomerId || await ensureCustomerByEmail(stripe, { email: client.email, name: client.company, clientId: client.clientId, referrerCode });
+        if (customerId !== client.stripeCustomerId) await updateClient(client.clientId, { stripe_customer_id: customerId });
+      }
+    } else if (client.kind !== "user") customerId = await ensureCustomerByEmail(stripe, { email: client.email, name: client.name, aiClientId: client.aiClientId, referrerCode });
     else {
-      customerId = await ensureCustomer(stripe, client);
+      customerId = await ensureCustomer(stripe, { ...client, referrerCode });
       if (customerId !== client.stripeCustomerId) await saveStripeCustomerId(client.userId, customerId);
     }
     const inv = await createDraftInvoice(stripe, { customerId, user: client, draft: parsed.value, requestId });

@@ -5,6 +5,7 @@ import config from "@/config";
 import { findUserByEmail } from "@/libs/db/users";
 import { findRecentAcceptedInvitation } from "@/libs/db/invitations";
 import { upsertGoogleUser } from "@/libs/auth/oauthUser";
+import { currentReferralCode } from "@/libs/referralContext.mjs";
 import { ensureAdminRole } from "@/libs/auth/adminRole";
 import { safeActiveClientIds } from "@/libs/aiPortal/db";
 import { consumeLoginToken } from "@/libs/aiPortal/emailLink";
@@ -112,6 +113,7 @@ export const authOptions = {
             name: profile.given_name || profile.name,
             image: profile.picture,
             providerAccountId: account.providerAccountId || profile.sub,
+            referrerCode: currentReferralCode(),
           });
           return true;
         } catch (error) {

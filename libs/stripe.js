@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { applyReferralToCheckoutCustomer } from "./referrals.mjs";
 
 // This is used to create a Stripe Checkout for one-time payments. It's usually triggered with the <ButtonCheckout /> component. Webhooks are used to update the user's state in the database.
 export const createCheckout = async ({
@@ -9,12 +10,25 @@ export const createCheckout = async ({
   couponId,
   clientReferenceId,
   user,
+  referrerCode,
+  stripe: stripeClient,
 }) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = stripeClient || new Stripe(process.env.STRIPE_SECRET_KEY);
 
   const extraParams = {};
+  const attached = await applyReferralToCheckoutCustomer(stripe, { user, referrerCode });
 
-  if (user?.customerId) {
+  if (attached?.customerId) {
+    extraParams.customer = attached.customerId;
+    if (attached.created) {
+      if (mode === "payment") {
+        extraParams.invoice_creation = { enabled: true };
+        extraParams.payment_intent_data = { setup_future_usage: "on_session" };
+      }
+      extraParams.tax_id_collection = { enabled: true };
+      extraParams.customer_update = { name: "auto", address: "auto" };
+    }
+  } else if (user?.customerId) {
     extraParams.customer = user.customerId;
   } else {
     if (mode === "payment") {

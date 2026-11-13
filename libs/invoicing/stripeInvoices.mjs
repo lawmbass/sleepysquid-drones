@@ -5,6 +5,7 @@
  * The Stripe API version is pinned so `price` / `price_data` on invoice items behave predictably.
  */
 import { INVOICE_SOURCE, buildCatalog, idempotencyKey, keyMode, writesAllowed } from "./core.mjs";
+import { metadataPatchForReferrer, referralCodeFromRequest, referralCodeOrNull } from "../referrals.mjs";
 
 const API = "https://api.stripe.com/v1";
 export const STRIPE_VERSION = "2024-06-20";
@@ -74,15 +75,44 @@ export async function loadCatalog(client) {
   return buildCatalog(products, prices);
 }
 
+/**
+ * Set metadata.referrer_code when it is empty. Sends only that key so Stripe
+ * merges it and leaves every other metadata key in place. No-op when the code
+ * is missing or the customer already has one.
+ */
+export async function stampReferrer(client, customer, referrerCode) {
+  const code = referralCodeOrNull(referrerCode);
+  if (!code || !customer?.id || customer.deleted) return customer;
+  let full = customer;
+  if (full.metadata == null) {
+    full = await client.call("GET", `/customers/${encodeURIComponent(customer.id)}`);
+  }
+  if (!full || full.deleted) return full;
+  const patch = metadataPatchForReferrer(full.metadata, code);
+  if (!patch) return full;
+  return client.call("POST", `/customers/${encodeURIComponent(full.id)}`, { metadata: patch }, {
+    idempotency: idempotencyKey("referrer", full.id, code),
+  });
+}
+
+function metadataWithReferrer(metadata, referrerCode) {
+  const patch = metadataPatchForReferrer(metadata, referrerCode);
+  return patch ? { ...metadata, ...patch } : metadata;
+}
+
 /** Reuse the saved customer, or create one (idempotent per user). Never touches non-hub customers. */
 export async function ensureCustomer(client, user) {
+  const referrerCode = user.referrerCode;
   if (user.stripeCustomerId) {
     const c = await client.call("GET", `/customers/${encodeURIComponent(user.stripeCustomerId)}`);
-    if (!c.deleted) return c.id;
+    if (!c.deleted) {
+      await stampReferrer(client, c, referrerCode);
+      return c.id;
+    }
   }
   const c = await client.call("POST", "/customers", {
     email: user.email, name: user.name || user.company || undefined,
-    metadata: { source: INVOICE_SOURCE, hub_user_id: user.id },
+    metadata: metadataWithReferrer({ source: INVOICE_SOURCE, hub_user_id: user.id }, referrerCode),
   }, { idempotency: idempotencyKey("customer", user.id, client.mode) });
   return c.id;
 }
@@ -91,17 +121,42 @@ export async function ensureCustomer(client, user) {
  * Stripe Customer for an AI client (no hub user row to cache the id on): reuse an existing
  * customer with the same email, else create one with email + name. Never touches Products/Prices.
  */
-export async function ensureCustomerByEmail(client, { email, name, aiClientId, clientId }) {
+export async function ensureCustomerByEmail(client, { email, name, aiClientId, clientId, referrerCode }) {
   const e = String(email || "").trim().toLowerCase();
   if (!e) throw new InvoicingError("Client has no email", { status: 400 });
   const found = await client.call("GET", "/customers", { email: e, limit: 10 });
   const hit = (found?.data || []).find((c) => !c.deleted);
-  if (hit) return hit.id;
+  if (hit) {
+    await stampReferrer(client, hit, referrerCode);
+    return hit.id;
+  }
   const c = await client.call("POST", "/customers", {
     email: e, name: name || undefined,
-    metadata: { source: INVOICE_SOURCE, ...(clientId ? { client_id: clientId } : aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) },
+    metadata: metadataWithReferrer({ source: INVOICE_SOURCE, ...(clientId ? { client_id: clientId } : aiClientId ? { ai_client_id: aiClientId } : { one_time: "1" }) }, referrerCode),
   }, { idempotency: idempotencyKey(clientId ? "customer-client" : aiClientId ? "customer-ai" : "customer-email", clientId || aiClientId || e, client.mode) });
   return c.id;
+}
+
+/**
+ * Signup and booking call this with the code from the ss_ref cookie (or a posted ref).
+ * Writes only when invoicing writes are allowed (test key, or live key with the live flag).
+ * A missing key or a live key without that flag makes no Stripe call. Failures are the caller's to catch.
+ */
+export async function stampReferralCustomer({ email, name, referrerCode, stripeCustomerId, env = process.env, fetchImpl } = {}) {
+  const code = referralCodeOrNull(referrerCode);
+  if (!code) return { applied: false, reason: "no_code" };
+  if (!invoicingWritesAllowed(env)) return { applied: false, reason: "writes_disabled" };
+  const client = createStripeClient({ env, fetchImpl });
+  if (stripeCustomerId) {
+    const customerId = await ensureCustomer(client, { id: stripeCustomerId, email, name, stripeCustomerId, referrerCode: code });
+    return { applied: true, customerId, referrerCode: code };
+  }
+  const customerId = await ensureCustomerByEmail(client, { email, name, referrerCode: code });
+  return { applied: true, customerId, referrerCode: code };
+}
+
+export async function stampReferralFromRequest(req, fields = {}) {
+  return stampReferralCustomer({ ...fields, referrerCode: fields.referrerCode || referralCodeFromRequest(req) });
 }
 
 /** Create a DRAFT invoice + invoice items. auto_advance=false so nothing is sent until an admin clicks Send. */

@@ -30,6 +30,7 @@ export function mapUser(row, { includeSecrets = false } = {}) {
     image: row.image,
     role: row.role || "client",
     customerId: row.customer_id,
+    stripeCustomerId: row.stripe_customer_id || null,
     priceId: row.price_id,
     hasAccess: row.has_access || false,
     phone: row.phone,
