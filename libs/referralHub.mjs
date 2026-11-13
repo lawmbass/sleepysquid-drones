@@ -331,10 +331,16 @@ export async function listAdmin(db) {
   return { referrers, requests, referrals, payouts };
 }
 
-export async function approvePayout(db, { payoutId, stripeTransfer, testMode }) {
+export async function approvePayout(db, { payoutId, stripeTransfer, connectConfigured }) {
   const rows = await db(`portal_referral_payouts?id=eq.${enc(payoutId)}&select=*`);
   const payout = rows?.[0];
-  if (!payout || payout.status === "void" || payout.status === "paid") {
+  if (!payout || payout.status === "void") {
+    const err = new Error("Payout cannot be approved");
+    err.status = 409;
+    throw err;
+  }
+  if (payout.stripe_transfer_id) return { transferred: false, status: "paid", transferId: payout.stripe_transfer_id, already: true };
+  if (payout.status === "paid") {
     const err = new Error("Payout cannot be approved");
     err.status = 409;
     throw err;
@@ -344,25 +350,33 @@ export async function approvePayout(db, { payoutId, stripeTransfer, testMode }) 
   const referrers = referral ? await db(`portal_referrers?id=eq.${enc(referral.referrer_id)}&select=*`) : [];
   const referrer = referrers?.[0];
   const now = new Date().toISOString();
-  if (!testMode || !referrer?.stripe_account_id || !referrer.payouts_enabled) {
+  const ready = !!connectConfigured && referrer?.stripe_account_id && referrer.payouts_enabled;
+  if (!ready) {
     await db(`portal_referral_payouts?id=eq.${enc(payoutId)}`, {
       method: "PATCH",
-      body: { status: "approved_awaiting_onboarding", approved_at: now, note: testMode ? "Waiting for a test connected account" : "Live Stripe keys cannot send a transfer" },
+      body: { status: "approved_awaiting_onboarding", approved_at: now, note: null },
       prefer: "return=minimal",
     });
-    return { transferred: false, status: "approved_awaiting_onboarding" };
+    return { transferred: false, status: "approved_awaiting_onboarding", manual: true };
   }
-  if (payout.stripe_transfer_id) return { transferred: false, status: "paid", transferId: payout.stripe_transfer_id };
-  const transfer = await stripeTransfer({
-    amount: FEE_CENTS,
-    currency: "usd",
-    destination: referrer.stripe_account_id,
-    metadata: { payout_id: payout.id },
-  }, `referral_payout_${payout.id}`);
+  const amount = Number(payout.amount_cents) || FEE_CENTS;
+  let transfer;
+  try {
+    transfer = await stripeTransfer({
+      amount,
+      currency: "usd",
+      destination: referrer.stripe_account_id,
+      metadata: { referral_id: referral.id, payout_id: payout.id },
+    }, `referral_${referral.id}`);
+  } catch {
+    const err = new Error("Could not send the payout");
+    err.status = 502;
+    throw err;
+  }
   await db(`portal_referral_payouts?id=eq.${enc(payoutId)}`, {
     method: "PATCH",
-    body: { status: "paid", stripe_transfer_id: transfer.id, approved_at: now, paid_at: now, note: null },
+    body: { status: "paid", stripe_transfer_id: transfer.id, approved_at: payout.approved_at || now, paid_at: now, note: null },
     prefer: "return=minimal",
   });
-  return { transferred: true, status: "paid", transferId: transfer.id };
+  return { transferred: true, status: "paid", transferId: transfer.id, amount, paidAt: now };
 }
