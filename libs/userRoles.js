@@ -291,6 +291,7 @@ export const userRoles = {
           adminNav.splice(3, 0, { name: 'Team', href: '/dashboard?section=team', icon: 'FiUsers' });
           adminNav.splice(4, 0, { name: 'Clients', href: '/dashboard?section=clients', icon: 'FiBriefcase' });
           adminNav.splice(5, 0, { name: 'Invoices', href: '/dashboard?section=invoices', icon: 'FiFileText' });
+          adminNav.splice(6, 0, { name: 'Referrals', href: '/dashboard?section=referrals', icon: 'FiPercent' });
         }
         
         return adminNav;
