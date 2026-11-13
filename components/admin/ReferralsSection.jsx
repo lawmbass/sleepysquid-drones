@@ -120,7 +120,7 @@ export default function ReferralsSection({ preview = false }) {
   return <div className="space-y-8" data-testid="referrals-section">
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Referrals</h1>
-      <p className="text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A referrer earns $200 on a referred customer's first eligible payment. Payouts are manual. Approve here, then pay them yourself.</p>
+      <p className="text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A referrer earns $200 on the first eligible payment from someone they refer. Payouts are manual. Approve here, then pay them yourself.</p>
     </div>
     {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
     <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
