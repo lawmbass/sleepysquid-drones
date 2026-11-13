@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { applyReferralToCheckoutCustomer } from "./referrals.mjs";
+import { referralCouponId, referralDiscountDecision, referralDiscountPercent } from "./referralDiscount.mjs";
 
 // This is used to create a Stripe Checkout for one-time payments. It's usually triggered with the <ButtonCheckout /> component. Webhooks are used to update the user's state in the database.
 export const createCheckout = async ({
@@ -11,6 +12,7 @@ export const createCheckout = async ({
   clientReferenceId,
   user,
   referrerCode,
+  referrerEmail,
   stripe: stripeClient,
 }) => {
   const stripe = stripeClient || new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -42,27 +44,23 @@ export const createCheckout = async ({
     extraParams.tax_id_collection = { enabled: true };
   }
 
-  const stripeSession = await stripe.checkout.sessions.create({
+  const decision = referralDiscountDecision({
+    couponId: couponId || (referrerCode && referrerEmail ? referralCouponId() : ""),
+    percent: referralDiscountPercent(),
+    referrerEmail,
+    customerEmail: user?.email,
+  });
+  const sessionParams = {
     mode,
-    allow_promotion_codes: true,
     client_reference_id: clientReferenceId,
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    discounts: couponId
-      ? [
-          {
-            coupon: couponId,
-          },
-        ]
-      : [],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
     ...extraParams,
-  });
+  };
+  if (decision.apply) sessionParams.discounts = [{ coupon: decision.couponId }];
+  else sessionParams.allow_promotion_codes = true;
+  const stripeSession = await stripe.checkout.sessions.create(sessionParams);
 
   return stripeSession.url;
 };
