@@ -3,12 +3,13 @@ import Head from "next/head";
 import ReferralsSection from "@/components/admin/ReferralsSection";
 import { previewPageAllowed } from "@/libs/gigSources";
 
-export async function getServerSideProps() {
+export async function getServerSideProps(context) {
   if (!previewPageAllowed()) return { notFound: true };
-  return { props: {} };
+  const state = context.query.state === "empty" ? "empty" : "ready";
+  return { props: { state, confirmOpen: context.query.confirm === "1" } };
 }
 
-export default function ReferralsPreview() {
+export default function ReferralsPreview({ state, confirmOpen }) {
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
@@ -21,7 +22,7 @@ export default function ReferralsPreview() {
       </Head>
       <div className="min-h-screen bg-gray-50 text-gray-900">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8">
-          <ReferralsSection preview />
+          <ReferralsSection preview state={state} confirmOpen={confirmOpen} />
         </div>
       </div>
     </>

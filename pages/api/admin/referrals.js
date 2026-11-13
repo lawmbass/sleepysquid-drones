@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/next-auth";
 import { adminConfig } from "@/libs/adminConfig";
 import { db, portalConfigured } from "@/libs/aiPortal/db";
-import { stripeWritesAllowed } from "@/libs/hub/stripe";
 import { sendEmail } from "@/libs/mailgun";
 import { runReferralAdmin } from "@/libs/referralAdmin.mjs";
 
@@ -11,7 +10,7 @@ function sleepyAdmin(email) {
 }
 
 async function stripeTransfer(params, idempotencyKey) {
-  const key = process.env.STRIPE_HUB_SECRET_KEY || process.env.STRIPE_SECRET_KEY || "";
+  const key = process.env.STRIPE_CONNECT_SECRET_KEY || "";
   const body = new URLSearchParams();
   body.set("amount", String(params.amount));
   body.set("currency", params.currency);
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
       secret: process.env.REFERRAL_TOKEN_SECRET || "",
       send: sendEmail,
       replyTo: "support@sleepysquid.com",
-      testMode: stripeWritesAllowed(),
+      connectConfigured: Boolean(process.env.STRIPE_CONNECT_SECRET_KEY),
       stripeTransfer,
     });
     return res.status(result.status).json(result.body);

@@ -23,7 +23,9 @@ export function referrerLinks(referrer, origin, secret) {
   const base = String(origin || "https://sleepysquid.com").replace(/\/$/, "");
   const links = shareLinks(referrer?.code, base);
   const token = signReferrerToken(referrer?.id, secret);
-  return { ...links, home: token ? `${base}/referrals/you/${token}` : "" };
+  const home = token ? `${base}/referrals/you/${token}` : "";
+  const payouts = token ? `${base}/api/referrals/payouts?token=${encodeURIComponent(token)}` : "";
+  return { ...links, home, payouts };
 }
 
 function linkBlock(label, href) {
@@ -44,10 +46,11 @@ export function buildReferrerLinkEmail({ name, links }) {
     ["AI", links?.ai],
   ].filter(([, href]) => href);
 
+  const button = (href, label, fill) => `<a href="${esc(href)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;border-radius:999px;background:${fill ? C.brand : "#ffffff"};color:${fill ? "#ffffff" : C.deep};border:2px solid ${C.brand};font-size:15px;font-weight:700;text-decoration:none;">${esc(label)}</a>`;
   const privateBlock = home
     ? `<p style="margin:22px 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:${C.deep};font-weight:700;">Your private page</p>
-       <p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:${C.body};">This page is only for you. Keep this page link private.</p>
-       <p style="margin:0;font-size:14px;line-height:1.45;word-break:break-all;"><a href="${esc(home)}" style="color:${C.brand};text-decoration:underline;">${esc(home)}</a></p>`
+       <p style="margin:0 0 12px;font-size:15px;line-height:1.5;color:${C.body};">This page is only for you. Keep this page link private.</p>
+       <p style="margin:0;">${button(home, "Open your page", true)}${links?.payouts ? button(links.payouts, "Set up payouts", false) : ""}</p>`
     : "";
 
   const html = `<!doctype html>
@@ -89,7 +92,8 @@ SleepySquid · <a href="https://sleepysquid.com" style="color:${C.brand};text-de
     ...share.map(([label, href]) => `${label}: ${href}`),
     home ? "" : null,
     home ? "Your private page (keep this page link private):" : null,
-    home || null,
+    home ? `Open your page: ${home}` : null,
+    links?.payouts ? `Set up payouts: ${links.payouts}` : null,
     "",
     "SleepySquid",
     "https://sleepysquid.com",

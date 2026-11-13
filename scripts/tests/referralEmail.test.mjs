@@ -71,11 +71,17 @@ function assertReferralCopy(message, links) {
   assert.equal(message.from, undefined);
   assert.equal(message.replyTo, "support@sleepysquid.com");
   assert.match(message.to, /@example\.test$/);
-  for (const href of [links.hub, links.web, links.drones, links.ai, links.home]) {
+  for (const href of [links.hub, links.web, links.drones, links.ai]) {
     assert.ok(message.html.includes(href), href);
     assert.ok(message.text.includes(href), href);
   }
+  assert.match(message.html, /Open your page/);
+  assert.match(message.html, /Set up payouts/);
+  assert.ok(message.html.includes(links.home));
+  assert.ok(message.html.includes(links.payouts));
+  assert.equal(message.html.replace(/href="[^"]*"/g, "").includes("/referrals/you/"), false);
   assert.match(message.html, /Keep this page link private/);
+  assert.match(message.text, /Open your page/);
   assert.match(message.text, /keep this page link private/i);
   assert.match(message.html, /no cap/i);
   assert.deepEqual(message.html.match(/\$\d[\d,]*/g), ["$200"]);
@@ -217,7 +223,12 @@ test("the referrals list has a resend button and the migration only adds columns
   assert.match(ui, /Payouts are manual\. Approve here, then pay them yourself\./);
   assert.match(ui, />Mark approved</);
   assert.match(ui, /Approved, pay manually/);
-  assert.doesNotMatch(ui, /STRIPE_|test key|\bConnect\b|transfer/i);
+  assert.match(ui, /Active referrers/);
+  assert.match(ui, /Their page/);
+  assert.match(ui, /Copied/);
+  assert.match(ui, /Send \{money\(confirmPayout\.amount\)\} to \{confirmPayout\.name\}\?/);
+  assert.match(ui, /Paid via Stripe/);
+  assert.doesNotMatch(ui, /STRIPE_|test key|Transfers stay/);
   const route = read("pages/api/admin/referrals.js");
   assert.match(route, /runReferralAdmin/);
   assert.match(route, /send: sendEmail/);

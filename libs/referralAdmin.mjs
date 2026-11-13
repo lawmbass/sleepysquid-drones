@@ -34,7 +34,7 @@ async function mailed(db, referrer, opts) {
 }
 
 export async function runReferralAdmin(db, opts) {
-  const { method, body = {}, origin, secret, send, replyTo, now, testMode, stripeTransfer } = opts || {};
+  const { method, body = {}, origin, secret, send, replyTo, now, testMode, connectConfigured, stripeTransfer } = opts || {};
   const mail = { origin, secret, send, replyTo, now };
   if (method === "GET") {
     const data = await listAdmin(db);
@@ -69,7 +69,7 @@ export async function runReferralAdmin(db, opts) {
   if (action === "deactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, false) } };
   if (action === "reactivate") return { status: 200, body: { referrer: await setReferrerActive(db, body.id, true) } };
   if (action === "approve-payout") {
-    const result = await approvePayout(db, { payoutId: body.id, stripeTransfer, testMode: !!testMode });
+    const result = await approvePayout(db, { payoutId: body.id, stripeTransfer, connectConfigured: !!connectConfigured });
     return { status: 200, body: result };
   }
   return { status: 400, body: { error: "Unknown action" } };
