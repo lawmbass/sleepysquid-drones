@@ -170,7 +170,7 @@ export default function ReferralsSection({ preview = false, state = "ready", con
   return <div className="min-w-0 space-y-6 overflow-x-hidden" data-testid="referrals-section">
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Referrals</h1>
-      <p className="mt-1 max-w-3xl text-sm text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A referrer earns $200 on the first eligible payment from someone they refer. Payouts are manual. Approve here, then pay them yourself.</p>
+      <p className="mt-1 max-w-3xl text-sm text-gray-600 dark:text-gray-300">One code works for websites, drones, and AI. A referrer earns $200 on the first eligible payment from someone they refer. {data?.connectConfigured ? "Mark approved sends $200 to referrers who have set up payouts. Others you pay yourself." : "Payouts are manual. Approve here, then pay them yourself."}</p>
     </div>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Stat label="Active referrers" value={String(activeCount)} />

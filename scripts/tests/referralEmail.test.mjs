@@ -221,6 +221,8 @@ test("the referrals list has a resend button and the migration only adds columns
   assert.match(ui, /disabled=\{!String\(row\.email \|\| ""\)\.trim\(\)/);
   assert.match(ui, /Mike Example/);
   assert.match(ui, /Payouts are manual\. Approve here, then pay them yourself\./);
+  assert.match(ui, /Mark approved sends \$200 to referrers who have set up payouts\. Others you pay yourself\./);
+  assert.match(ui, /data\?\.connectConfigured/);
   assert.match(ui, />Mark approved</);
   assert.match(ui, /Approved, pay manually/);
   assert.match(ui, /Active referrers/);

@@ -113,5 +113,7 @@ test("the admin action passes the connect flag and does not transfer on its own"
   });
   assert.equal(result.status, 200);
   assert.equal(result.body.transferred, true);
+  const listed = await runReferralAdmin(db, { method: "GET", connectConfigured: true });
+  assert.equal(listed.body.connectConfigured, true);
   assert.equal(calls[0], `referral_${payout.referral_id}`);
 });

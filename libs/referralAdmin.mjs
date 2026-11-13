@@ -34,12 +34,12 @@ async function mailed(db, referrer, opts) {
 }
 
 export async function runReferralAdmin(db, opts) {
-  const { method, body = {}, origin, secret, send, replyTo, now, testMode, connectConfigured, stripeTransfer } = opts || {};
+  const { method, body = {}, origin, secret, send, replyTo, now, connectConfigured, stripeTransfer } = opts || {};
   const mail = { origin, secret, send, replyTo, now };
   if (method === "GET") {
     const data = await listAdmin(db);
     const referrers = (data.referrers || []).map((row) => ({ ...row, links: referrerLinks(row, origin, secret) }));
-    return { status: 200, body: { ...data, referrers, testMode: !!testMode } };
+    return { status: 200, body: { ...data, referrers, connectConfigured: !!connectConfigured } };
   }
   if (method !== "POST") return { status: 405, body: { error: "Method not allowed" } };
   const action = body.action;
