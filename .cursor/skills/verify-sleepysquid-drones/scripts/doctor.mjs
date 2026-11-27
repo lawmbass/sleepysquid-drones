@@ -100,7 +100,9 @@ if (base) {
   const home = await get("/");
   if (home.status !== 200) fail(`GET / returned ${home.status}`);
   for (const needle of [
-    "Elevate Your Perspective with SleepySquid Drones",
+    "Drone Photography &amp; Aerial Video Across Washington, DC, Maryland &amp; Virginia",
+    "Flyable Maryland &amp; Virginia suburbs",
+    "authorized operations in Washington, DC",
     "Listing Photos",
     "Listing Photos + Video",
     "Event Aerials",
@@ -120,6 +122,35 @@ if (base) {
     if (!home.text.includes(needle)) fail(`homepage is missing ${needle}`);
   }
   notes.push("GET / 200 with pricing and booking form");
+  if (home.text.includes("aggregateRating") || home.text.includes("streetAddress")) {
+    fail("homepage JSON-LD publishes aggregateRating or streetAddress");
+  }
+
+  const publicPages = [
+    ["/robots.txt", ["Allow: /", "Disallow: /admin", "Disallow: /api", "Sitemap: https://drones.sleepysquid.com/sitemap.xml"]],
+    ["/sitemap.xml", [
+      "https://drones.sleepysquid.com/services/real-estate-drone-photography",
+      "https://drones.sleepysquid.com/services/roof-property-condition",
+      "https://drones.sleepysquid.com/services/construction-progress",
+      "https://drones.sleepysquid.com/services/event-aerials",
+      "https://drones.sleepysquid.com/services/mapping-3d",
+      "https://drones.sleepysquid.com/dc-frz-airspace",
+    ]],
+    ["/services/real-estate-drone-photography", ["Listing Photos", "$199", "$399", "Best for listings", "48-hour delivery", "Burtonsville, MD"]],
+    ["/services/roof-property-condition", ["$249", "not a licensed roof inspection", "no towers, power lines"]],
+    ["/services/construction-progress", ["$350/visit", "$650/mo", "$1,200/mo", "Dated download folder within 48 hours"]],
+    ["/services/event-aerials", ["From $500"]],
+    ["/services/mapping-3d", ["From $900"]],
+    ["/dc-frz-airspace", ["Flight Restricted Zone", "Special Flight Rules Area", "does not offer same-day flights inside the FRZ"]],
+  ];
+  for (const [pathname, needles] of publicPages) {
+    const page = await get(pathname);
+    if (page.status !== 200) fail(`GET ${pathname} returned ${page.status}`);
+    for (const needle of needles) {
+      if (!page.text.includes(needle)) fail(`${pathname} is missing ${needle}`);
+    }
+    notes.push(`GET ${pathname} 200`);
+  }
 
   const health = await get("/api/health/database");
   let healthBody = {};

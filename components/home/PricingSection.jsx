@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCheck, FiGift } from 'react-icons/fi';
@@ -18,6 +19,7 @@ const pricingPlans = [
       '48-hour delivery',
     ],
     quote: false,
+    pageHref: '/services/real-estate-drone-photography',
   },
   {
     id: 'listing-video',
@@ -32,6 +34,7 @@ const pricingPlans = [
     ],
     quote: false,
     badge: 'Best for listings',
+    pageHref: '/services/real-estate-drone-photography',
   },
   {
     id: 'event-aerials',
@@ -44,6 +47,7 @@ const pricingPlans = [
       'Priced by event',
     ],
     quote: true,
+    pageHref: '/services/event-aerials',
   },
   {
     id: 'mapping-3d',
@@ -55,6 +59,7 @@ const pricingPlans = [
       'By quote',
     ],
     quote: true,
+    pageHref: '/services/mapping-3d',
   },
   {
     id: 'roof-property-condition',
@@ -75,6 +80,7 @@ const pricingPlans = [
     ],
     disclaimer: ROOF_DISCLAIMER_LINES,
     quote: false,
+    pageHref: '/services/roof-property-condition',
   },
   {
     id: 'construction-progress',
@@ -94,6 +100,7 @@ const pricingPlans = [
       'Certificate of Insurance ($1M liability) on request',
     ],
     quote: false,
+    pageHref: '/services/construction-progress',
   },
 ];
 
@@ -381,6 +388,11 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
         >
           Book This Package
         </button>
+        {plan.pageHref ? (
+          <Link href={plan.pageHref} className="mt-4 block text-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Service details
+          </Link>
+        ) : null}
       </div>
     </motion.div>
   );

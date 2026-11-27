@@ -9,7 +9,8 @@ Visitor-facing packages and the booking form on `/`.
 - `Book This Package` scrolls to `#booking` and sets `#service` and `#package`.
 - Booking steps: service and package, then `#date`, `#location` (US address autocomplete, which sets `placeId`), `#details`; step 2 is `#name`, `#email`, `#phone`; step 3 would show `Booking Submitted!` and a booking id.
 - Contact form in `#contact` (`Send Message`) emails the team. It stores nothing in the database.
-- Hero copy includes `FAA Part 107 Certified & Insured` and `$1M liability coverage`.
+- Hero copy includes `FAA Part 107 Certified & Insured` and `$1M liability coverage`, and the h1 is `Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`.
+- Dedicated pages linked from the services section, the footer, and each pricing card: `/services/real-estate-drone-photography`, `/services/roof-property-condition`, `/services/construction-progress`, `/services/event-aerials`, `/services/mapping-3d`, and `/dc-frz-airspace`. A book link opens `/?service=<id>&package=<id>#booking`.
 
 ## How to get to it (user POV)
 
@@ -32,5 +33,5 @@ Do not click `Submit Booking` or `Send Message`. Both call routes that write or 
 - `POST /api/bookings` rate-limits, checks reCAPTCHA, inserts into `bookings`, and can send a confirmation. A missing `RESEND_API_KEY` does not skip the Resend HTTP call.
 - With no reCAPTCHA site key the contact form shows `reCAPTCHA is required but not configured` and does not submit. Do not add a site key to get past that.
 - `GET /api/promo/active` runs on load of the banner, pricing, and booking sections. On this empty instance it errors and no promo prices are shown. A 200 from that route means a database answered. Stop.
-- The homepage is still the right app when the hero says `Elevate Your Perspective with SleepySquid Drones`.
+- The homepage is still the right app when the hero says `Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`.
 - `styles/globals.css` sets `scroll-behavior: smooth` on `html`. `scrollIntoView` then animates, and a screenshot taken immediately still shows the old position. Use `window.scrollTo({ top, behavior: "instant" })` or wait until the heading's `getBoundingClientRect().top` is inside the viewport. Pricing cards also stay at opacity 0 until they intersect the viewport.

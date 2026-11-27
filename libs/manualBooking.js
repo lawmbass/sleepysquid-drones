@@ -166,6 +166,25 @@ export function availablePackages() {
   return BOOKING_PACKAGES;
 }
 
+/** Query values from a service-page book link. Unknown ids are dropped. */
+export function publicBookingSelection(query = {}) {
+  const service = typeof query?.service === "string" ? query.service : "";
+  const packageId = typeof query?.package === "string" ? query.package : "";
+  return {
+    service: BOOKING_SERVICES.some((item) => item.id === service) ? service : "",
+    packageId: BOOKING_PACKAGES.some((item) => item.id === packageId) ? packageId : "",
+  };
+}
+
+/** Homepage booking form with a package already selected. */
+export function bookingHref(service, packageId) {
+  const params = new URLSearchParams();
+  if (service) params.set("service", service);
+  if (packageId) params.set("package", packageId);
+  const query = params.toString();
+  return `/${query ? `?${query}` : ""}#booking`;
+}
+
 const PRICE_SUFFIX_BY_BILLING = {
   structure: " per structure",
   visit: "/visit",

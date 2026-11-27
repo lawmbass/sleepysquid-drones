@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { assertLocalSeo } from "./lib/publicSeoRules.mjs";
 
 const root = new URL("..", import.meta.url);
 const files = [
@@ -20,6 +21,15 @@ const files = [
   "config.js",
   "libs/manualBooking.js",
   "README.md",
+  "pages/index.js",
+  "pages/dc-frz-airspace.js",
+  "pages/services/real-estate-drone-photography.js",
+  "pages/services/roof-property-condition.js",
+  "pages/services/construction-progress.js",
+  "pages/services/event-aerials.js",
+  "pages/services/mapping-3d.js",
+  "components/marketing/ServiceArticle.jsx",
+  "libs/publicPages.mjs",
 ];
 
 const banned = [
@@ -172,4 +182,5 @@ for (const id of packageIds) {
 }
 
 assert.equal(fs.existsSync(path.join(root.pathname, "components/home/PricingSection.jsx")), true);
+assertLocalSeo();
 console.log("public copy checks passed");

@@ -45,7 +45,8 @@ node .cursor/skills/verify-sleepysquid-drones/scripts/doctor.mjs
 
 One read-only pass. It reads `/proc/<pid>/environ` for the process launch recorded and fails unless the URL is loopback, the keys are the placeholders above, `ADMIN_EMAILS` is `verify-admin@example.test`, and the environment contains no `etbesmtdsjlmadaexvrv`, `supabase.co`, `sk_live_`, `rk_live_`, Resend, Mailgun, or Stripe key. It then checks:
 
-- `GET /` is 200 and contains the hero, the six pricing names (including Roof & Property Condition and Construction Progress), the roof photos-only line, and `#service` / `#package`
+- `GET /` is 200 and contains the DMV hero (`Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`), the six pricing names (including Roof & Property Condition and Construction Progress), the roof photos-only line, and `#service` / `#package`. It does not publish `aggregateRating` or `streetAddress`.
+- `GET /robots.txt` and `GET /sitemap.xml` are 200. The sitemap lists `/`, the five `/services/*` pages, and `/dc-frz-airspace`. Those pages are 200 and include their prices or, on the airspace page, the line that SleepySquid does not offer same-day flights inside the FRZ.
 - `GET /api/health/database` is 503 and not `connected` or `healthy`
 - `GET /api/promo/active` is not 200
 - `GET /dashboard` redirects to `/login`

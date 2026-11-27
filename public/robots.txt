@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /api
+Disallow: /dashboard
+Disallow: /preview
+Disallow: /login
+Disallow: /signup
+Disallow: /invite
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /access-denied
+
+Sitemap: https://drones.sleepysquid.com/sitemap.xml

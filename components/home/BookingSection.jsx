@@ -23,8 +23,8 @@ const services = [
 const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect, referralDiscount = null }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    service: '',
-    package: '',
+    service: selectedService,
+    package: selectedPackage,
     date: '',
     location: '',
     placeId: '',
