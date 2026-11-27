@@ -21,6 +21,31 @@ export const BOOKING_SERVICES = [
   { id: "custom", name: "Custom Project" },
 ];
 
+/** Shown on the roof card and again when that package is selected. Photos only. */
+export const ROOF_DISCLAIMER_LINES = [
+  "Photos only — not a licensed roof inspection, damage diagnosis, claim opinion, thermal scan, or roof measurement report.",
+  "Multi-building properties by quote; no towers, power lines, or utility infrastructure; return visits are a separate booking.",
+  "Add-ons (raw files, next-day delivery, short video, extra travel) on request.",
+];
+
+const ROOF_DETAILS = [
+  "20–30 edited high-resolution photos of one structure",
+  "Roof planes, ridges/valleys, gutters, flashing, chimneys/vents, and four-side elevations",
+  "Labeled N/S/E/W in a download folder",
+  "48-hour delivery",
+  "Travel within 25 miles of Burtonsville, MD",
+  "Commercial use license",
+  "Certificate of Insurance ($1M liability) on request",
+];
+
+const CONSTRUCTION_DETAILS = [
+  "20–30 edited photos per visit from repeatable GPS points and altitudes",
+  "1 overhead overview",
+  "Dated folder within 48 hours",
+  "Commercial use license",
+  "Certificate of Insurance ($1M liability) on request",
+];
+
 export const BOOKING_PACKAGES = [
   {
     id: "listing-photos",
@@ -50,6 +75,39 @@ export const BOOKING_PACKAGES = [
     name: "Mapping & 3D",
     quote: true,
     details: ["By quote"],
+  },
+  {
+    id: "roof-property-condition",
+    basePrice: 249,
+    name: "Roof & Property Condition",
+    quote: false,
+    billing: "structure",
+    details: ROOF_DETAILS,
+    disclaimer: ROOF_DISCLAIMER_LINES,
+  },
+  {
+    id: "construction-single-visit",
+    basePrice: 350,
+    name: "Construction Progress (single visit)",
+    quote: false,
+    billing: "visit",
+    details: CONSTRUCTION_DETAILS,
+  },
+  {
+    id: "construction-monthly-2",
+    basePrice: 650,
+    name: "Construction Progress (2 visits/mo)",
+    quote: false,
+    billing: "month",
+    details: CONSTRUCTION_DETAILS,
+  },
+  {
+    id: "construction-monthly-4",
+    basePrice: 1200,
+    name: "Construction Progress (4 visits/mo)",
+    quote: false,
+    billing: "month",
+    details: CONSTRUCTION_DETAILS,
   },
 ];
 
@@ -108,13 +166,48 @@ export function availablePackages() {
   return BOOKING_PACKAGES;
 }
 
+/** Query values from a service-page book link. Unknown ids are dropped. */
+export function publicBookingSelection(query = {}) {
+  const service = typeof query?.service === "string" ? query.service : "";
+  const packageId = typeof query?.package === "string" ? query.package : "";
+  return {
+    service: BOOKING_SERVICES.some((item) => item.id === service) ? service : "",
+    packageId: BOOKING_PACKAGES.some((item) => item.id === packageId) ? packageId : "",
+  };
+}
+
+/** Homepage booking form with a package already selected. */
+export function bookingHref(service, packageId) {
+  const params = new URLSearchParams();
+  if (service) params.set("service", service);
+  if (packageId) params.set("package", packageId);
+  const query = params.toString();
+  return `/${query ? `?${query}` : ""}#booking`;
+}
+
+const PRICE_SUFFIX_BY_BILLING = {
+  structure: " per structure",
+  visit: "/visit",
+  month: "/mo",
+};
+
+/** Unit after the dollar amount. Empty for project prices and quote packages. */
+export function packagePriceSuffix(pkgOrId) {
+  const pkg = typeof pkgOrId === "string"
+    ? BOOKING_PACKAGES.find((item) => item.id === pkgOrId)
+    : pkgOrId;
+  if (!pkg || pkg.quote) return "";
+  return PRICE_SUFFIX_BY_BILLING[pkg.billing] || "";
+}
+
 export function packageMenuLabel(pkg, discounted) {
   const from = pkg.quote ? "from " : "";
+  const suffix = packagePriceSuffix(pkg);
   const list = formatReferralDollars(pkg.basePrice);
   if (discounted != null && discounted < pkg.basePrice) {
-    return `${pkg.name} - ${from}$${formatReferralDollars(discounted)} (was $${list})`;
+    return `${pkg.name} - ${from}$${formatReferralDollars(discounted)}${suffix} (was $${list}${suffix})`;
   }
-  return `${pkg.name} - ${from}$${list}`;
+  return `${pkg.name} - ${from}$${list}${suffix}`;
 }
 
 /** Fixed project price, or the from-price minimum for a quote package. */
@@ -150,7 +243,9 @@ export function formatBookingPrice(packageId, estimatedPrice, finalPrice) {
   const from = !hasFinal && isQuotePackage(packageId) ? "from " : "";
   const numeric = Number(amount);
   const shown = Number.isFinite(numeric) ? numeric.toLocaleString("en-US") : String(amount);
-  return `${from}$${shown}`;
+  // A typed final price is the amount charged for that booking, so the catalog unit stays off it.
+  const suffix = hasFinal ? "" : packagePriceSuffix(packageId);
+  return `${from}$${shown}${suffix}`;
 }
 
 export function minBookingDateTime(now = Date.now()) {

@@ -9,12 +9,13 @@ import PricingSection from '@/components/home/PricingSection';
 import BookingSection from '@/components/home/BookingSection';
 import ContactSection from '@/components/home/ContactSection';
 import { renderSchemaTags } from '@/libs/seo';
+import { publicBookingSelection } from '@/libs/manualBooking';
 import { resolvePublicReferralDiscount } from '@/libs/referrals.mjs';
 import { getActivePromo } from '@/libs/db/promos';
 
-export default function Home({ referralDiscount = null }) {
-  const [selectedService, setSelectedService] = useState('');
-  const [selectedPackage, setSelectedPackage] = useState('');
+export default function Home({ referralDiscount = null, initialService = '', initialPackage = '' }) {
+  const [selectedService, setSelectedService] = useState(initialService);
+  const [selectedPackage, setSelectedPackage] = useState(initialPackage);
 
   const handleServiceSelect = (serviceId) => {
     setSelectedService(serviceId);
@@ -43,8 +44,9 @@ export default function Home({ referralDiscount = null }) {
   return (
     <>
       <Head>
-        <title>SleepySquid Drones | Professional Drone Services</title>
-        <meta name="description" content="Professional drone services for aerial photography, videography, and mapping. FAA Part 107 Certified & Insured, with $1M liability coverage." />
+        <title>SleepySquid Drones | Drone Photography &amp; Aerial Video in Washington, DC, MD &amp; VA</title>
+        <meta name="description" content="Drone photography and aerial video in Washington, DC, Maryland, and Virginia. Flyable Maryland and Virginia suburbs, plus authorized DC operations. FAA Part 107 Certified & Insured, with $1M liability coverage." />
+        <link rel="canonical" href="https://drones.sleepysquid.com/" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       {renderSchemaTags()}
@@ -74,5 +76,12 @@ export async function getServerSideProps({ req, query }) {
     query,
     getPromo: () => getActivePromo(),
   });
-  return { props: { referralDiscount } };
+  const selection = publicBookingSelection(query);
+  return {
+    props: {
+      referralDiscount,
+      initialService: selection.service,
+      initialPackage: selection.packageId,
+    },
+  };
 } 

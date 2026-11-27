@@ -51,6 +51,13 @@ test("booking menu labels keep whole promo dollars and show referral cents", () 
   assert.equal(packageMenuLabel(event, null), "Event Aerials - from $500");
   assert.equal(packageMenuLabel(event, 450), "Event Aerials - from $450 (was $500)");
   assert.equal(packageMenuLabel({ name: "Mapping & 3D", basePrice: 900, quote: true }, 810), "Mapping & 3D - from $810 (was $900)");
+  assert.equal(packageMenuLabel({ name: "Roof & Property Condition", basePrice: 249, quote: false, billing: "structure" }, null), "Roof & Property Condition - $249 per structure");
+  assert.equal(packageMenuLabel({ name: "Roof & Property Condition", basePrice: 249, quote: false, billing: "structure" }, 224.1), "Roof & Property Condition - $224.10 per structure (was $249 per structure)");
+  assert.equal(packageMenuLabel({ name: "Construction Progress (single visit)", basePrice: 350, quote: false, billing: "visit" }, null), "Construction Progress (single visit) - $350/visit");
+  assert.equal(packageMenuLabel({ name: "Construction Progress (2 visits/mo)", basePrice: 650, quote: false, billing: "month" }, 585), "Construction Progress (2 visits/mo) - $585/mo (was $650/mo)");
+  assert.equal(packageMenuLabel({ name: "Construction Progress (4 visits/mo)", basePrice: 1200, quote: false, billing: "month" }, null), "Construction Progress (4 visits/mo) - $1,200/mo");
+  assert.equal(formatReferralDollars(1200), "1,200");
+  assert.equal(formatReferralDollars(1080), "1,080");
 });
 
 function mockFetch(handler) {

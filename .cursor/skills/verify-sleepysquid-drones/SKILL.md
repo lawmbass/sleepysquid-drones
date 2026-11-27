@@ -45,7 +45,8 @@ node .cursor/skills/verify-sleepysquid-drones/scripts/doctor.mjs
 
 One read-only pass. It reads `/proc/<pid>/environ` for the process launch recorded and fails unless the URL is loopback, the keys are the placeholders above, `ADMIN_EMAILS` is `verify-admin@example.test`, and the environment contains no `etbesmtdsjlmadaexvrv`, `supabase.co`, `sk_live_`, `rk_live_`, Resend, Mailgun, or Stripe key. It then checks:
 
-- `GET /` is 200 and contains the hero, the four pricing names, and `#service` / `#package`
+- `GET /` is 200 and contains the DMV hero (`Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`), the six pricing names (including Roof & Property Condition and Construction Progress), the roof photos-only line, and `#service` / `#package`. It does not publish `aggregateRating` or `streetAddress`.
+- `GET /robots.txt` and `GET /sitemap.xml` are 200. The sitemap lists `/`, the five `/services/*` pages, and `/dc-frz-airspace`. Those pages are 200 and include their prices or, on the airspace page, the line that SleepySquid does not offer same-day flights inside the FRZ.
 - `GET /api/health/database` is 503 and not `connected` or `healthy`
 - `GET /api/promo/active` is not 200
 - `GET /dashboard` redirects to `/login`
@@ -66,7 +67,7 @@ Drive the public pricing path with the harness. It is the journey a visitor can 
 node .cursor/skills/verify-sleepysquid-drones/scripts/drive-pricing.mjs
 ```
 
-The script uses system Chrome (`CHROME_PATH`, default `/usr/local/bin/google-chrome`) through `puppeteer-core`, installed on first run under `/tmp/verify-sleepysquid-drones/tools`. It waits for `domcontentloaded`. `networkidle` does not settle under `next dev` because the hot-reload socket stays open. It opens `http://127.0.0.1:3456/`, clicks the nav link `a[href="/#pricing"]`, and checks the `#pricing` cards: Listing Photos (`$199`), Listing Photos + Video (badge `Best for listings`), Event Aerials (`from $500`), Mapping & 3D (`$900`), plus `48-hour delivery` and `Travel fees may apply`. It clicks the `Book This Package` button in the card whose `h3` text is exactly `Listing Photos`.
+The script uses system Chrome (`CHROME_PATH`, default `/usr/local/bin/google-chrome`) through `puppeteer-core`, installed on first run under `/tmp/verify-sleepysquid-drones/tools`. It waits for `domcontentloaded`. `networkidle` does not settle under `next dev` because the hot-reload socket stays open. It opens `http://127.0.0.1:3456/`, clicks the nav link `a[href="/#pricing"]`, and checks the `#pricing` cards: Listing Photos (`$199`), Listing Photos + Video (badge `Best for listings`), Event Aerials (`from $500`), Mapping & 3D (`$900`), Roof & Property Condition (`$249` per structure, with the photos-only disclaimer), and Construction Progress (`$350/visit`, `$650/mo` for 2 visits, `$1,200/mo` for 4 visits), plus `48-hour delivery` and `Travel fees may apply`. It clicks Book on Roof & Property Condition and expects `#service=inspection`, `#package=roof-property-condition`, and the photos-only disclaimer in `#booking`. It then chooses 2 visits/mo on Construction Progress and expects `#package=construction-monthly-2`. It clicks the `Book This Package` button in the card whose `h3` text is exactly `Listing Photos`.
 
 Resulting state, still on step 1 of `#booking`:
 

@@ -10,6 +10,8 @@ const {
   formatBookingPrice,
   isQuotePackage,
   packageLabel,
+  packageMenuLabel,
+  packagePriceSuffix,
   bookingSourceLabel,
   isMissionSource,
   jobIsMission,
@@ -89,18 +91,42 @@ assert.equal(estimatedPriceForPackage("premium"), 799);
 assert.equal(estimatedPriceForPackage("basic"), 199);
 assert.equal(estimatedPriceForPackage("standard"), 399);
 assert.equal(estimatedPriceForPackage("unknown"), null);
+assert.equal(estimatedPriceForPackage("roof-property-condition"), 249);
+assert.equal(estimatedPriceForPackage("construction-single-visit"), 350);
+assert.equal(estimatedPriceForPackage("construction-monthly-2"), 650);
+assert.equal(estimatedPriceForPackage("construction-monthly-4"), 1200);
 assert.equal(packageLabel("listing-video"), "Listing Photos + Video");
 assert.equal(packageLabel("mapping-3d"), "Mapping & 3D");
 assert.equal(packageLabel("basic"), "Basic (previous tier)");
 assert.equal(packageLabel("standard"), "Standard (previous tier)");
 assert.equal(packageLabel("premium"), "Premium (previous tier)");
+assert.equal(packageLabel("roof-property-condition"), "Roof & Property Condition");
+assert.equal(packageLabel("construction-single-visit"), "Construction Progress (single visit)");
+assert.equal(packageLabel("construction-monthly-2"), "Construction Progress (2 visits/mo)");
+assert.equal(packageLabel("construction-monthly-4"), "Construction Progress (4 visits/mo)");
 assert.equal(isQuotePackage("event-aerials"), true);
 assert.equal(isQuotePackage("listing-photos"), false);
 assert.equal(isQuotePackage("premium"), false);
+assert.equal(isQuotePackage("roof-property-condition"), false);
+assert.equal(isQuotePackage("construction-monthly-2"), false);
 assert.equal(formatBookingPrice("event-aerials", 500, null), "from $500");
 assert.equal(formatBookingPrice("event-aerials", 500, 650), "$650");
 assert.equal(formatBookingPrice("listing-photos", 199, null), "$199");
 assert.equal(formatBookingPrice("premium", 799, null), "$799");
+assert.equal(formatBookingPrice("roof-property-condition", 249, null), "$249 per structure");
+assert.equal(formatBookingPrice("construction-single-visit", 350, null), "$350/visit");
+assert.equal(formatBookingPrice("construction-monthly-2", 650, null), "$650/mo");
+assert.equal(formatBookingPrice("construction-monthly-4", 1200, null), "$1,200/mo");
+assert.equal(formatBookingPrice("construction-monthly-2", 650, 700), "$700");
+assert.equal(packagePriceSuffix("listing-photos"), "");
+assert.equal(packagePriceSuffix("roof-property-condition"), " per structure");
+assert.equal(packagePriceSuffix("construction-single-visit"), "/visit");
+assert.equal(packagePriceSuffix("construction-monthly-4"), "/mo");
+assert.equal(packageMenuLabel({ name: "Construction Progress (2 visits/mo)", basePrice: 650, quote: false, billing: "month" }, null), "Construction Progress (2 visits/mo) - $650/mo");
+assert.equal(packageMenuLabel({ name: "Construction Progress (4 visits/mo)", basePrice: 1200, quote: false, billing: "month" }, 1080), "Construction Progress (4 visits/mo) - $1,080/mo (was $1,200/mo)");
+assert.equal(packageMenuLabel({ name: "Roof & Property Condition", basePrice: 249, quote: false, billing: "structure" }, null), "Roof & Property Condition - $249 per structure");
+assert.equal(validateManualBooking(payload({ service: "inspection", package: "roof-property-condition" }), now).ok, true);
+assert.equal(validateManualBooking(payload({ service: "inspection", package: "construction-monthly-4" }), now).value.package, "construction-monthly-4");
 assert.equal(validateManualBooking(payload({ service: "real-estate", package: "" }), now).value.package, null);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(201) }), now).ok, false);
 assert.equal(validateManualBooking(payload({ location: "x".repeat(200) }), now).ok, true);
@@ -136,6 +162,10 @@ assert.deepEqual(availablePackages().map((pkg) => pkg.id), [
   "listing-video",
   "event-aerials",
   "mapping-3d",
+  "roof-property-condition",
+  "construction-single-visit",
+  "construction-monthly-2",
+  "construction-monthly-4",
 ]);
 
 assert.equal(isMissionSource("manual"), false);
@@ -200,6 +230,7 @@ assert.doesNotMatch(createApi, /estimatedPrice/);
 assert.doesNotMatch(createApi, /recaptcha/i);
 
 const form = fs.readFileSync(new URL("../components/admin/AddBookingForm.jsx", import.meta.url), "utf8");
+assert.match(form, /packageMenuLabel/);
 assert.match(form, /\/api\/admin\/bookings\/create/);
 assert.match(form, /onCreated/);
 assert.doesNotMatch(form, /recaptcha/i);

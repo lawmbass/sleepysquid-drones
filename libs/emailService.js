@@ -1,7 +1,7 @@
 import config from "@/config";
 import { sendEmail } from "@/libs/mailgun";
 import { buildBookingEmail } from "@/libs/droneEmails.mjs";
-import { isQuotePackage, packageLabel } from "@/libs/manualBooking";
+import { formatBookingPrice, packageLabel } from "@/libs/manualBooking";
 
 /**
  * Sends a booking confirmation email to the customer
@@ -22,7 +22,7 @@ export const sendBookingConfirmationEmail = async (booking, options = {}) => {
   const serviceDisplayName = booking.service.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   const packageDisplayName = booking.package ? packageLabel(booking.package) : null;
   const estimatedPriceLabel = booking.estimatedPrice
-    ? `${isQuotePackage(booking.package) ? "from " : ""}$${booking.estimatedPrice}`
+    ? formatBookingPrice(booking.package, booking.estimatedPrice, null)
     : null;
   const formattedDate = new Date(booking.date).toLocaleDateString('en-US', {
     year: 'numeric',

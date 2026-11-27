@@ -39,9 +39,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# public
-public/robots.txt
-public/sitemap.xml
+# next-sitemap index output. robots.txt and sitemap.xml are committed.
 public/sitemap-0.xml
 
 # Security - sensitive files

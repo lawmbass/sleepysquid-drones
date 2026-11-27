@@ -259,7 +259,8 @@ html:not(.dark) .dsq-drone{filter:drop-shadow(0 6px 10px rgba(15,47,79,.25))}
  52%{transform:rotate(12deg)}64%{transform:rotate(8deg)}76%{transform:rotate(-6deg)}86%{transform:rotate(-8deg)}94%,100%{transform:rotate(0)}}
 @keyframes dsqWaves{0%,8%{opacity:1}12%,90%{opacity:0}96%,100%{opacity:1}}
 @media (max-width:767px){
- .dsq-stage{width:130px;margin-top:1.5rem}
+ /* The drone rests above the squid (top: -24%). Extra margin keeps that rest position clear of the buttons. */
+ .dsq-stage{width:130px;margin-top:5.5rem}
  .dsq-fly{animation-name:dsqFlyM;margin-top:0}
  .dsq-waves{margin-top:0}
  @keyframes dsqFlyM{

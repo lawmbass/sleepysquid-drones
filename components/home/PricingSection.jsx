@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCheck, FiGift } from 'react-icons/fi';
 import ReferralPrice from '@/components/home/ReferralPrice';
+import { ROOF_DISCLAIMER_LINES } from '@/libs/manualBooking';
 import { REFERRAL_DISPLAY_PERCENT, REFERRAL_INVOICE_NOTE } from '@/libs/referralPrice.mjs';
 
 const pricingPlans = [
@@ -17,6 +19,7 @@ const pricingPlans = [
       '48-hour delivery',
     ],
     quote: false,
+    pageHref: '/services/real-estate-drone-photography',
   },
   {
     id: 'listing-video',
@@ -31,6 +34,7 @@ const pricingPlans = [
     ],
     quote: false,
     badge: 'Best for listings',
+    pageHref: '/services/real-estate-drone-photography',
   },
   {
     id: 'event-aerials',
@@ -43,6 +47,7 @@ const pricingPlans = [
       'Priced by event',
     ],
     quote: true,
+    pageHref: '/services/event-aerials',
   },
   {
     id: 'mapping-3d',
@@ -54,10 +59,52 @@ const pricingPlans = [
       'By quote',
     ],
     quote: true,
+    pageHref: '/services/mapping-3d',
+  },
+  {
+    id: 'roof-property-condition',
+    name: 'Roof & Property Condition',
+    price: 249,
+    priceSuffix: ' per structure',
+    priceNote: 'Flat rate.',
+    serviceId: 'inspection',
+    description: 'Flat rate for one structure. Edited photos, delivered in 48 hours.',
+    features: [
+      '20–30 edited high-resolution photos of one structure',
+      'Roof planes, ridges/valleys, gutters, flashing, chimneys/vents, and four-side elevations',
+      'Labeled N/S/E/W in a download folder',
+      '48-hour delivery',
+      'Travel within 25 miles of Burtonsville, MD',
+      'Commercial use license',
+      'Certificate of Insurance ($1M liability) on request',
+    ],
+    disclaimer: ROOF_DISCLAIMER_LINES,
+    quote: false,
+    pageHref: '/services/roof-property-condition',
+  },
+  {
+    id: 'construction-progress',
+    name: 'Construction Progress',
+    serviceId: 'inspection',
+    description: 'Repeatable progress photos. One visit, or 2 or 4 visits a month.',
+    options: [
+      { id: 'construction-single-visit', label: 'Single visit', price: 350, suffix: '/visit' },
+      { id: 'construction-monthly-2', label: '2 visits/mo', price: 650, suffix: '/mo' },
+      { id: 'construction-monthly-4', label: '4 visits/mo', price: 1200, suffix: '/mo' },
+    ],
+    features: [
+      '20–30 edited photos per visit from repeatable GPS points and altitudes',
+      '1 overhead overview',
+      'Dated folder within 48 hours',
+      'Commercial use license',
+      'Certificate of Insurance ($1M liability) on request',
+    ],
+    quote: false,
+    pageHref: '/services/construction-progress',
   },
 ];
 
-const addOns = ['Raw files', 'Next-day delivery', 'Longer video edits'];
+const addOns = ['Raw files', 'Next-day delivery', 'Longer video edits', 'Short video', 'Extra travel'];
 
 const PricingSection = ({ onPackageSelect, referralDiscount = null }) => {
   const [ref, inView] = useInView({
@@ -119,7 +166,7 @@ const PricingSection = ({ onPackageSelect, referralDiscount = null }) => {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">Simple, Transparent Pricing</h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Listing photos, photo and video, events, and mapping. Travel fees may apply.
+            Listing photos, photo and video, roof and property condition, construction progress, events, and mapping. Travel fees may apply.
           </p>
           
           {activePromo && (
@@ -148,7 +195,7 @@ const PricingSection = ({ onPackageSelect, referralDiscount = null }) => {
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-6xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
         >
           {pricingPlans.map((plan) => (
             <PricingCard 
@@ -195,18 +242,50 @@ const PricingSection = ({ onPackageSelect, referralDiscount = null }) => {
   );
 };
 
+function dollars(amount) {
+  return Number(amount).toLocaleString("en-US");
+}
+
+function OptionPrice({ price, suffix, activePromo, calculateDiscountedPrice, showReferral }) {
+  if (activePromo) {
+    const discounted = calculateDiscountedPrice(price);
+    return (
+      <span className="text-right">
+        <span className="block text-sm text-gray-500 line-through dark:text-gray-400">${dollars(price)}{suffix}</span>
+        <span className="block text-xl font-bold text-gray-900 dark:text-white">${dollars(discounted)}{suffix}</span>
+        <span className="block text-sm font-medium text-green-600 dark:text-green-400">Save ${price - discounted}</span>
+      </span>
+    );
+  }
+  if (showReferral) {
+    return (
+      <span className="text-xl">
+        <ReferralPrice price={price} quote={false} percent={REFERRAL_DISPLAY_PERCENT} size="inline" suffix={suffix} />
+      </span>
+    );
+  }
+  return (
+    <span className="text-xl font-bold text-gray-900 dark:text-white">${dollars(price)}{suffix}</span>
+  );
+}
+
 const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDiscountedPrice, showReferral }) => {
+  const [selectedOptionId, setSelectedOptionId] = useState(plan.options?.[0]?.id || "");
+  const priceSuffix = plan.priceSuffix || "";
+
   const handleBookPackage = (e) => {
     e.preventDefault();
-    if (onPackageSelect) {
-      onPackageSelect(plan.serviceId, plan.id);
-    }
+    if (!onPackageSelect) return;
+    const packageId = plan.options
+      ? (plan.options.find((option) => option.id === selectedOptionId)?.id || plan.options[0].id)
+      : plan.id;
+    onPackageSelect(plan.serviceId, packageId);
   };
 
   return (
     <motion.div 
       variants={variants}
-      className={`bg-white dark:bg-gray-700 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-gray-900/50 transition-all duration-300 border ${
+      className={`bg-white dark:bg-gray-700 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-gray-900/50 transition-all duration-300 border h-full flex flex-col ${
         plan.badge ? 'border-blue-500 dark:border-blue-400' : 'border-transparent'
       }`}
     >
@@ -216,48 +295,92 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
         </div>
       )}
       
-      <div className="p-8">
+      <div className="p-8 flex flex-1 flex-col">
         <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{plan.name}</h3>
         <p className="text-gray-600 dark:text-gray-300 mb-6">{plan.description}</p>
         
-        <div className="mb-6">
-          {activePromo ? (
-            <div className="text-center">
-              <div className="text-gray-500 dark:text-gray-400 line-through text-lg">
-                {plan.quote ? 'from ' : ''}${plan.price}
-              </div>
-              <div className="text-4xl font-bold text-gray-900 dark:text-white">
-                {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
-                ${calculateDiscountedPrice(plan.price)}
-              </div>
-              <div className="text-green-600 dark:text-green-400 font-medium">
-                Save ${plan.price - calculateDiscountedPrice(plan.price)}
-              </div>
-              {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400 text-sm">/ project</span>}
+        {plan.options ? (
+          <fieldset className="mb-6">
+            <legend className="sr-only">{plan.name} price</legend>
+            <div className="space-y-3">
+              {plan.options.map((option) => (
+                <label key={option.id} className="flex cursor-pointer items-start justify-between gap-3">
+                  <span className="flex items-start gap-2">
+                    <input
+                      type="radio"
+                      name={`${plan.id}-price`}
+                      value={option.id}
+                      checked={selectedOptionId === option.id}
+                      onChange={() => setSelectedOptionId(option.id)}
+                      className="mt-1"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                  </span>
+                  <OptionPrice
+                    price={option.price}
+                    suffix={option.suffix}
+                    activePromo={activePromo}
+                    calculateDiscountedPrice={calculateDiscountedPrice}
+                    showReferral={showReferral}
+                  />
+                </label>
+              ))}
             </div>
-          ) : showReferral ? (
-            <ReferralPrice price={plan.price} quote={plan.quote} percent={REFERRAL_DISPLAY_PERCENT} />
-          ) : (
-            <>
-              {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
-              <span className="text-4xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
-              {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400"> / project</span>}
-            </>
-          )}
-        </div>
+          </fieldset>
+        ) : (
+          <div className="mb-6">
+            {activePromo ? (
+              <div className="text-center">
+                <div className="text-gray-500 dark:text-gray-400 line-through text-lg">
+                  {plan.quote ? 'from ' : ''}${dollars(plan.price)}
+                </div>
+                <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                  {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
+                  ${dollars(calculateDiscountedPrice(plan.price))}
+                </div>
+                <div className="text-green-600 dark:text-green-400 font-medium">
+                  Save ${plan.price - calculateDiscountedPrice(plan.price)}
+                </div>
+                {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400 text-sm">{priceSuffix || "/ project"}</span>}
+                {plan.priceNote ? <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{plan.priceNote}</p> : null}
+              </div>
+            ) : showReferral ? (
+              <div>
+                <ReferralPrice price={plan.price} quote={plan.quote} percent={REFERRAL_DISPLAY_PERCENT} suffix={priceSuffix} />
+                {plan.priceNote ? <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{plan.priceNote}</p> : null}
+              </div>
+            ) : (
+              <>
+                {plan.quote ? <span className="text-lg font-medium text-gray-500 dark:text-gray-400">from </span> : null}
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">${dollars(plan.price)}</span>
+                {plan.quote ? null : <span className="text-gray-500 dark:text-gray-400">{priceSuffix || " / project"}</span>}
+                {plan.priceNote ? <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{plan.priceNote}</p> : null}
+              </>
+            )}
+          </div>
+        )}
         
-        <ul className="space-y-3 mb-8">
+        <ul className="space-y-3 mb-6">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-start">
-              <FiCheck className="text-green-500 dark:text-green-400 mt-1 mr-2" />
+              <FiCheck className="text-green-500 dark:text-green-400 mt-1 mr-2 flex-shrink-0" />
               <span className="text-gray-700 dark:text-gray-300">{feature}</span>
             </li>
           ))}
         </ul>
+
+        {plan.disclaimer?.length ? (
+          <div className="mb-8 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+            {plan.disclaimer.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        ) : null}
         
         <button 
+          type="button"
           onClick={handleBookPackage}
-          className={`block w-full text-center py-3 px-6 rounded-full font-medium transition-colors ${
+          className={`mt-auto block w-full text-center py-3 px-6 rounded-full font-medium transition-colors ${
             plan.badge
               ? 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700' 
               : 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
@@ -265,6 +388,11 @@ const PricingCard = ({ plan, variants, onPackageSelect, activePromo, calculateDi
         >
           Book This Package
         </button>
+        {plan.pageHref ? (
+          <Link href={plan.pageHref} className="mt-4 block text-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Service details
+          </Link>
+        ) : null}
       </div>
     </motion.div>
   );

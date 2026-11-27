@@ -94,12 +94,8 @@ const sanitizeURL = (url) => {
   }
 };
 
-// Strctured Data for Rich Results on Google. Learn more: https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data
-// Find your type here (SoftwareApp, Book...): https://developers.google.com/search/docs/appearance/structured-data/search-gallery
-// Use this tool to check data is well structure: https://search.google.com/test/rich-results
-// You don't have to use this component, but it increase your chances of having a rich snippet on Google.
-// I recommend this one below to your /page.js for software apps: It tells Google your AppName is a Software, and it has a rating of 4.8/5 from 12 reviews.
-// Fill the fields with your own data
+// Structured data for the public homepage. LocalBusiness only.
+// Do not add aggregateRating or a review count. Do not add streetAddress.
 // SEO configuration for SleepySquid Drones
 export const renderSchemaTags = () => {
   // Sanitize all config values to prevent XSS
@@ -110,29 +106,34 @@ export const renderSchemaTags = () => {
   // Validate and sanitize URLs
   const safeImageURL = sanitizeURL(`https://${safeDomainName}/icon.png`);
   const safeAppURL = sanitizeURL(`https://${safeDomainName}/`);
-  
+
+  // Service-area business: do not add streetAddress. No iPostal1 box and no residential address.
+  // Future business line: add telephone only after a public number is confirmed, as a tel:+1XXXXXXXXXX link.
+  // Never publish a personal mobile number.
   const schemaData = {
-          "@context": "http://schema.org",
-          "@type": "LocalBusiness",
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
     "@id": safeAppURL,
     name: safeAppName,
     description: safeAppDescription,
     image: safeImageURL,
     url: safeAppURL,
-    serviceType: ["Drone Photography", "Aerial Videography", "Real Estate Photography", "Mapping Services"],
-    areaServed: "United States",
-          founder: {
-            "@type": "Person",
-            name: "Lawrence Bass",
-          },
-          datePublished: "2023-08-01",
-          priceRange: "$199-$900",
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: "4.9",
-            ratingCount: "27",
-          },
-          offers: [
+    serviceType: [
+      "Listing Photos",
+      "Listing Photos + Video",
+      "Roof & Property Condition",
+      "Construction Progress",
+      "Event Aerials",
+      "Mapping & 3D",
+    ],
+    areaServed: ["Washington, DC", "Maryland", "Virginia"],
+    founder: {
+      "@type": "Person",
+      name: "Lawrence Bass",
+    },
+    datePublished: "2023-08-01",
+    priceRange: "$199 - $1,200+",
+    offers: [
             {
               "@type": "Service",
               name: "Listing Photos",
@@ -160,6 +161,34 @@ export const renderSchemaTags = () => {
               price: "900.00",
               priceCurrency: "USD",
               description: "From $900, by quote"
+            },
+            {
+              "@type": "Service",
+              name: "Roof & Property Condition",
+              price: "249.00",
+              priceCurrency: "USD",
+              description: "$249 per structure, flat. 20–30 edited photos of one structure, 48-hour delivery. Photos only — not a licensed roof inspection, damage diagnosis, claim opinion, thermal scan, or roof measurement report."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (single visit)",
+              price: "350.00",
+              priceCurrency: "USD",
+              description: "$350 per visit. 20–30 edited photos from repeatable GPS points, plus 1 overhead overview, in a dated folder within 48 hours."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (2 visits/mo)",
+              price: "650.00",
+              priceCurrency: "USD",
+              description: "$650 per month for 2 visits. 20–30 edited photos per visit from repeatable GPS points, plus 1 overhead overview."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (4 visits/mo)",
+              price: "1200.00",
+              priceCurrency: "USD",
+              description: "$1,200 per month for 4 visits. 20–30 edited photos per visit from repeatable GPS points, plus 1 overhead overview."
             }
           ],
   };

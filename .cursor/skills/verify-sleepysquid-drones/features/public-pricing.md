@@ -4,12 +4,13 @@ Visitor-facing packages and the booking form on `/`.
 
 ## Sub-features
 
-- Four packages in `#pricing`: Listing Photos (`$199`, service `real-estate`, package `listing-photos`), Listing Photos + Video (`$399`, badge `Best for listings`, service `aerial-media`, package `listing-video`), Event Aerials (quote, `from $500`, service `event-coverage`, package `event-aerials`), Mapping & 3D (quote, `$900`, service `mapping-surveying`, package `mapping-3d`).
-- Add-ons line: Raw files, Next-day delivery, Longer video edits. Footer line on the section: `Travel fees may apply`.
+- Six packages in `#pricing`, in a `lg:grid-cols-3` grid: Listing Photos (`$199`, service `real-estate`, package `listing-photos`), Listing Photos + Video (`$399`, badge `Best for listings`, service `aerial-media`, package `listing-video`), Event Aerials (quote, `from $500`, service `event-coverage`, package `event-aerials`), Mapping & 3D (quote, `$900`, service `mapping-surveying`, package `mapping-3d`), Roof & Property Condition (`$249` per structure, flat, service `inspection`, package `roof-property-condition`, with the photos-only disclaimer on the card), Construction Progress (service `inspection`; one card with `construction-single-visit` at `$350/visit`, `construction-monthly-2` at `$650/mo`, and `construction-monthly-4` at `$1,200/mo`).
+- Add-ons line: Raw files, Next-day delivery, Longer video edits, Short video, Extra travel. Footer line on the section: `Travel fees may apply`.
 - `Book This Package` scrolls to `#booking` and sets `#service` and `#package`.
 - Booking steps: service and package, then `#date`, `#location` (US address autocomplete, which sets `placeId`), `#details`; step 2 is `#name`, `#email`, `#phone`; step 3 would show `Booking Submitted!` and a booking id.
 - Contact form in `#contact` (`Send Message`) emails the team. It stores nothing in the database.
-- Hero copy includes `FAA Part 107 Certified & Insured` and `$1M liability coverage`.
+- Hero copy includes `FAA Part 107 Certified & Insured` and `$1M liability coverage`, and the h1 is `Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`.
+- Dedicated pages linked from the services section, the footer, and each pricing card: `/services/real-estate-drone-photography`, `/services/roof-property-condition`, `/services/construction-progress`, `/services/event-aerials`, `/services/mapping-3d`, and `/dc-frz-airspace`. A book link opens `/?service=<id>&package=<id>#booking`.
 
 ## How to get to it (user POV)
 
@@ -21,7 +22,7 @@ Open the site root. In the desktop nav, choose Pricing (`a[href="/#pricing"]`) o
 node .cursor/skills/verify-sleepysquid-drones/scripts/drive-pricing.mjs
 ```
 
-That opens `/`, clicks `a[href="/#pricing"]`, asserts the four `h3` names and the price strings, then clicks `Book This Package` on the card whose heading is exactly `Listing Photos`. It expects `#service=real-estate`, `#package=listing-photos`, and a disabled `Next Step`. It fails if any request leaves the machine or uses a method other than GET or HEAD.
+That opens `/`, clicks `a[href="/#pricing"]`, and asserts the six `h3` names, the price strings, and the roof photos-only line. It clicks Book on Roof & Property Condition (`#service=inspection`, `#package=roof-property-condition`, disclaimer visible in `#booking`), then selects 2 visits/mo on Construction Progress (`#package=construction-monthly-2`), then clicks `Book This Package` on the card whose heading is exactly `Listing Photos`. It expects `#service=real-estate`, `#package=listing-photos`, and a disabled `Next Step`. It fails if any request leaves the machine or uses a method other than GET or HEAD.
 
 Copy that must stay off the page is enforced by `node scripts/check-public-copy.mjs` (doctor runs it). Public service ids in the form must stay in the bookings API allow-list: `node --test scripts/tests/public-forms.test.mjs`.
 
@@ -32,5 +33,5 @@ Do not click `Submit Booking` or `Send Message`. Both call routes that write or 
 - `POST /api/bookings` rate-limits, checks reCAPTCHA, inserts into `bookings`, and can send a confirmation. A missing `RESEND_API_KEY` does not skip the Resend HTTP call.
 - With no reCAPTCHA site key the contact form shows `reCAPTCHA is required but not configured` and does not submit. Do not add a site key to get past that.
 - `GET /api/promo/active` runs on load of the banner, pricing, and booking sections. On this empty instance it errors and no promo prices are shown. A 200 from that route means a database answered. Stop.
-- The homepage is still the right app when the hero says `Elevate Your Perspective with SleepySquid Drones`.
+- The homepage is still the right app when the hero says `Drone Photography & Aerial Video Across Washington, DC, Maryland & Virginia`.
 - `styles/globals.css` sets `scroll-behavior: smooth` on `html`. `scrollIntoView` then animates, and a screenshot taken immediately still shows the old position. Use `window.scrollTo({ top, behavior: "instant" })` or wait until the heading's `getBoundingClientRect().top` is inside the viewport. Pricing cards also stay at opacity 0 until they intersect the viewport.

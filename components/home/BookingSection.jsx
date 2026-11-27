@@ -23,8 +23,8 @@ const services = [
 const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceSelect, onPackageSelect, referralDiscount = null }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    service: '',
-    package: '',
+    service: selectedService,
+    package: selectedPackage,
     date: '',
     location: '',
     placeId: '',
@@ -635,6 +635,13 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                       {getAvailablePackages().find(pkg => pkg.id === formData.package)?.details?.join(' · ')}
                     </p>
                   )}
+                  {selectedBookingPackage?.disclaimer?.length ? (
+                    <div className="mt-2 space-y-1">
+                      {selectedBookingPackage.disclaimer.map((line) => (
+                        <p key={line} className="text-sm text-gray-600 dark:text-gray-300">{line}</p>
+                      ))}
+                    </div>
+                  ) : null}
                   {showReferral && selectedBookingPackage && (
                     <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
                       <ReferralPrice
@@ -1034,13 +1041,20 @@ const BookingSection = ({ selectedService = '', selectedPackage = '', onServiceS
                         <li key={detail}>• {detail}</li>
                       ))}
                     </ul>
+                    {pkg.disclaimer?.length ? (
+                      <div className="mt-3 space-y-1">
+                        {pkg.disclaimer.map((line) => (
+                          <p key={line} className="text-sm text-gray-600 dark:text-gray-300">{line}</p>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 lg:p-4 space-y-2">
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                  <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits.
+                  <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits, short video, extra travel.
                 </p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                   Travel fees may apply. Weather delays may affect delivery times.

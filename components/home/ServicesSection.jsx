@@ -1,9 +1,11 @@
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FiCamera, FiMap, FiHome, FiActivity, FiSearch } from 'react-icons/fi';
 import Image from 'next/image';
 import { blurProps } from './marketingImageBlur';
+import { SERVICE_NAV } from '@/libs/publicPages.mjs';
 
 const services = [
   {
@@ -34,7 +36,7 @@ const services = [
     id: 4,
     title: 'Inspection Services',
     serviceId: 'inspection',
-    description: 'Safe and efficient inspections of roofs, towers, power lines, and hard-to-reach infrastructure.',
+    description: 'Roof and property condition photos, and construction progress photos. Photos only, not a licensed inspection.',
     icon: <FiSearch className="text-4xl text-blue-500" />,
     image: '/images/service-inspection.jpg'
   },
@@ -96,6 +98,18 @@ const ServicesSection = ({ onServiceSelect }) => {
             <ServiceCard key={service.id} service={service} variants={itemVariants} onServiceSelect={onServiceSelect} />
           ))}
         </motion.div>
+
+        <nav aria-label="Service pages" className="max-w-3xl mx-auto mt-12 text-center">
+          <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            {SERVICE_NAV.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </section>
   );
