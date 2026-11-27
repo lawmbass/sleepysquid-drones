@@ -4,7 +4,7 @@ import BookingModal from './BookingModal';
 import { CancelGigButton, CancelStatusBadge } from './CancelGigModal';
 import { gigCardState } from '@/libs/jobs';
 import { normalizeServiceLine, SERVICE_LINES } from '@/libs/serviceLines';
-import { bookingSourceLabel, isQuotePackage, packageLabel } from '@/libs/manualBooking';
+import { bookingSourceLabel, isQuotePackage, packageLabel, packagePriceSuffix } from '@/libs/manualBooking';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -197,7 +197,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
               : booking.finalPrice 
                 ? `$${booking.finalPrice.toLocaleString()}` 
                 : booking.estimatedPrice 
-                  ? `${isQuotePackage(booking.package) ? "from $" : "~$"}${booking.estimatedPrice.toLocaleString()}` 
+                  ? `${isQuotePackage(booking.package) ? "from $" : "~$"}${booking.estimatedPrice.toLocaleString()}${packagePriceSuffix(booking.package)}` 
                   : 'TBD'
             }
           </span>
@@ -427,7 +427,7 @@ export default function BookingsList({ bookings = [], pagination = {}, loading, 
                             : booking.finalPrice 
                               ? booking.finalPrice.toLocaleString() 
                               : booking.estimatedPrice 
-                                ? `${isQuotePackage(booking.package) ? "from " : "~"}${booking.estimatedPrice.toLocaleString()}` 
+                                ? `${isQuotePackage(booking.package) ? "from " : "~"}${booking.estimatedPrice.toLocaleString()}${packagePriceSuffix(booking.package)}` 
                                 : 'TBD'
                           }
                         </div>

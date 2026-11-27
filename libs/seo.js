@@ -119,14 +119,14 @@ export const renderSchemaTags = () => {
     description: safeAppDescription,
     image: safeImageURL,
     url: safeAppURL,
-    serviceType: ["Drone Photography", "Aerial Videography", "Real Estate Photography", "Mapping Services"],
+    serviceType: ["Drone Photography", "Aerial Videography", "Real Estate Photography", "Roof and Property Photos", "Construction Progress Photos", "Mapping Services"],
     areaServed: "United States",
           founder: {
             "@type": "Person",
             name: "Lawrence Bass",
           },
           datePublished: "2023-08-01",
-          priceRange: "$199-$900",
+          priceRange: "$199-$1,200",
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: "4.9",
@@ -160,6 +160,34 @@ export const renderSchemaTags = () => {
               price: "900.00",
               priceCurrency: "USD",
               description: "From $900, by quote"
+            },
+            {
+              "@type": "Service",
+              name: "Roof & Property Condition",
+              price: "249.00",
+              priceCurrency: "USD",
+              description: "$249 per structure, flat. 20–30 edited photos of one structure, 48-hour delivery. Photos only — not a licensed roof inspection, damage diagnosis, claim opinion, thermal scan, or roof measurement report."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (single visit)",
+              price: "350.00",
+              priceCurrency: "USD",
+              description: "$350 per visit. 20–30 edited photos from repeatable GPS points, plus 1 overhead overview, in a dated folder within 48 hours."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (2 visits/mo)",
+              price: "650.00",
+              priceCurrency: "USD",
+              description: "$650 per month for 2 visits. 20–30 edited photos per visit from repeatable GPS points, plus 1 overhead overview."
+            },
+            {
+              "@type": "Service",
+              name: "Construction Progress (4 visits/mo)",
+              price: "1200.00",
+              priceCurrency: "USD",
+              description: "$1,200 per month for 4 visits. 20–30 edited photos per visit from repeatable GPS points, plus 1 overhead overview."
             }
           ],
   };

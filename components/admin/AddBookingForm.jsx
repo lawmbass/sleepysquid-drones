@@ -7,6 +7,7 @@ import {
   availablePackages,
   contactOptional,
   minBookingDateTime,
+  packageMenuLabel,
   validateManualBooking,
 } from "@/libs/manualBooking";
 import { SERVICE_LINES } from "@/libs/serviceLines";
@@ -47,6 +48,7 @@ export default function AddBookingForm({ onCreated }) {
   }, [open]);
 
   const packages = availablePackages(form.service);
+  const selectedPackage = packages.find((pkg) => pkg.id === form.package);
   const isDrone = form.serviceLine === "drones";
   const optionalNote = contactOptional(form.status) ? " (optional while Pending)" : "";
 
@@ -184,9 +186,12 @@ export default function AddBookingForm({ onCreated }) {
               >
                 <option value="">No package</option>
                 {packages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>{pkg.quote ? `${pkg.name} - from $${pkg.basePrice}` : `${pkg.name} - $${pkg.basePrice}`}</option>
+                  <option key={pkg.id} value={pkg.id}>{packageMenuLabel(pkg)}</option>
                 ))}
               </select>
+              {selectedPackage?.disclaimer?.map((line) => (
+                <p key={line} className="mt-2 text-sm text-gray-600 dark:text-gray-300">{line}</p>
+              ))}
               <FieldError message={errors.package} />
             </div>
             </>)}

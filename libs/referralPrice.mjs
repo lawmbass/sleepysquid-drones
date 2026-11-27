@@ -20,21 +20,23 @@ export function formatReferralDollars(amount) {
   const abs = Math.abs(cents);
   const whole = Math.trunc(abs / 100);
   const frac = abs % 100;
-  if (frac === 0) return `${sign}${whole}`;
-  return `${sign}${whole}.${String(frac).padStart(2, "0")}`;
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  if (frac === 0) return `${sign}${grouped}`;
+  return `${sign}${grouped}.${String(frac).padStart(2, "0")}`;
 }
 
-export function referralPriceCopy(price, { quote = false, percent = REFERRAL_DISPLAY_PERCENT } = {}) {
+export function referralPriceCopy(price, { quote = false, percent = REFERRAL_DISPLAY_PERCENT, suffix = "" } = {}) {
   const discounted = referralDiscountedAmount(price, percent);
   if (discounted == null) return null;
   const originalText = formatReferralDollars(price);
   const nowText = formatReferralDollars(discounted);
   const prefix = quote ? "from " : "";
+  const unit = suffix || "";
   return {
     discounted,
     originalText,
     nowText,
     prefix,
-    spoken: `Original price ${prefix}$${originalText}, now ${prefix}$${nowText}`,
+    spoken: `Original price ${prefix}$${originalText}${unit}, now ${prefix}$${nowText}${unit}`,
   };
 }

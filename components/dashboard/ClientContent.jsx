@@ -4,6 +4,18 @@ import { FiFileText, FiPlus, FiFolder, FiCheckCircle, FiClock, FiAlertCircle, Fi
 import Settings from './Settings';
 import { BOOKING_PACKAGES, formatBookingPrice, packageLabel, packageMenuLabel } from '@/libs/manualBooking';
 
+function PackageLimits({ packageId }) {
+  const lines = BOOKING_PACKAGES.find((pkg) => pkg.id === packageId)?.disclaimer;
+  if (!lines?.length) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {lines.map((line) => (
+        <p key={line} className="text-xs text-gray-600">{line}</p>
+      ))}
+    </div>
+  );
+}
+
 function packageChoices(currentPackage) {
   const choices = BOOKING_PACKAGES.map((pkg) => ({
     value: pkg.id,
@@ -502,6 +514,7 @@ export default function ClientContent({ user, onUpdate }) {
                     </option>
                   ))}
                 </select>
+                <PackageLimits packageId={createFormData.package} />
               </div>
             </div>
 
@@ -637,13 +650,16 @@ export default function ClientContent({ user, onUpdate }) {
                             <li key={detail}>• {detail}</li>
                           ))}
                         </ul>
+                        {pkg.disclaimer?.map((line) => (
+                          <p key={line} className="mt-2 text-sm text-gray-600">{line}</p>
+                        ))}
                       </div>
                     ))}
                   </div>
 
                   <div className="bg-gray-50 rounded-lg p-3 lg:p-4 space-y-2">
                     <p className="text-xs lg:text-sm text-gray-600">
-                      <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits.
+                      <strong>Add-ons on request:</strong> raw files, next-day delivery, longer video edits, short video, extra travel.
                     </p>
                     <p className="text-xs lg:text-sm text-gray-600">
                       Travel fees may apply. Weather delays may affect delivery times.
@@ -715,6 +731,7 @@ export default function ClientContent({ user, onUpdate }) {
                     </option>
                   ))}
                 </select>
+                <PackageLimits packageId={editFormData.package} />
               </div>
             </div>
 
